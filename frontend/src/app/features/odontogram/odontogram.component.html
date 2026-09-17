@@ -1,0 +1,85 @@
+<div class="odontogram-page">
+  <div class="toolbar">
+    <mat-button-toggle-group [value]="denture()" (change)="denture.set($event.value)">
+      <mat-button-toggle value="permanent">Dentición permanente</mat-button-toggle>
+      <mat-button-toggle value="temporary">Dentición temporal</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <span class="spacer"></span>
+
+    <button mat-button (click)="print()">
+      <mat-icon>print</mat-icon>
+      Imprimir
+    </button>
+    <button mat-button (click)="loadVersions()">
+      <mat-icon>history</mat-icon>
+      Historial de versiones
+    </button>
+  </div>
+
+  @if (viewingVersion(); as version) {
+    <div class="version-banner">
+      <mat-icon>visibility</mat-icon>
+      Viendo versión del {{ version.created_at | date: 'medium' }} (solo lectura)
+      <button mat-button (click)="backToCurrent()">Volver a la versión actual</button>
+    </div>
+  }
+
+  <app-odontogram-chart
+    [conditions]="viewingVersion() ? viewingVersion()!.conditions : draftConditions()"
+    [denture]="denture()"
+    [readonly]="!!viewingVersion()"
+    (surfaceClicked)="onSurfaceClicked($event)"
+    (toothClicked)="onToothClicked($event)"
+  ></app-odontogram-chart>
+
+  <div class="legend">
+    @for (item of legendItems; track item.code) {
+      <span class="legend-item">
+        <span class="legend-swatch" [style.background]="item.color === 'transparent' ? '#fff' : item.color"></span>
+        {{ item.label }}
+      </span>
+    }
+  </div>
+
+  @if (!viewingVersion()) {
+    <div class="actions">
+      <button mat-flat-button color="primary" *appHasPermission="'odontogram:write'" [disabled]="!dirty() || saving()" (click)="save()">
+        <mat-icon>save</mat-icon>
+        Guardar odontograma (nueva versión)
+      </button>
+      @if (dirty()) {
+        <button mat-button (click)="discardChanges()">Descartar cambios</button>
+      }
+    </div>
+  }
+
+  @if (showVersions()) {
+    <div class="versions-panel">
+      <h3>Historial de versiones</h3>
+      @for (v of versions(); track v.id) {
+        <button type="button" class="version-row" (click)="viewVersion(v.id)">
+          <span>{{ v.created_at | date: 'medium' }}</span>
+          <span class="version-type">{{ v.type === 'initial' ? 'Inicial' : 'Seguimiento' }}</span>
+        </button>
+      }
+    </div>
+  }
+</div>
+
+@if (picker(); as target) {
+  <div class="picker-overlay" (click)="closePicker()">
+    <div class="picker-panel" (click)="$event.stopPropagation()">
+      <h3>Pieza {{ target.fdi }} · {{ surfaceLabels[target.surface] }}</h3>
+      <div class="picker-options">
+        @for (option of pickerOptions(); track option.code) {
+          <button type="button" class="picker-option" (click)="chooseCondition(option.code)">
+            <span class="picker-swatch" [style.background]="option.color === 'transparent' ? '#fff' : option.color"></span>
+            {{ option.label }}
+          </button>
+        }
+      </div>
+      <button mat-button (click)="closePicker()">Cancelar</button>
+    </div>
+  </div>
+}

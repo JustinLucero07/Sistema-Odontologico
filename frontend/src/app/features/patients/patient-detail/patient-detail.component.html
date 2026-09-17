@@ -1,0 +1,259 @@
+@if (patient(); as p) {
+  <div class="page">
+    <mat-card class="quick-card">
+      <div class="quick-card-main">
+        <div class="avatar">{{ p.first_name.charAt(0) }}{{ p.last_name.charAt(0) }}</div>
+        <div>
+          <h1>{{ p.first_name }} {{ p.last_name }}</h1>
+          <p class="quick-meta">
+            @if (p.age !== null) {
+              {{ p.age }} años ·
+            }
+            {{ p.sex === 'F' ? 'Femenino' : p.sex === 'M' ? 'Masculino' : p.sex === 'O' ? 'Otro' : 'Sexo no registrado' }}
+            @if (p.national_id) {
+              · Cédula {{ p.national_id }}
+            }
+          </p>
+        </div>
+      </div>
+
+      <div class="quick-chips">
+        @if (latestHistory()?.allergies; as allergies) {
+          <mat-chip color="warn" highlighted>
+            <mat-icon>warning</mat-icon>
+            Alergias: {{ allergies }}
+          </mat-chip>
+        } @else {
+          <mat-chip>Sin alergias registradas</mat-chip>
+        }
+        <mat-chip>Próxima cita: disponible en Fase 5</mat-chip>
+        <mat-chip>Saldo: disponible en Fase 8</mat-chip>
+      </div>
+    </mat-card>
+
+    <mat-tab-group class="hub-tabs" animationDuration="0ms">
+      <mat-tab label="Ficha">
+        <div class="tab-content">
+          @if (!editingDemographics()) {
+            <mat-card class="info-card">
+              <div class="info-grid">
+                <div><span class="label">Teléfono</span><span>{{ p.phone || '—' }}</span></div>
+                <div><span class="label">WhatsApp</span><span>{{ p.whatsapp || '—' }}</span></div>
+                <div><span class="label">Correo</span><span>{{ p.email || '—' }}</span></div>
+                <div><span class="label">Dirección</span><span>{{ p.address || '—' }}</span></div>
+                <div><span class="label">Ciudad</span><span>{{ p.city || '—' }}</span></div>
+                <div><span class="label">Ocupación</span><span>{{ p.occupation || '—' }}</span></div>
+                <div><span class="label">Contacto de emergencia</span><span>{{ p.emergency_contact_name || '—' }}</span></div>
+                <div><span class="label">Teléfono de emergencia</span><span>{{ p.emergency_contact_phone || '—' }}</span></div>
+              </div>
+              @if (p.notes) {
+                <p class="notes"><span class="label">Observaciones</span> {{ p.notes }}</p>
+              }
+              <div class="actions">
+                <button mat-stroked-button *appHasPermission="'patients:write'" (click)="editingDemographics.set(true)">
+                  <mat-icon>edit</mat-icon>
+                  Editar datos
+                </button>
+                <button mat-button color="warn" *appHasPermission="'patients:delete'" (click)="deactivatePatient()">
+                  Dar de baja
+                </button>
+              </div>
+            </mat-card>
+          } @else {
+            <mat-card class="info-card">
+              <form [formGroup]="demographicsForm" (ngSubmit)="saveDemographics()" class="edit-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nombres</mat-label>
+                  <input matInput formControlName="first_name" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Apellidos</mat-label>
+                  <input matInput formControlName="last_name" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Cédula</mat-label>
+                  <input matInput formControlName="national_id" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Fecha de nacimiento</mat-label>
+                  <input matInput type="date" formControlName="birth_date" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Sexo</mat-label>
+                  <mat-select formControlName="sex">
+                    <mat-option value="">Sin especificar</mat-option>
+                    <mat-option value="F">Femenino</mat-option>
+                    <mat-option value="M">Masculino</mat-option>
+                    <mat-option value="O">Otro</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Teléfono</mat-label>
+                  <input matInput formControlName="phone" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>WhatsApp</mat-label>
+                  <input matInput formControlName="whatsapp" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Correo</mat-label>
+                  <input matInput formControlName="email" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Dirección</mat-label>
+                  <input matInput formControlName="address" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Ciudad</mat-label>
+                  <input matInput formControlName="city" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Ocupación</mat-label>
+                  <input matInput formControlName="occupation" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Contacto de emergencia</mat-label>
+                  <input matInput formControlName="emergency_contact_name" />
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Teléfono de emergencia</mat-label>
+                  <input matInput formControlName="emergency_contact_phone" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Observaciones</mat-label>
+                  <textarea matInput formControlName="notes" rows="2"></textarea>
+                </mat-form-field>
+
+                <div class="actions full-width">
+                  <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Guardar</button>
+                  <button mat-button type="button" (click)="editingDemographics.set(false)">Cancelar</button>
+                </div>
+              </form>
+            </mat-card>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Historia clínica">
+        <div class="tab-content">
+          @if (!editingHistory()) {
+            <mat-card class="info-card">
+              @if (latestHistory(); as h) {
+                <div class="history-sections">
+                  <section>
+                    <h3>Datos médicos</h3>
+                    <div class="info-grid">
+                      <div><span class="label">Alergias</span><span>{{ h.allergies || '—' }}</span></div>
+                      <div><span class="label">Medicamentos</span><span>{{ h.medications || '—' }}</span></div>
+                      <div><span class="label">Enfermedades</span><span>{{ h.medical_conditions || '—' }}</span></div>
+                      <div><span class="label">Cirugías</span><span>{{ h.surgeries || '—' }}</span></div>
+                      <div><span class="label">Hábitos</span><span>{{ h.habits || '—' }}</span></div>
+                    </div>
+                  </section>
+                  <section>
+                    <h3>Datos odontológicos</h3>
+                    <div class="info-grid">
+                      <div><span class="label">Motivo de consulta</span><span>{{ h.chief_complaint || '—' }}</span></div>
+                      <div><span class="label">Higiene oral</span><span>{{ h.oral_hygiene || '—' }}</span></div>
+                      <div><span class="label">Antecedentes odontológicos</span><span>{{ h.dental_history || '—' }}</span></div>
+                    </div>
+                  </section>
+                  <section>
+                    <h3>Evaluación</h3>
+                    <div class="info-grid">
+                      <div><span class="label">Examen extraoral</span><span>{{ h.extraoral_exam || '—' }}</span></div>
+                      <div><span class="label">Examen intraoral</span><span>{{ h.intraoral_exam || '—' }}</span></div>
+                      <div><span class="label">Encías</span><span>{{ h.gums || '—' }}</span></div>
+                      <div><span class="label">ATM</span><span>{{ h.tmj || '—' }}</span></div>
+                      <div><span class="label">Oclusión</span><span>{{ h.occlusion || '—' }}</span></div>
+                    </div>
+                  </section>
+                  <p class="version-date">Última actualización: {{ h.created_at | date: 'medium' }}</p>
+                </div>
+              } @else {
+                <p class="empty-hint">Este paciente aún no tiene historia clínica registrada.</p>
+              }
+
+              <div class="actions">
+                <button mat-stroked-button *appHasPermission="'medical_history:write'" (click)="startEditingHistory()">
+                  <mat-icon>note_add</mat-icon>
+                  {{ latestHistory() ? 'Registrar nueva versión' : 'Crear historia clínica' }}
+                </button>
+                @if (latestHistory()) {
+                  <button mat-button (click)="loadVersions()">
+                    <mat-icon>history</mat-icon>
+                    Ver historial de versiones
+                  </button>
+                }
+              </div>
+
+              @if (showVersionHistory()) {
+                <div class="versions-list">
+                  @for (v of historyVersions(); track v.id) {
+                    <div class="version-item">
+                      <strong>{{ v.created_at | date: 'medium' }}</strong>
+                      <span>{{ v.chief_complaint || v.allergies || 'Sin motivo registrado' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </mat-card>
+          } @else {
+            <mat-card class="info-card">
+              <form [formGroup]="historyForm" (ngSubmit)="saveHistoryVersion()" class="edit-form">
+                <h3 class="full-width">Datos médicos</h3>
+                <mat-form-field appearance="outline"><mat-label>Alergias</mat-label><input matInput formControlName="allergies" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Medicamentos</mat-label><input matInput formControlName="medications" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Enfermedades</mat-label><input matInput formControlName="medical_conditions" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Cirugías</mat-label><input matInput formControlName="surgeries" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Hábitos</mat-label><input matInput formControlName="habits" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Signos vitales</mat-label><input matInput formControlName="vital_signs" /></mat-form-field>
+
+                <h3 class="full-width">Datos odontológicos</h3>
+                <mat-form-field appearance="outline" class="full-width"><mat-label>Motivo de consulta</mat-label><input matInput formControlName="chief_complaint" /></mat-form-field>
+                <mat-form-field appearance="outline" class="full-width"><mat-label>Historia del problema actual</mat-label><input matInput formControlName="present_illness_history" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Higiene oral</mat-label><input matInput formControlName="oral_hygiene" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Hábitos orales</mat-label><input matInput formControlName="dental_habits" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Antecedentes odontológicos</mat-label><input matInput formControlName="dental_history" /></mat-form-field>
+
+                <h3 class="full-width">Evaluación</h3>
+                <mat-form-field appearance="outline"><mat-label>Examen extraoral</mat-label><input matInput formControlName="extraoral_exam" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Examen intraoral</mat-label><input matInput formControlName="intraoral_exam" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Tejidos blandos</mat-label><input matInput formControlName="soft_tissues" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Encías</mat-label><input matInput formControlName="gums" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Periodonto</mat-label><input matInput formControlName="periodontium" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>ATM</mat-label><input matInput formControlName="tmj" /></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Oclusión</mat-label><input matInput formControlName="occlusion" /></mat-form-field>
+                <mat-form-field appearance="outline" class="full-width"><mat-label>Observaciones</mat-label><textarea matInput formControlName="observations" rows="2"></textarea></mat-form-field>
+
+                <p class="full-width hint">
+                  Esto crea una <strong>nueva versión</strong> de la historia clínica; la anterior queda conservada en el historial, nunca se sobrescribe.
+                </p>
+
+                <div class="actions full-width">
+                  <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Guardar versión</button>
+                  <button mat-button type="button" (click)="editingHistory.set(false)">Cancelar</button>
+                </div>
+              </form>
+            </mat-card>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Odontograma">
+        <div class="tab-content">
+          <app-odontogram [patientId]="p.id"></app-odontogram>
+        </div>
+      </mat-tab>
+      <mat-tab label="Tratamientos">
+        <div class="tab-content"><p class="empty-hint">Disponible en la Fase 4.</p></div>
+      </mat-tab>
+      <mat-tab label="Citas">
+        <div class="tab-content"><p class="empty-hint">Disponible en la Fase 5.</p></div>
+      </mat-tab>
+      <mat-tab label="Pagos">
+        <div class="tab-content"><p class="empty-hint">Disponible en la Fase 8.</p></div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+}

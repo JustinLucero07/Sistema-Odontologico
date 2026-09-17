@@ -1,0 +1,23 @@
+# Backend (Python)
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/storage/
+backend/.env
+backend/*.egg-info/
+
+# Frontend (Angular)
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Infra
+infra/.env
+infra/backups/*
+!infra/backups/.gitkeep
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

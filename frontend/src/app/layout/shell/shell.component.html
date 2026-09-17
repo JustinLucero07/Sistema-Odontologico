@@ -1,0 +1,53 @@
+<mat-sidenav-container class="shell-container">
+  <mat-sidenav mode="side" opened class="shell-sidenav">
+    <div class="shell-brand">
+      <mat-icon>medical_services</mat-icon>
+      <span>Sistema Odontológico</span>
+    </div>
+
+    <mat-nav-list>
+      @for (item of navItems; track item.route) {
+        @if (item.permission) {
+          <a
+            mat-list-item
+            *appHasPermission="item.permission"
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+          >
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        } @else {
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        }
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="shell-toolbar">
+      <span class="shell-spacer"></span>
+
+      @if (auth.currentUser(); as user) {
+        <button mat-button [matMenuTriggerFor]="userMenu">
+          <mat-icon>account_circle</mat-icon>
+          {{ user.first_name }} {{ user.last_name }}
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div class="user-menu-roles">{{ user.roles.join(', ') }}</div>
+          <button mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Cerrar sesión</span>
+          </button>
+        </mat-menu>
+      }
+    </mat-toolbar>
+
+    <div class="shell-content">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

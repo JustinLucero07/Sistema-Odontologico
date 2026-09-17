@@ -1,0 +1,158 @@
+.page {
+  display: grid;
+  gap: 16px;
+  max-width: 1000px;
+}
+
+.quick-card {
+  padding: 20px 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.quick-card-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0f6fff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.quick-meta {
+  margin: 2px 0 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  mat-chip mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
+}
+
+.hub-tabs {
+  background: transparent;
+}
+
+.tab-content {
+  padding-top: 16px;
+}
+
+.info-card {
+  padding: 20px 24px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+  }
+}
+
+.label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.notes {
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+
+  h3 {
+    margin: 12px 0 0;
+    font-size: 0.95rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.history-sections {
+  display: grid;
+  gap: 20px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.version-date {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0;
+}
+
+.versions-list {
+  margin-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.version-item {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+
+  strong {
+    flex-shrink: 0;
+  }
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.55);
+  margin: 8px 0 0;
+}
+
+.empty-hint {
+  color: rgba(0, 0, 0, 0.5);
+}

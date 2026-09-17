@@ -1,0 +1,73 @@
+import { Routes } from '@angular/router';
+
+import { authGuard } from './core/auth/auth.guard';
+import { permissionGuard } from './core/auth/permission.guard';
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: '',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell/shell.component').then((m) => m.ShellComponent),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
+      {
+        path: 'patients',
+        canActivate: [permissionGuard],
+        data: { permission: 'patients:read' },
+        loadComponent: () =>
+          import('./features/patients/patients-list/patients-list.component').then(
+            (m) => m.PatientsListComponent,
+          ),
+      },
+      {
+        path: 'patients/:id',
+        canActivate: [permissionGuard],
+        data: { permission: 'patients:read' },
+        loadComponent: () =>
+          import('./features/patients/patient-detail/patient-detail.component').then(
+            (m) => m.PatientDetailComponent,
+          ),
+      },
+      {
+        path: 'settings/users',
+        canActivate: [permissionGuard],
+        data: { permission: 'users:manage' },
+        loadComponent: () =>
+          import('./features/settings/users/users.component').then((m) => m.UsersComponent),
+      },
+      {
+        path: 'settings/roles',
+        canActivate: [permissionGuard],
+        data: { permission: 'roles:manage' },
+        loadComponent: () =>
+          import('./features/settings/roles/roles.component').then((m) => m.RolesComponent),
+      },
+      {
+        path: 'settings/professionals',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/professionals/professionals.component').then(
+            (m) => m.ProfessionalsComponent,
+          ),
+      },
+      {
+        path: 'settings/clinic',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/clinic/clinic.component').then((m) => m.ClinicComponent),
+      },
+    ],
+  },
+  { path: '**', redirectTo: 'dashboard' },
+];

@@ -1,0 +1,31 @@
+.dashboard {
+  display: grid;
+  gap: 16px;
+  max-width: 900px;
+}
+
+.welcome-card {
+  padding: 20px 24px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.info-card {
+  padding: 20px 24px;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+  }
+}

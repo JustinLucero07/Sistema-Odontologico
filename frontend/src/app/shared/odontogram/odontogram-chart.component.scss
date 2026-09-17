@@ -1,0 +1,85 @@
+.odontogram {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 8px 4px;
+}
+
+.arch-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  min-width: max-content;
+}
+
+.tooth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 40px;
+}
+
+.tooth-svg {
+  width: 40px;
+  height: 40px;
+}
+
+.region {
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 0.5;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.92);
+  }
+}
+
+.tooth.readonly .region,
+.tooth.readonly .tooth-outline {
+  cursor: default;
+  pointer-events: none;
+}
+
+.tooth-outline {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1;
+  cursor: pointer;
+
+  &.absent {
+    fill: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.absent-mark {
+  stroke: #757575;
+  stroke-width: 2;
+}
+
+.tooth-number {
+  font-size: 0.65rem;
+  color: rgba(0, 0, 0, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 4px;
+  line-height: 1;
+
+  &:hover {
+    background: rgba(15, 111, 255, 0.1);
+    color: #0f6fff;
+  }
+}
+
+.tooth.readonly .tooth-number {
+  cursor: default;
+
+  &:hover {
+    background: none;
+    color: inherit;
+  }
+}

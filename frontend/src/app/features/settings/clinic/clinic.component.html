@@ -1,0 +1,49 @@
+<div class="page">
+  <h1>Datos de la clínica</h1>
+
+  <mat-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="clinic-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre comercial</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Razón social</mat-label>
+        <input matInput formControlName="legal_name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>RUC / identificación fiscal</mat-label>
+        <input matInput formControlName="tax_id" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono</mat-label>
+        <input matInput formControlName="phone" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Correo</mat-label>
+        <input matInput formControlName="email" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Dirección</mat-label>
+        <input matInput formControlName="address" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Zona horaria</mat-label>
+        <input matInput formControlName="timezone" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Moneda</mat-label>
+        <input matInput formControlName="currency" />
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Guardar</button>
+    </form>
+  </mat-card>
+</div>

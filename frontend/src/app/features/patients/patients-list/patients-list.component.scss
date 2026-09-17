@@ -1,0 +1,55 @@
+.page {
+  display: grid;
+  gap: 16px;
+  max-width: 1100px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+}
+
+.search-field {
+  width: 100%;
+  max-width: 480px;
+}
+
+.form-card,
+.table-card {
+  padding: 20px 24px;
+}
+
+.patient-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 16px;
+
+  button {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 4px;
+  }
+}
+
+table {
+  width: 100%;
+}
+
+.clickable-row {
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(15, 111, 255, 0.06);
+  }
+}
+
+.empty-hint {
+  color: rgba(0, 0, 0, 0.5);
+  padding: 12px 0 0;
+}

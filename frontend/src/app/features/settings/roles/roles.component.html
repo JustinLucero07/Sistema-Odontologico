@@ -1,0 +1,67 @@
+<div class="page">
+  <h1>Roles y permisos</h1>
+
+  <div class="roles-layout">
+    <mat-card class="roles-list-card">
+      <h2>Roles</h2>
+      <ul class="roles-list">
+        @for (role of roles(); track role.id) {
+          <li
+            [class.selected]="selectedRole()?.id === role.id"
+            (click)="selectRole(role)"
+          >
+            <span>{{ role.name }}</span>
+            @if (role.is_system) {
+              <mat-icon class="lock-icon">lock</mat-icon>
+            }
+          </li>
+        }
+      </ul>
+
+      <form [formGroup]="newRoleForm" (ngSubmit)="createRole()" class="new-role-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Nuevo rol</mat-label>
+          <input matInput formControlName="name" placeholder="Ej. Higienista" />
+        </mat-form-field>
+        <button mat-stroked-button type="submit" [disabled]="newRoleForm.invalid || saving()">
+          <mat-icon>add</mat-icon>
+          Crear rol
+        </button>
+      </form>
+    </mat-card>
+
+    <mat-card class="permissions-card">
+      @if (selectedRole(); as role) {
+        <div class="permissions-header">
+          <h2>{{ role.name }}</h2>
+          @if (role.is_system) {
+            <span class="hint">Rol base: cree un rol nuevo para personalizar sus permisos</span>
+          }
+        </div>
+
+        @for (group of permissionGroups(); track group.module) {
+          <div class="permission-group">
+            <h3>{{ group.module }}</h3>
+            @for (permission of group.permissions; track permission.id) {
+              <mat-checkbox
+                [checked]="selectedCodes().has(permission.code)"
+                [disabled]="role.is_system"
+                (change)="togglePermission(permission.code)"
+              >
+                {{ permission.description }}
+              </mat-checkbox>
+            }
+          </div>
+        }
+
+        @if (!role.is_system) {
+          <button mat-flat-button color="primary" (click)="savePermissions()" [disabled]="saving()">
+            Guardar permisos
+          </button>
+        }
+      } @else {
+        <p class="empty-hint">Seleccione un rol para ver y editar sus permisos.</p>
+      }
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,29 @@
+@if (auth.currentUser(); as user) {
+  <div class="dashboard">
+    <mat-card class="welcome-card">
+      <h1>Bienvenido, {{ user.first_name }}</h1>
+      <p>Roles asignados: {{ user.roles.join(', ') || 'Sin roles' }}</p>
+    </mat-card>
+
+    <mat-card class="info-card">
+      <h2><mat-icon>verified_user</mat-icon> Permisos activos</h2>
+      <mat-chip-set>
+        @for (permission of user.permissions; track permission) {
+          <mat-chip>{{ permission }}</mat-chip>
+        }
+        @if (user.is_superadmin) {
+          <mat-chip color="primary" highlighted>Superadministrador</mat-chip>
+        }
+      </mat-chip-set>
+    </mat-card>
+
+    <mat-card class="info-card">
+      <h2><mat-icon>info</mat-icon> Fase 1</h2>
+      <p>
+        Este panel se irá completando en las siguientes fases con citas de hoy, pacientes atendidos,
+        ingresos del día y alertas — por ahora confirma que la autenticación, los roles y los permisos
+        funcionan de extremo a extremo.
+      </p>
+    </mat-card>
+  </div>
+}

@@ -1,0 +1,56 @@
+.shell-container {
+  height: 100vh;
+}
+
+.shell-sidenav {
+  width: 260px;
+  border-right: none;
+  background: #0b1220;
+  color: #fff;
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.shell-sidenav mat-nav-list {
+  padding-top: 8px;
+  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.85);
+  --mdc-list-list-item-leading-icon-icon-color: rgba(255, 255, 255, 0.7);
+  --mdc-list-list-item-hover-label-text-color: #fff;
+  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.15);
+  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.15);
+}
+
+.shell-sidenav a.active-link {
+  background: rgba(15, 111, 255, 0.3);
+  --mdc-list-list-item-label-text-color: #fff;
+  --mdc-list-list-item-leading-icon-icon-color: #fff;
+}
+
+.shell-toolbar {
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.shell-spacer {
+  flex: 1 1 auto;
+}
+
+.shell-content {
+  padding: 24px;
+  background: #f4f6fb;
+  min-height: calc(100vh - 64px);
+  box-sizing: border-box;
+}
+
+.user-menu-roles {
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+}
