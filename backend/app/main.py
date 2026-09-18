@@ -6,11 +6,15 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import get_settings
 from app.core.rate_limit import limiter
 from app.modules.auth.router import router as auth_router
+from app.modules.budgets.router import budgets_router, patient_budgets_router
 from app.modules.clinics.router import router as clinics_router
+from app.modules.diagnoses.router import router as diagnoses_router
 from app.modules.medical_history.router import router as medical_history_router
 from app.modules.odontogram.router import router as odontogram_router
 from app.modules.patients.router import router as patients_router
 from app.modules.professionals.router import router as professionals_router
+from app.modules.treatment_plans.router import patient_plans_router, plans_router
+from app.modules.treatments.router import router as treatments_router
 from app.modules.users.router import router as users_router
 
 settings = get_settings()
@@ -34,6 +38,12 @@ app.include_router(professionals_router)
 app.include_router(patients_router)
 app.include_router(medical_history_router)
 app.include_router(odontogram_router)
+app.include_router(diagnoses_router)
+app.include_router(treatments_router)
+app.include_router(patient_plans_router)
+app.include_router(plans_router)
+app.include_router(patient_budgets_router)
+app.include_router(budgets_router)
 
 
 @app.get("/api/v1/health")

@@ -23,6 +23,8 @@
 .form-card,
 .table-card {
   padding: 20px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .patient-form {
@@ -45,11 +47,11 @@ table {
   cursor: pointer;
 
   &:hover {
-    background: rgba(15, 111, 255, 0.06);
+    background: var(--color-primary-soft);
   }
 }
 
 .empty-hint {
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--color-ink-faint);
   padding: 12px 0 0;
 }

@@ -1,29 +1,71 @@
 @if (auth.currentUser(); as user) {
   <div class="dashboard">
-    <mat-card class="welcome-card">
-      <h1>Bienvenido, {{ user.first_name }}</h1>
-      <p>Roles asignados: {{ user.roles.join(', ') || 'Sin roles' }}</p>
-    </mat-card>
+    <header class="dashboard-hero">
+      <div>
+        <p class="hero-eyebrow">Panel principal</p>
+        <h1>Hola, {{ user.first_name }}</h1>
+        <p class="hero-sub">
+          {{ user.roles.join(' · ') || 'Sin roles asignados' }}
+          @if (user.is_superadmin) { · Superadministrador }
+        </p>
+      </div>
+    </header>
 
-    <mat-card class="info-card">
-      <h2><mat-icon>verified_user</mat-icon> Permisos activos</h2>
-      <mat-chip-set>
-        @for (permission of user.permissions; track permission) {
-          <mat-chip>{{ permission }}</mat-chip>
-        }
-        @if (user.is_superadmin) {
-          <mat-chip color="primary" highlighted>Superadministrador</mat-chip>
-        }
-      </mat-chip-set>
-    </mat-card>
+    <div class="stat-row">
+      @if (patientCount() !== null) {
+        <mat-card class="stat-card stat-card--primary">
+          <mat-icon>groups</mat-icon>
+          <div>
+            <span class="stat-value numeric">{{ patientCount() }}</span>
+            <span class="stat-label">Pacientes registrados</span>
+          </div>
+        </mat-card>
+      }
+      @if (treatmentCount() !== null) {
+        <mat-card class="stat-card">
+          <mat-icon>medical_services</mat-icon>
+          <div>
+            <span class="stat-value numeric">{{ treatmentCount() }}</span>
+            <span class="stat-label">Tratamientos en catálogo</span>
+          </div>
+        </mat-card>
+      }
+      <mat-card class="stat-card">
+        <mat-icon>verified_user</mat-icon>
+        <div>
+          <span class="stat-value numeric">{{ user.permissions.length }}</span>
+          <span class="stat-label">Permisos activos</span>
+        </div>
+      </mat-card>
+    </div>
 
-    <mat-card class="info-card">
-      <h2><mat-icon>info</mat-icon> Fase 1</h2>
-      <p>
-        Este panel se irá completando en las siguientes fases con citas de hoy, pacientes atendidos,
-        ingresos del día y alertas — por ahora confirma que la autenticación, los roles y los permisos
-        funcionan de extremo a extremo.
-      </p>
+    @if (visibleQuickLinks.length > 0) {
+      <section class="quick-links">
+        <h2>Accesos rápidos</h2>
+        <div class="quick-links-grid">
+          @for (link of visibleQuickLinks; track link.route) {
+            <button type="button" class="quick-link-card" (click)="goTo(link.route)">
+              <mat-icon>{{ link.icon }}</mat-icon>
+              <div>
+                <strong>{{ link.label }}</strong>
+                <span>{{ link.description }}</span>
+              </div>
+              <mat-icon class="quick-link-arrow">arrow_forward</mat-icon>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <mat-card class="roadmap-card">
+      <mat-icon>map</mat-icon>
+      <div>
+        <strong>Este panel sigue creciendo</strong>
+        <p>
+          Las próximas fases suman agenda y citas, evoluciones clínicas, pagos y reportes — este panel
+          se irá completando con citas de hoy, ingresos del día y alertas a medida que esos módulos existan.
+        </p>
+      </div>
     </mat-card>
   </div>
 }

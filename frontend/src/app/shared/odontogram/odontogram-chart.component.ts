@@ -2,7 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 
 import { ToothCondition, ToothSurface } from '../../core/models/odontogram.models';
-import { TOOTH_CONDITION_BY_CODE } from './tooth-conditions';
+import { SURFACE_LABELS, TOOTH_CONDITION_BY_CODE } from './tooth-conditions';
 import {
   PERMANENT_LOWER,
   PERMANENT_UPPER,
@@ -16,6 +16,12 @@ interface RenderedTooth extends ToothLayout {
   surfaceConditions: Partial<Record<ToothSurface, ToothCondition>>;
   /** Region -> surface, already resolved for this tooth's arch/side. */
   regionSurface: { top: ToothSurface; bottom: ToothSurface; left: ToothSurface; right: ToothSurface };
+  /** Purely cosmetic: bigger for molars, narrower for incisors, like a real arch. */
+  sizePx: number;
+  /** Purely cosmetic: nudges each tooth along a gentle arch curve. */
+  curveTransform: string;
+  hasActivity: boolean;
+  tooltip: string;
 }
 
 @Component({
@@ -56,7 +62,10 @@ export class OdontogramChartComponent {
 
   private buildRow(layout: ToothLayout[]): RenderedTooth[] {
     const byFdi = this.conditionsByFdi();
-    return layout.map((tooth) => {
+    const n = layout.length;
+    const center = (n - 1) / 2;
+
+    return layout.map((tooth, index) => {
       const toothConditions = byFdi.get(tooth.fdi) ?? [];
       const wholeCondition = toothConditions.find((c) => c.surface === 'whole') ?? null;
       const surfaceConditions: Partial<Record<ToothSurface, ToothCondition>> = {};
@@ -65,9 +74,7 @@ export class OdontogramChartComponent {
       }
 
       const vestibularSide: 'top' | 'bottom' = tooth.arch === 'upper' ? 'top' : 'bottom';
-      const lingualSide: 'top' | 'bottom' = tooth.arch === 'upper' ? 'bottom' : 'top';
       const mesialRegionSide: 'left' | 'right' = tooth.mesialSide === 'right' ? 'right' : 'left';
-      const distalRegionSide: 'left' | 'right' = mesialRegionSide === 'right' ? 'left' : 'right';
 
       const regionSurface = {
         top: vestibularSide === 'top' ? 'vestibular' : 'lingual',
@@ -76,7 +83,33 @@ export class OdontogramChartComponent {
         right: mesialRegionSide === 'right' ? 'mesial' : 'distal',
       } as { top: ToothSurface; bottom: ToothSurface; left: ToothSurface; right: ToothSurface };
 
-      return { ...tooth, wholeCondition, surfaceConditions, regionSurface };
+      // Cosmetic only: real teeth get wider back near the molars and narrower
+      // toward the incisors — position within the quadrant (last digit of the
+      // FDI number) tells us which tooth type this is.
+      const positionInQuadrant = Number(tooth.fdi[1]);
+      const sizePx =
+        positionInQuadrant <= 2 ? 32 : positionInQuadrant === 3 ? 34 : positionInQuadrant <= 5 ? 37 : 42;
+
+      // Cosmetic only: nudge each tooth along a gentle arch so the row reads
+      // as a dental arch rather than a flat strip of squares.
+      const offset = index - center;
+      const normalized = center === 0 ? 0 : offset / center;
+      const curveDepth = 16;
+      const rotateMax = 13;
+      const dip = curveDepth * (1 - normalized * normalized);
+      const translateY = tooth.arch === 'upper' ? dip : -dip;
+      const rotate = normalized * rotateMax * (tooth.arch === 'upper' ? 1 : -1);
+      const curveTransform = `translateY(${translateY.toFixed(1)}px) rotate(${rotate.toFixed(1)}deg)`;
+
+      const hasActivity = toothConditions.length > 0;
+      const conditionLabel = wholeCondition
+        ? TOOTH_CONDITION_BY_CODE[wholeCondition.condition]?.label
+        : Object.entries(surfaceConditions)
+            .map(([surface, c]) => `${SURFACE_LABELS[surface]}: ${TOOTH_CONDITION_BY_CODE[c.condition]?.label}`)
+            .join(' · ');
+      const tooltip = `Pieza ${tooth.fdi}${conditionLabel ? ' — ' + conditionLabel : ' — Sano'}`;
+
+      return { ...tooth, wholeCondition, surfaceConditions, regionSurface, sizePx, curveTransform, hasActivity, tooltip };
     });
   }
 

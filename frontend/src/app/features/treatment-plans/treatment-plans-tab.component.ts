@@ -1,0 +1,227 @@
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { firstValueFrom } from 'rxjs';
+
+import { AuthService } from '../../core/auth/auth.service';
+import { HasPermissionDirective } from '../../core/auth/has-permission.directive';
+import {
+  Budget,
+  BudgetStatus,
+  Diagnosis,
+  Treatment,
+  TreatmentPlan,
+  TreatmentPlanItemStatus,
+} from '../../core/models/treatment.models';
+import { TreatmentPlansService } from '../../core/services/treatment-plans.service';
+import { TreatmentsService } from '../../core/services/treatments.service';
+
+const STATUS_LABELS: Record<TreatmentPlanItemStatus, string> = {
+  propuesto: 'Propuesto',
+  aprobado: 'Aprobado',
+  en_progreso: 'En progreso',
+  completado: 'Completado',
+  cancelado: 'Cancelado',
+  rechazado: 'Rechazado',
+};
+
+const BUDGET_STATUS_LABELS: Record<BudgetStatus, string> = {
+  borrador: 'Borrador',
+  enviado: 'Enviado',
+  visto: 'Visto',
+  aceptado: 'Aceptado',
+  rechazado: 'Rechazado',
+};
+
+const BUDGET_NEXT_STATUS: Partial<Record<BudgetStatus, { next: BudgetStatus; label: string }>> = {
+  borrador: { next: 'enviado', label: 'Marcar como enviado' },
+  enviado: { next: 'visto', label: 'Marcar como visto' },
+  visto: { next: 'aceptado', label: 'Marcar como aceptado' },
+};
+
+@Component({
+  selector: 'app-treatment-plans-tab',
+  standalone: true,
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    HasPermissionDirective,
+  ],
+  templateUrl: './treatment-plans-tab.component.html',
+  styleUrl: './treatment-plans-tab.component.scss',
+})
+export class TreatmentPlansTabComponent implements OnChanges {
+  @Input({ required: true }) patientId!: string;
+
+  private readonly plansService = inject(TreatmentPlansService);
+  private readonly treatmentsService = inject(TreatmentsService);
+  private readonly fb = inject(FormBuilder);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly auth = inject(AuthService);
+
+  readonly canEditItems = computed(() => this.auth.hasPermission('treatments:write'));
+
+  readonly statusLabels = STATUS_LABELS;
+  readonly budgetStatusLabels = BUDGET_STATUS_LABELS;
+  readonly budgetNextStatus = BUDGET_NEXT_STATUS;
+  readonly statusOptions = Object.keys(STATUS_LABELS) as TreatmentPlanItemStatus[];
+
+  readonly diagnoses = signal<Diagnosis[]>([]);
+  readonly plans = signal<TreatmentPlan[]>([]);
+  readonly budgets = signal<Budget[]>([]);
+  readonly catalog = signal<Treatment[]>([]);
+
+  readonly showDiagnosisForm = signal(false);
+  readonly showNewPlanForm = signal(false);
+  readonly addingItemToPlan = signal<string | null>(null);
+  readonly saving = signal(false);
+
+  readonly diagnosisForm = this.fb.nonNullable.group({
+    fdi_number: [''],
+    description: ['', Validators.required],
+  });
+
+  readonly planForm = this.fb.nonNullable.group({
+    title: ['Plan de tratamiento', Validators.required],
+  });
+
+  readonly itemForm = this.fb.nonNullable.group({
+    treatment_id: ['', Validators.required],
+    fdi_number: [''],
+    price: [0, [Validators.required, Validators.min(0)]],
+    discount: [0, [Validators.min(0)]],
+  });
+
+  async ngOnChanges(): Promise<void> {
+    if (this.patientId) await this.reload();
+  }
+
+  async reload(): Promise<void> {
+    const [diagnoses, plans, budgets, catalog] = await Promise.all([
+      firstValueFrom(this.plansService.listDiagnoses(this.patientId)),
+      firstValueFrom(this.plansService.listPlans(this.patientId)),
+      firstValueFrom(this.plansService.listBudgets(this.patientId)),
+      firstValueFrom(this.treatmentsService.list()),
+    ]);
+    this.diagnoses.set(diagnoses);
+    this.plans.set(plans);
+    this.budgets.set(budgets);
+    this.catalog.set(catalog);
+  }
+
+  budgetsForPlan(planId: string): Budget[] {
+    return this.budgets().filter((b) => b.treatment_plan_id === planId);
+  }
+
+  treatmentName(id: string): string {
+    return this.catalog().find((t) => t.id === id)?.name ?? '';
+  }
+
+  onTreatmentSelected(treatmentId: string): void {
+    const treatment = this.catalog().find((t) => t.id === treatmentId);
+    if (treatment) this.itemForm.patchValue({ price: treatment.default_price });
+  }
+
+  async submitDiagnosis(): Promise<void> {
+    if (this.diagnosisForm.invalid || this.saving()) return;
+    this.saving.set(true);
+    try {
+      const value = this.diagnosisForm.getRawValue();
+      await firstValueFrom(
+        this.plansService.createDiagnosis(this.patientId, {
+          fdi_number: value.fdi_number || null,
+          description: value.description,
+        }),
+      );
+      this.diagnosisForm.reset();
+      this.showDiagnosisForm.set(false);
+      this.snackBar.open('Diagnóstico registrado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async submitNewPlan(): Promise<void> {
+    if (this.planForm.invalid || this.saving()) return;
+    this.saving.set(true);
+    try {
+      await firstValueFrom(
+        this.plansService.createPlan(this.patientId, { title: this.planForm.getRawValue().title, items: [] }),
+      );
+      this.planForm.reset({ title: 'Plan de tratamiento' });
+      this.showNewPlanForm.set(false);
+      this.snackBar.open('Plan de tratamiento creado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  startAddingItem(planId: string): void {
+    this.addingItemToPlan.set(planId);
+    this.itemForm.reset({ price: 0, discount: 0 });
+  }
+
+  async submitItem(planId: string): Promise<void> {
+    if (this.itemForm.invalid || this.saving()) return;
+    this.saving.set(true);
+    try {
+      const value = this.itemForm.getRawValue();
+      await firstValueFrom(
+        this.plansService.addItem(planId, {
+          treatment_id: value.treatment_id,
+          fdi_number: value.fdi_number || null,
+          price: value.price,
+          discount: value.discount,
+        }),
+      );
+      this.addingItemToPlan.set(null);
+      this.snackBar.open('Ítem agregado al plan', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async changeItemStatus(planId: string, itemId: string, status: TreatmentPlanItemStatus): Promise<void> {
+    await firstValueFrom(this.plansService.updateItemStatus(planId, itemId, status));
+    await this.reload();
+  }
+
+  async generateBudget(planId: string): Promise<void> {
+    await firstValueFrom(this.plansService.createBudget(this.patientId, { treatment_plan_id: planId }));
+    this.snackBar.open('Presupuesto generado a partir del plan', 'Cerrar', { duration: 3000 });
+    await this.reload();
+  }
+
+  async advanceBudgetStatus(budget: Budget): Promise<void> {
+    const next = BUDGET_NEXT_STATUS[budget.status];
+    if (!next) return;
+    await firstValueFrom(this.plansService.updateBudgetStatus(budget.id, next.next));
+    await this.reload();
+  }
+
+  async rejectBudget(budget: Budget): Promise<void> {
+    await firstValueFrom(this.plansService.updateBudgetStatus(budget.id, 'rechazado'));
+    await this.reload();
+  }
+}

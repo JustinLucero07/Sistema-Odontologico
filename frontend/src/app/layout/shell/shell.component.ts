@@ -41,6 +41,8 @@ export class ShellComponent {
   readonly navItems: NavItem[] = [
     { label: 'Panel principal', icon: 'space_dashboard', route: '/dashboard' },
     { label: 'Pacientes', icon: 'groups', route: '/patients', permission: 'patients:read' },
+    { label: 'Odontograma', icon: 'healing', route: '/odontogram', permission: 'odontogram:read' },
+    { label: 'Tratamientos', icon: 'medical_services', route: '/settings/treatments', permission: 'treatments:write' },
     { label: 'Usuarios', icon: 'group', route: '/settings/users', permission: 'users:manage' },
     { label: 'Roles y permisos', icon: 'admin_panel_settings', route: '/settings/roles', permission: 'roles:manage' },
     { label: 'Profesionales', icon: 'medical_information', route: '/settings/professionals', permission: 'settings:manage' },

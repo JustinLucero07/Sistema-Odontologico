@@ -17,6 +17,7 @@ import { PatientsService } from '../../../core/services/patients.service';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 import { MedicalHistory, Patient, Sex } from '../../../core/models/patient.models';
 import { OdontogramComponent } from '../../odontogram/odontogram.component';
+import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plans-tab.component';
 
 @Component({
   selector: 'app-patient-detail',
@@ -34,6 +35,7 @@ import { OdontogramComponent } from '../../odontogram/odontogram.component';
     MatTabsModule,
     HasPermissionDirective,
     OdontogramComponent,
+    TreatmentPlansTabComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.scss',

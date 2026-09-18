@@ -1,40 +1,135 @@
-
 // Custom Theming for Angular Material
 // For more information: https://material.angular.io/guide/theming
 @use '@angular/material' as mat;
-// Plus imports for other components in your app.
 
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
 @include mat.core();
 
-// Define the theme object.
+// Cyan/orange sit in the closest stock M3 tonal neighborhood to this app's
+// actual brand colors (deep clinical teal + warm gold, defined as CSS custom
+// properties below) — Material's per-component tokens are then repointed at
+// those exact brand values so nothing ships the stock azure blue.
 $frontend-theme: mat.define-theme((
   color: (
     theme-type: light,
-    primary: mat.$azure-palette,
-    tertiary: mat.$blue-palette,
+    primary: mat.$cyan-palette,
+    tertiary: mat.$orange-palette,
   ),
   density: (
     scale: 0,
   )
 ));
 
-// Include theme styles for core and each component used in your app.
-// Alternatively, you can import and @include the theme mixins for each component
-// that you are using.
 :root {
   @include mat.all-component-themes($frontend-theme);
 }
 
-// Comment out the line below if you want to use the pre-defined typography utility classes.
-// For more information: https://material.angular.io/guide/typography#using-typography-styles-in-your-application.
-// @include mat.typography-hierarchy($frontend-theme);
+:root {
+  // ---- Brand / design tokens -------------------------------------------
+  --color-ink: #14242b;
+  --color-ink-soft: rgba(20, 36, 43, 0.64);
+  --color-ink-faint: rgba(20, 36, 43, 0.42);
 
-// Comment out the line below if you want to use the deprecated `color` inputs.
-// @include mat.color-variants-backwards-compatibility($frontend-theme);
-/* You can add global styles to this file, and also import other style files */
+  --color-base: #f6f4ef;
+  --color-surface: #ffffff;
+  --color-border: rgba(20, 36, 43, 0.09);
+  --color-border-strong: rgba(20, 36, 43, 0.16);
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+  --color-primary: #0e5a54;
+  --color-primary-dark: #0a423d;
+  --color-primary-soft: rgba(14, 90, 84, 0.09);
+  --color-on-primary: #ffffff;
+
+  --color-accent: #b9832f;
+  --color-accent-soft: rgba(185, 131, 47, 0.12);
+
+  --color-danger: #a8382f;
+  --color-danger-soft: rgba(168, 56, 47, 0.08);
+  --color-success: #35714f;
+  --color-success-soft: rgba(53, 113, 79, 0.1);
+
+  --color-sidenav-bg: #0d2523;
+  --color-sidenav-bg-elevated: #123330;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 36, 43, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 36, 43, 0.08);
+  --shadow-lg: 0 16px 40px rgba(20, 36, 43, 0.14);
+
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+
+  // ---- Repoint Angular Material's component tokens at the brand ---------
+  --mdc-theme-primary: var(--color-primary);
+
+  --mdc-filled-button-container-color: var(--color-primary);
+  --mdc-filled-button-label-text-color: var(--color-on-primary);
+  --mdc-protected-button-container-color: var(--color-primary);
+  --mdc-outlined-button-outline-color: var(--color-border-strong);
+  --mdc-outlined-button-label-text-color: var(--color-primary);
+  --mdc-text-button-label-text-color: var(--color-primary);
+  --mat-text-button-state-layer-color: var(--color-primary);
+  --mat-filled-button-state-layer-color: var(--color-on-primary);
+
+  --mdc-outlined-text-field-focus-outline-color: var(--color-primary);
+  --mdc-outlined-text-field-caret-color: var(--color-primary);
+  --mdc-outlined-text-field-focus-label-text-color: var(--color-primary);
+  --mat-form-field-focus-select-arrow-color: var(--color-primary);
+
+  --mdc-checkbox-selected-icon-color: var(--color-primary);
+  --mdc-checkbox-selected-focus-icon-color: var(--color-primary);
+  --mdc-checkbox-selected-hover-icon-color: var(--color-primary);
+  --mdc-radio-selected-icon-color: var(--color-primary);
+
+  --mdc-tab-indicator-active-indicator-color: var(--color-primary);
+  --mat-tab-header-active-label-text-color: var(--color-primary);
+  --mat-tab-header-active-ripple-color: var(--color-primary);
+  --mat-tab-header-inactive-label-text-color: var(--color-ink-soft);
+
+  --mdc-linear-progress-active-indicator-color: var(--color-primary);
+  --mdc-circular-progress-active-indicator-color: var(--color-primary);
+
+  --mdc-switch-selected-track-color: var(--color-primary);
+  --mdc-switch-selected-handle-color: var(--color-primary);
+
+  --mat-toolbar-container-background-color: var(--color-surface);
+  --mat-toolbar-container-text-color: var(--color-ink);
+
+  --mdc-snackbar-container-color: var(--color-ink);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: var(--color-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+// Tabular figures for anything numeric (prices, stats, dates) so columns of
+// numbers line up — a functional choice, not decoration.
+.numeric,
+td.mat-mdc-cell:has(> .numeric) {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+}

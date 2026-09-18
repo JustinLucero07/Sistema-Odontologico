@@ -71,6 +71,7 @@
   <div class="picker-overlay" (click)="closePicker()">
     <div class="picker-panel" (click)="$event.stopPropagation()">
       <h3>Pieza {{ target.fdi }} · {{ surfaceLabels[target.surface] }}</h3>
+      <p class="picker-hint">Selecciona la condición para esta superficie.</p>
       <div class="picker-options">
         @for (option of pickerOptions(); track option.code) {
           <button type="button" class="picker-option" (click)="chooseCondition(option.code)">

@@ -1,0 +1,190 @@
+.treatments-tab {
+  display: grid;
+  gap: 24px;
+  max-width: 900px;
+}
+
+.block {
+  display: grid;
+  gap: 8px;
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+.inline-form {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.fdi-field {
+  width: 90px;
+}
+
+.price-field {
+  width: 120px;
+}
+
+.grow-field {
+  flex: 1 1 220px;
+}
+
+.empty-hint {
+  color: var(--color-ink-faint);
+  font-size: 0.9rem;
+}
+
+.diagnosis-list {
+  display: grid;
+  gap: 4px;
+}
+
+.diagnosis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fdi-badge {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.diagnosis-date {
+  margin-left: auto;
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+.plan-card {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.plan-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.plan-total {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+
+  mat-progress-bar {
+    flex: 1;
+    border-radius: 4px;
+  }
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+
+  th {
+    text-align: left;
+    color: var(--color-ink-faint);
+    font-weight: 500;
+    font-size: 0.72rem;
+    padding: 4px 8px 4px 0;
+  }
+
+  td {
+    padding: 6px 8px 6px 0;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.status-select {
+  width: 150px;
+}
+
+.status-readonly {
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+.item-form {
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.budgets-list {
+  margin-top: 12px;
+  border-top: 1px dashed var(--color-border-strong);
+  padding-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.budget-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.budget-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+mat-chip.status-aceptado {
+  --mdc-chip-elevated-container-color: var(--color-success-soft);
+  --mdc-chip-label-text-color: var(--color-success);
+}
+
+mat-chip.status-rechazado {
+  --mdc-chip-elevated-container-color: var(--color-danger-soft);
+  --mdc-chip-label-text-color: var(--color-danger);
+}

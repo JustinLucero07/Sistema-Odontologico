@@ -246,7 +246,9 @@
         </div>
       </mat-tab>
       <mat-tab label="Tratamientos">
-        <div class="tab-content"><p class="empty-hint">Disponible en la Fase 4.</p></div>
+        <div class="tab-content">
+          <app-treatment-plans-tab [patientId]="p.id"></app-treatment-plans-tab>
+        </div>
       </mat-tab>
       <mat-tab label="Citas">
         <div class="tab-content"><p class="empty-hint">Disponible en la Fase 5.</p></div>

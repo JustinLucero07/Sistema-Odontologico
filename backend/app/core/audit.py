@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.audit.models import AuditLog
@@ -25,8 +26,11 @@ async def record_audit(
             action=action,
             entity_type=entity_type,
             entity_id=entity_id,
-            before=before,
-            after=after,
+            # before/after can carry dates, UUIDs, Decimals, etc. — normalize
+            # to plain JSON-safe values so this never blows up on a type the
+            # caller didn't think to stringify.
+            before=jsonable_encoder(before) if before is not None else None,
+            after=jsonable_encoder(after) if after is not None else None,
             ip_address=ip_address,
             created_at=datetime.now(timezone.utc),
         )

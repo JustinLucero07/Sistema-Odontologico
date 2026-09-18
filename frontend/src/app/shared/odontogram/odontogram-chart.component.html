@@ -1,47 +1,67 @@
 <div class="odontogram">
+  <span class="arch-caption">Arcada superior</span>
   <div class="arch-row">
     @for (tooth of upperRow(); track tooth.fdi) {
       <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
     }
   </div>
+  <div class="arch-midline"></div>
   <div class="arch-row">
     @for (tooth of lowerRow(); track tooth.fdi) {
       <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
     }
   </div>
+  <span class="arch-caption">Arcada inferior</span>
 </div>
 
 <ng-template #toothTpl let-tooth="tooth">
-  <div class="tooth" [class.readonly]="readonly">
-    <svg viewBox="0 0 40 40" class="tooth-svg" [attr.aria-label]="'Pieza ' + tooth.fdi">
+  <div
+    class="tooth"
+    [class.readonly]="readonly"
+    [class.has-activity]="tooth.hasActivity"
+    [style.transform]="tooth.curveTransform"
+    [title]="tooth.tooltip"
+  >
+    <svg
+      viewBox="0 0 40 40"
+      class="tooth-svg"
+      [style.width.px]="tooth.sizePx"
+      [style.height.px]="tooth.sizePx"
+      [attr.aria-label]="tooth.tooltip"
+    >
       @if (isAbsent(tooth)) {
-        <rect x="1" y="1" width="38" height="38" class="tooth-outline absent" />
-        <line x1="2" y1="2" x2="38" y2="38" class="absent-mark" />
-        <line x1="38" y1="2" x2="2" y2="38" class="absent-mark" />
+        <rect x="2" y="2" width="36" height="36" rx="8" class="tooth-outline absent" (click)="onSurfaceClick(tooth, 'whole')" />
+        <line x1="6" y1="6" x2="34" y2="34" class="absent-mark" />
+        <line x1="34" y1="6" x2="6" y2="34" class="absent-mark" />
       } @else if (tooth.wholeCondition) {
         <rect
-          x="1" y="1" width="38" height="38"
+          x="2" y="2" width="36" height="36" rx="8"
           class="tooth-outline"
           [style.fill]="colorFor(tooth.wholeCondition)"
           (click)="onSurfaceClick(tooth, 'whole')"
         />
       } @else {
-        <polygon points="0,0 40,0 28,12 12,12" class="region"
-          [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.top])"
-          (click)="onSurfaceClick(tooth, tooth.regionSurface.top)" />
-        <polygon points="40,0 40,40 28,28 28,12" class="region"
-          [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.right])"
-          (click)="onSurfaceClick(tooth, tooth.regionSurface.right)" />
-        <polygon points="40,40 0,40 12,28 28,28" class="region"
-          [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.bottom])"
-          (click)="onSurfaceClick(tooth, tooth.regionSurface.bottom)" />
-        <polygon points="0,40 0,0 12,12 12,28" class="region"
-          [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.left])"
-          (click)="onSurfaceClick(tooth, tooth.regionSurface.left)" />
-        <rect x="12" y="12" width="16" height="16" class="region"
-          [style.fill]="colorFor(tooth.surfaceConditions['oclusal'])"
-          (click)="onSurfaceClick(tooth, 'oclusal')" />
-        <rect x="1" y="1" width="38" height="38" class="tooth-outline" />
+        <clipPath [attr.id]="'clip-' + tooth.fdi">
+          <rect x="2" y="2" width="36" height="36" rx="8" />
+        </clipPath>
+        <g [attr.clip-path]="'url(#clip-' + tooth.fdi + ')'">
+          <polygon points="0,0 40,0 28,12 12,12" class="region"
+            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.top])"
+            (click)="onSurfaceClick(tooth, tooth.regionSurface.top)" />
+          <polygon points="40,0 40,40 28,28 28,12" class="region"
+            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.right])"
+            (click)="onSurfaceClick(tooth, tooth.regionSurface.right)" />
+          <polygon points="40,40 0,40 12,28 28,28" class="region"
+            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.bottom])"
+            (click)="onSurfaceClick(tooth, tooth.regionSurface.bottom)" />
+          <polygon points="0,40 0,0 12,12 12,28" class="region"
+            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.left])"
+            (click)="onSurfaceClick(tooth, tooth.regionSurface.left)" />
+          <rect x="12" y="12" width="16" height="16" class="region"
+            [style.fill]="colorFor(tooth.surfaceConditions['oclusal'])"
+            (click)="onSurfaceClick(tooth, 'oclusal')" />
+        </g>
+        <rect x="2" y="2" width="36" height="36" rx="8" class="tooth-outline" />
       }
     </svg>
     <button type="button" class="tooth-number" (click)="onToothLabelClick(tooth)">{{ tooth.fdi }}</button>

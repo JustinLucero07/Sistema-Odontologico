@@ -1,59 +1,121 @@
 .login-page {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.login-brand-panel {
+  position: relative;
+  background: linear-gradient(160deg, var(--color-sidenav-bg-elevated) 0%, var(--color-sidenav-bg) 70%);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0f6fff 0%, #0b3f99 100%);
-  padding: 16px;
+  align-items: flex-end;
+  padding: 56px;
+  overflow: hidden;
+  color: #fff;
+
+  @media (max-width: 860px) {
+    display: none;
+  }
 }
 
-.login-card {
-  width: 100%;
+.login-arch {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130%;
+  max-width: 640px;
+}
+
+.login-brand-content {
+  position: relative;
+  z-index: 1;
   max-width: 380px;
-  padding: 32px 28px;
-  border-radius: 16px;
-}
-
-.login-brand {
-  text-align: center;
-  margin-bottom: 24px;
 
   h1 {
-    font-size: 1.35rem;
-    margin: 8px 0 4px;
+    font-size: 1.85rem;
+    margin: 20px 0 12px;
+    color: #fff;
   }
 
   p {
     margin: 0;
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+}
+
+.login-brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    color: var(--color-accent);
+  }
+}
+
+.login-form-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-surface);
+}
+
+.login-form {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-form-header {
+  margin-bottom: 20px;
+
+  h2 {
+    margin: 0 0 6px;
+    font-size: 1.5rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-ink-soft);
     font-size: 0.9rem;
   }
 }
 
-.login-brand-icon {
-  font-size: 40px;
-  width: 40px;
-  height: 40px;
-  color: #0f6fff;
-}
-
-.login-form {
+.login-error {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.83rem;
+  margin: 4px 0 12px;
 
-  mat-form-field {
-    width: 100%;
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 }
 
-.login-error {
-  color: #b3261e;
-  font-size: 0.85rem;
-  margin: 0 0 8px;
-}
-
 .login-submit {
-  height: 44px;
+  height: 46px;
   margin-top: 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
 }

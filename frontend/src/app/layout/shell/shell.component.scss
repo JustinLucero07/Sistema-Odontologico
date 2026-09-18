@@ -1,11 +1,12 @@
 .shell-container {
   height: 100vh;
+  background: var(--color-base);
 }
 
 .shell-sidenav {
-  width: 260px;
+  width: 264px;
   border-right: none;
-  background: #0b1220;
+  background: var(--color-sidenav-bg);
   color: #fff;
 }
 
@@ -13,29 +14,45 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 16px;
-  font-weight: 600;
-  font-size: 1.05rem;
+  padding: 22px 20px 18px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: #fff;
+
+  mat-icon {
+    color: var(--color-accent);
+  }
 }
 
 .shell-sidenav mat-nav-list {
-  padding-top: 8px;
-  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.85);
-  --mdc-list-list-item-leading-icon-icon-color: rgba(255, 255, 255, 0.7);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.78);
+  --mdc-list-list-item-leading-icon-icon-color: rgba(255, 255, 255, 0.62);
   --mdc-list-list-item-hover-label-text-color: #fff;
-  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.15);
-  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.15);
+  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.08);
+  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.08);
+}
+
+.shell-sidenav a[mat-list-item] {
+  border-radius: var(--radius-sm);
+  font-size: 0.87rem;
 }
 
 .shell-sidenav a.active-link {
-  background: rgba(15, 111, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   --mdc-list-list-item-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-icon-color: #fff;
+  --mdc-list-list-item-leading-icon-icon-color: var(--color-accent);
+  font-weight: 600;
 }
 
 .shell-toolbar {
-  background: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .shell-spacer {
@@ -43,8 +60,8 @@
 }
 
 .shell-content {
-  padding: 24px;
-  background: #f4f6fb;
+  padding: 28px 32px;
+  background: var(--color-base);
   min-height: calc(100vh - 64px);
   box-sizing: border-box;
 }
@@ -52,5 +69,5 @@
 .user-menu-roles {
   padding: 6px 16px;
   font-size: 0.8rem;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--color-ink-soft);
 }

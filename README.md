@@ -1,10 +1,11 @@
-# Sistema Odontológico — Fases 1 a 3
+# Sistema Odontológico — Fases 1 a 4
 
 Arquitectura completa en [este documento](https://claude.ai/code/artifact/8991af38-1531-4963-8933-c9094d25488a).
 
 - **Fase 1**: arquitectura base, autenticación (JWT + refresh rotativo), usuarios, roles y permisos (RBAC configurable), datos de la clínica, sucursales, consultorios y profesionales/especialidades.
 - **Fase 2**: pacientes (alta, búsqueda, baja) e historia clínica versionada — cada edición crea una nueva versión, nunca sobrescribe la anterior — con la ficha del paciente como expediente digital.
-- **Fase 3**: odontograma digital interactivo (SVG, no imagen estática) con numeración FDI, dentición permanente y temporal, 5 superficies por pieza más condición de diente completo, versionado por snapshots (cada guardado crea una nueva versión enlazada a la anterior, nunca la sobrescribe) e historial de versiones consultable.
+- **Fase 3**: odontograma digital interactivo (SVG, no imagen estática) con numeración FDI, dentición permanente y temporal, 5 superficies por pieza más condición de diente completo, versionado por snapshots, historial de versiones, y acceso directo desde el menú con buscador de paciente.
+- **Fase 4**: diagnósticos, catálogo de tratamientos, planes de tratamiento (con ítems por pieza/diagnóstico, estados y progreso calculado automáticamente) y presupuestos generados desde un plan (subtotal, impuesto, total, y flujo de estados borrador → enviado → visto → aceptado/rechazado que no permite retroceder).
 
 Todo con frontend Angular funcional de extremo a extremo.
 
@@ -68,4 +69,5 @@ npm start   # http://localhost:4200, apunta a http://localhost:8000/api/v1 (ver 
 - ✅ Fase 1: arquitectura, base de datos, autenticación, usuarios, roles, permisos, clínica
 - ✅ Fase 2: pacientes, historia clínica versionada, ficha del paciente
 - ✅ Fase 3: odontograma digital interactivo versionado (dentición permanente y temporal)
-- ⬜ Fase 4 en adelante: ver el documento de arquitectura, sección "Plan de desarrollo por fases"
+- ✅ Fase 4: diagnósticos, tratamientos, planes de tratamiento con progreso, presupuestos
+- ⬜ Fase 5 en adelante: ver el documento de arquitectura, sección "Plan de desarrollo por fases"

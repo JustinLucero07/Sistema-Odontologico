@@ -1,0 +1,184 @@
+<div class="treatments-tab">
+  <section class="block">
+    <div class="block-header">
+      <h2><mat-icon>fact_check</mat-icon> Diagnósticos</h2>
+      <button mat-button *appHasPermission="'diagnoses:write'" (click)="showDiagnosisForm.set(!showDiagnosisForm())">
+        <mat-icon>add</mat-icon>
+        Nuevo diagnóstico
+      </button>
+    </div>
+
+    @if (showDiagnosisForm()) {
+      <form [formGroup]="diagnosisForm" (ngSubmit)="submitDiagnosis()" class="inline-form">
+        <mat-form-field appearance="outline" class="fdi-field">
+          <mat-label>Pieza (FDI)</mat-label>
+          <input matInput formControlName="fdi_number" placeholder="Ej. 16" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="grow-field">
+          <mat-label>Descripción del diagnóstico</mat-label>
+          <input matInput formControlName="description" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="diagnosisForm.invalid || saving()">
+          Guardar
+        </button>
+      </form>
+    }
+
+    @if (diagnoses().length === 0) {
+      <p class="empty-hint">Sin diagnósticos registrados.</p>
+    } @else {
+      <div class="diagnosis-list">
+        @for (d of diagnoses(); track d.id) {
+          <div class="diagnosis-row">
+            @if (d.fdi_number) {
+              <span class="fdi-badge">{{ d.fdi_number }}</span>
+            }
+            <span>{{ d.description }}</span>
+            <span class="diagnosis-date">{{ d.created_at | date: 'shortDate' }}</span>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="block">
+    <div class="block-header">
+      <h2><mat-icon>medical_information</mat-icon> Planes de tratamiento</h2>
+      <button mat-button *appHasPermission="'treatments:write'" (click)="showNewPlanForm.set(!showNewPlanForm())">
+        <mat-icon>add</mat-icon>
+        Nuevo plan
+      </button>
+    </div>
+
+    @if (showNewPlanForm()) {
+      <form [formGroup]="planForm" (ngSubmit)="submitNewPlan()" class="inline-form">
+        <mat-form-field appearance="outline" class="grow-field">
+          <mat-label>Título del plan</mat-label>
+          <input matInput formControlName="title" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="planForm.invalid || saving()">
+          Crear plan
+        </button>
+      </form>
+    }
+
+    @if (plans().length === 0) {
+      <p class="empty-hint">Este paciente aún no tiene un plan de tratamiento.</p>
+    }
+
+    @for (plan of plans(); track plan.id) {
+      <mat-card class="plan-card">
+        <div class="plan-header">
+          <h3>{{ plan.title }}</h3>
+          <span class="plan-total">$ {{ plan.total_price | number: '1.2-2' }}</span>
+        </div>
+
+        <div class="progress-row">
+          <mat-progress-bar mode="determinate" [value]="plan.progress_percent"></mat-progress-bar>
+          <span>{{ plan.progress_percent }}% completado</span>
+        </div>
+
+        @if (plan.items.length > 0) {
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Tratamiento</th>
+                <th>Pieza</th>
+                <th>Precio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of plan.items; track item.id) {
+                <tr>
+                  <td>{{ item.treatment_name }}</td>
+                  <td>{{ item.fdi_number || '—' }}</td>
+                  <td>$ {{ item.net_price | number: '1.2-2' }}</td>
+                  <td>
+                    @if (canEditItems()) {
+                      <mat-form-field appearance="outline" class="status-select" subscriptSizing="dynamic">
+                        <mat-select
+                          [value]="item.status"
+                          (selectionChange)="changeItemStatus(plan.id, item.id, $event.value)"
+                        >
+                          @for (option of statusOptions; track option) {
+                            <mat-option [value]="option">{{ statusLabels[option] }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <span class="status-readonly">{{ statusLabels[item.status] }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (addingItemToPlan() === plan.id) {
+          <form [formGroup]="itemForm" (ngSubmit)="submitItem(plan.id)" class="inline-form item-form">
+            <mat-form-field appearance="outline" class="grow-field">
+              <mat-label>Tratamiento</mat-label>
+              <mat-select formControlName="treatment_id" (selectionChange)="onTreatmentSelected($event.value)">
+                @for (t of catalog(); track t.id) {
+                  <mat-option [value]="t.id">{{ t.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="fdi-field">
+              <mat-label>Pieza</mat-label>
+              <input matInput formControlName="fdi_number" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="price-field">
+              <mat-label>Precio</mat-label>
+              <input matInput type="number" formControlName="price" min="0" step="0.01" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="price-field">
+              <mat-label>Descuento</mat-label>
+              <input matInput type="number" formControlName="discount" min="0" step="0.01" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" [disabled]="itemForm.invalid || saving()">
+              Agregar
+            </button>
+          </form>
+        }
+
+        <div class="plan-actions">
+          <button mat-button *appHasPermission="'treatments:write'" (click)="startAddingItem(plan.id)">
+            <mat-icon>add</mat-icon>
+            Agregar ítem
+          </button>
+          <button mat-button *appHasPermission="'budgets:write'" (click)="generateBudget(plan.id)">
+            <mat-icon>request_quote</mat-icon>
+            Generar presupuesto
+          </button>
+        </div>
+
+        @if (budgetsForPlan(plan.id).length > 0) {
+          <div class="budgets-list">
+            @for (budget of budgetsForPlan(plan.id); track budget.id) {
+              <div class="budget-row">
+                <div class="budget-info">
+                  <mat-chip [class.status-aceptado]="budget.status === 'aceptado'" [class.status-rechazado]="budget.status === 'rechazado'">
+                    {{ budgetStatusLabels[budget.status] }}
+                  </mat-chip>
+                  <span>{{ budget.created_at | date: 'shortDate' }}</span>
+                  <strong>$ {{ budget.total | number: '1.2-2' }}</strong>
+                </div>
+                <div class="budget-actions" *appHasPermission="'budgets:write'">
+                  @if (budgetNextStatus[budget.status]; as next) {
+                    <button mat-button (click)="advanceBudgetStatus(budget)">{{ next.label }}</button>
+                  }
+                  @if (budget.status !== 'aceptado' && budget.status !== 'rechazado') {
+                    <button mat-button color="warn" (click)="rejectBudget(budget)">Rechazar</button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </mat-card>
+    }
+  </section>
+</div>

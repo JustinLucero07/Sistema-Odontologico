@@ -38,6 +38,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'odontogram',
+        canActivate: [permissionGuard],
+        data: { permission: 'odontogram:read' },
+        loadComponent: () =>
+          import('./features/odontogram/odontogram-search/odontogram-search.component').then(
+            (m) => m.OdontogramSearchComponent,
+          ),
+      },
+      {
         path: 'settings/users',
         canActivate: [permissionGuard],
         data: { permission: 'users:manage' },
@@ -50,6 +59,13 @@ export const routes: Routes = [
         data: { permission: 'roles:manage' },
         loadComponent: () =>
           import('./features/settings/roles/roles.component').then((m) => m.RolesComponent),
+      },
+      {
+        path: 'settings/treatments',
+        canActivate: [permissionGuard],
+        data: { permission: 'treatments:write' },
+        loadComponent: () =>
+          import('./features/settings/treatments/treatments.component').then((m) => m.TreatmentsComponent),
       },
       {
         path: 'settings/professionals',

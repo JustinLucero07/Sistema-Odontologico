@@ -11,8 +11,10 @@ PERMISSION_CATALOG: list[tuple[str, str, str]] = [
     ("medical_history:write", "medical_history", "Modificar historia clínica"),
     ("odontogram:read", "odontogram", "Ver odontograma"),
     ("odontogram:write", "odontogram", "Modificar odontograma"),
-    ("treatments:read", "treatments", "Ver tratamientos"),
-    ("treatments:write", "treatments", "Crear/editar tratamientos y planes"),
+    ("diagnoses:read", "diagnoses", "Ver diagnósticos"),
+    ("diagnoses:write", "diagnoses", "Crear/editar diagnósticos"),
+    ("treatments:read", "treatments", "Ver catálogo de tratamientos y planes de tratamiento"),
+    ("treatments:write", "treatments", "Crear/editar catálogo de tratamientos y planes"),
     ("budgets:read", "budgets", "Ver presupuestos"),
     ("budgets:write", "budgets", "Crear/editar presupuestos"),
     ("appointments:read", "appointments", "Ver agenda y citas"),
@@ -36,6 +38,7 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         "patients:read", "patients:write",
         "medical_history:read", "medical_history:write",
         "odontogram:read", "odontogram:write",
+        "diagnoses:read", "diagnoses:write",
         "treatments:read", "treatments:write",
         "budgets:read", "budgets:write",
         "appointments:read", "appointments:write",
@@ -43,6 +46,7 @@ DEFAULT_ROLES: dict[str, list[str]] = {
     "Recepción": [
         "patients:read", "patients:write",
         "medical_history:read",
+        "treatments:read",
         "appointments:read", "appointments:write",
         "payments:read", "payments:write",
         "budgets:read",
@@ -50,6 +54,8 @@ DEFAULT_ROLES: dict[str, list[str]] = {
     "Asistente dental": [
         "patients:read",
         "odontogram:read",
+        "diagnoses:read",
+        "treatments:read",
         "appointments:read",
     ],
     "Contabilidad": [

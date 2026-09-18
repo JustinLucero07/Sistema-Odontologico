@@ -12,6 +12,8 @@
 .form-card,
 .table-card {
   padding: 20px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-form {

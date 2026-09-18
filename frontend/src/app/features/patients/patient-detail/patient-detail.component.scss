@@ -8,6 +8,8 @@
   padding: 20px 24px;
   display: grid;
   gap: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .quick-card-main {
@@ -25,7 +27,7 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #0f6fff;
+  background: var(--color-primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -37,7 +39,7 @@
 
 .quick-meta {
   margin: 2px 0 0;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--color-ink-soft);
   font-size: 0.9rem;
 }
 
@@ -64,6 +66,8 @@
 
 .info-card {
   padding: 20px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .info-grid {
@@ -79,10 +83,9 @@
 }
 
 .label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.73rem;
+  letter-spacing: 0.01em;
+  color: var(--color-ink-faint);
 }
 
 .notes {
@@ -104,7 +107,7 @@
   h3 {
     margin: 12px 0 0;
     font-size: 0.95rem;
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--color-ink-soft);
   }
 }
 
@@ -119,19 +122,19 @@
   h3 {
     margin: 0 0 8px;
     font-size: 0.95rem;
-    color: rgba(0, 0, 0, 0.6);
+    color: var(--color-ink-soft);
   }
 }
 
 .version-date {
   font-size: 0.8rem;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--color-ink-faint);
   margin: 0;
 }
 
 .versions-list {
   margin-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--color-border);
   padding-top: 12px;
   display: grid;
   gap: 8px;
@@ -149,10 +152,10 @@
 
 .hint {
   font-size: 0.8rem;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-ink-soft);
   margin: 8px 0 0;
 }
 
 .empty-hint {
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--color-ink-faint);
 }
