@@ -1,67 +1,167 @@
 // Custom Theming for Angular Material
-// For more information: https://material.angular.io/guide/theming
 @use '@angular/material' as mat;
 
 @include mat.core();
 
-// Cyan/orange sit in the closest stock M3 tonal neighborhood to this app's
-// actual brand colors (deep clinical teal + warm gold, defined as CSS custom
-// properties below) — Material's per-component tokens are then repointed at
-// those exact brand values so nothing ships the stock azure blue.
+// Cyan/orange are the closest stock M3 tonal neighborhood to the real brand
+// colours (clinical teal + warm gold). Material's per-component tokens are
+// repointed at the exact brand values below, per theme.
 $frontend-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: mat.$cyan-palette,
-    tertiary: mat.$orange-palette,
-  ),
-  density: (
-    scale: 0,
-  )
+  color: (theme-type: light, primary: mat.$cyan-palette, tertiary: mat.$orange-palette),
+  density: (scale: 0),
 ));
 
 :root {
   @include mat.all-component-themes($frontend-theme);
 }
 
-:root {
-  // ---- Brand / design tokens -------------------------------------------
-  --color-ink: #14242b;
-  --color-ink-soft: rgba(20, 36, 43, 0.64);
-  --color-ink-faint: rgba(20, 36, 43, 0.42);
+/* ============================================================
+   Design tokens — light
+   The dark set further down is *chosen*, not an inversion: a
+   flipped palette gives muddy mid-tones and dead primaries.
+   ============================================================ */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
 
-  --color-base: #f6f4ef;
+  --color-ink: #0f2427;
+  --color-ink-soft: rgba(15, 36, 39, 0.66);
+  --color-ink-faint: rgba(15, 36, 39, 0.45);
+
+  // A faintly cool, slightly textured page so glass has something to refract.
+  --color-base: #e9eff0;
+  --color-base-gradient:
+    radial-gradient(1100px 620px at 12% -8%, rgba(45, 191, 174, 0.16), transparent 60%),
+    radial-gradient(900px 560px at 92% 4%, rgba(13, 127, 118, 0.13), transparent 62%),
+    linear-gradient(180deg, #eef3f4 0%, #e4ebec 100%);
+
   --color-surface: #ffffff;
-  --color-border: rgba(20, 36, 43, 0.09);
-  --color-border-strong: rgba(20, 36, 43, 0.16);
+  --color-surface-muted: #f4f7f7;
+  --color-border: rgba(15, 36, 39, 0.1);
+  --color-border-strong: rgba(15, 36, 39, 0.18);
 
-  --color-primary: #0e5a54;
-  --color-primary-dark: #0a423d;
-  --color-primary-soft: rgba(14, 90, 84, 0.09);
+  --color-primary: #0d7f76;
+  --color-primary-dark: #095c55;
+  --color-primary-soft: rgba(13, 127, 118, 0.1);
   --color-on-primary: #ffffff;
 
+  --color-mint: #2fbfae;
   --color-accent: #b9832f;
-  --color-accent-soft: rgba(185, 131, 47, 0.12);
+  --color-accent-soft: rgba(185, 131, 47, 0.13);
 
-  --color-danger: #a8382f;
-  --color-danger-soft: rgba(168, 56, 47, 0.08);
-  --color-success: #35714f;
-  --color-success-soft: rgba(53, 113, 79, 0.1);
+  --color-danger: #b3352b;
+  --color-danger-soft: rgba(179, 53, 43, 0.09);
+  --color-success: #2b7a4b;
+  --color-success-soft: rgba(43, 122, 75, 0.11);
 
-  --color-sidenav-bg: #0d2523;
-  --color-sidenav-bg-elevated: #123330;
+  // ---- Liquid Glass -------------------------------------------------
+  // Material weight encodes hierarchy: the sidebar is the heaviest
+  // structural layer, cards sit lighter above the page, chips lightest.
+  --glass-sidebar-bg: linear-gradient(170deg, rgba(10, 48, 46, 0.93), rgba(7, 33, 33, 0.95));
+  --glass-sidebar-blur: blur(26px) saturate(150%);
+  --glass-sidebar-edge: rgba(255, 255, 255, 0.12);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  --glass-bar-bg: rgba(255, 255, 255, 0.62);
+  --glass-bar-blur: blur(22px) saturate(180%);
 
-  --shadow-sm: 0 1px 2px rgba(20, 36, 43, 0.06);
-  --shadow-md: 0 8px 24px rgba(20, 36, 43, 0.08);
-  --shadow-lg: 0 16px 40px rgba(20, 36, 43, 0.14);
+  --glass-card-bg: rgba(255, 255, 255, 0.72);
+  --glass-card-blur: blur(18px) saturate(170%);
+  // The bright top edge is light catching the lip of the material.
+  --glass-card-edge: rgba(255, 255, 255, 0.75);
+  --glass-card-border: rgba(15, 36, 39, 0.08);
+
+  --glass-overlay-bg: rgba(255, 255, 255, 0.86);
+  --glass-scrim: rgba(8, 28, 29, 0.42);
+
+  --shadow-sm: 0 1px 2px rgba(10, 35, 37, 0.06);
+  --shadow-md: 0 10px 28px rgba(10, 35, 37, 0.1);
+  --shadow-lg: 0 24px 60px rgba(8, 28, 29, 0.22);
+
+  // ---- Appointment states ---------------------------------------------
+  // Validated as a set, not chosen by eye — see APPOINTMENT_STATUS_COLORS.
+  // Worst adjacent pair here: ΔE 9.5 protan, 21.3 normal vision.
+  --status-programada: #22b8cf;
+  --status-confirmada: #2b8a3e;
+  --status-en-espera: #f08c00;
+  --status-en-atencion: #3b5bdb;
+  --status-atendida: #0ca678;
+  --status-cancelada: #c92a2a;
+  --status-no-asistio: #9c36b5;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-ink: #e7f1f1;
+  --color-ink-soft: rgba(231, 241, 241, 0.7);
+  --color-ink-faint: rgba(231, 241, 241, 0.46);
+
+  --color-base: #081416;
+  --color-base-gradient:
+    radial-gradient(1100px 620px at 10% -8%, rgba(47, 191, 174, 0.16), transparent 60%),
+    radial-gradient(900px 540px at 94% 2%, rgba(13, 127, 118, 0.17), transparent 62%),
+    linear-gradient(180deg, #0b1b1d 0%, #071214 100%);
+
+  --color-surface: #112124;
+  --color-surface-muted: #16292c;
+  --color-border: rgba(231, 241, 241, 0.12);
+  --color-border-strong: rgba(231, 241, 241, 0.22);
+
+  // Primaries are lifted for dark: the light-mode teal reads almost black here.
+  --color-primary: #34d3c0;
+  --color-primary-dark: #22a897;
+  --color-primary-soft: rgba(52, 211, 192, 0.14);
+  --color-on-primary: #05221f;
+
+  --color-mint: #5ee0ce;
+  --color-accent: #e2b155;
+  --color-accent-soft: rgba(226, 177, 85, 0.16);
+
+  --color-danger: #ef7a70;
+  --color-danger-soft: rgba(239, 122, 112, 0.14);
+  --color-success: #5fc98b;
+  --color-success-soft: rgba(95, 201, 139, 0.14);
+
+  --glass-sidebar-bg: linear-gradient(170deg, rgba(10, 32, 34, 0.9), rgba(6, 20, 22, 0.94));
+  --glass-sidebar-blur: blur(26px) saturate(140%);
+  --glass-sidebar-edge: rgba(255, 255, 255, 0.08);
+
+  --glass-bar-bg: rgba(16, 33, 36, 0.62);
+  --glass-bar-blur: blur(22px) saturate(160%);
+
+  --glass-card-bg: rgba(22, 43, 46, 0.66);
+  --glass-card-blur: blur(20px) saturate(160%);
+  --glass-card-edge: rgba(255, 255, 255, 0.1);
+  --glass-card-border: rgba(231, 241, 241, 0.1);
+
+  --glass-overlay-bg: rgba(19, 37, 40, 0.88);
+  --glass-scrim: rgba(2, 10, 11, 0.62);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+  // Three of the day steps fall under 3:1 on the night surface, so indigo, red
+  // and purple are re-stepped lighter. The rest carry over unchanged — a status
+  // should not change identity when the theme flips.
+  --status-programada: #22b8cf;
+  --status-confirmada: #2b8a3e;
+  --status-en-espera: #f08c00;
+  --status-en-atencion: #486bec;
+  --status-atendida: #0ca678;
+  --status-cancelada: #d73a36;
+  --status-no-asistio: #ae49c7;
+}
+
+:root {
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
 
   --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
   --font-body: 'Inter', 'Helvetica Neue', sans-serif;
 
-  // ---- Repoint Angular Material's component tokens at the brand ---------
+  // ---- Angular Material tokens, repointed at the brand ----------------
   --mdc-theme-primary: var(--color-primary);
 
   --mdc-filled-button-container-color: var(--color-primary);
@@ -76,6 +176,9 @@ $frontend-theme: mat.define-theme((
   --mdc-outlined-text-field-focus-outline-color: var(--color-primary);
   --mdc-outlined-text-field-caret-color: var(--color-primary);
   --mdc-outlined-text-field-focus-label-text-color: var(--color-primary);
+  --mdc-outlined-text-field-label-text-color: var(--color-ink-soft);
+  --mdc-outlined-text-field-input-text-color: var(--color-ink);
+  --mdc-outlined-text-field-outline-color: var(--color-border-strong);
   --mat-form-field-focus-select-arrow-color: var(--color-primary);
 
   --mdc-checkbox-selected-icon-color: var(--color-primary);
@@ -94,10 +197,22 @@ $frontend-theme: mat.define-theme((
   --mdc-switch-selected-track-color: var(--color-primary);
   --mdc-switch-selected-handle-color: var(--color-primary);
 
-  --mat-toolbar-container-background-color: var(--color-surface);
+  --mat-toolbar-container-background-color: transparent;
   --mat-toolbar-container-text-color: var(--color-ink);
 
   --mdc-snackbar-container-color: var(--color-ink);
+  --mdc-snackbar-supporting-text-color: var(--color-base);
+
+  // Surfaces Material paints itself (menus, selects, dialogs, cards).
+  --mat-menu-container-color: var(--color-surface);
+  --mat-menu-item-label-text-color: var(--color-ink);
+  --mat-menu-item-icon-color: var(--color-ink-soft);
+  --mat-select-panel-background-color: var(--color-surface);
+  --mat-select-enabled-trigger-text-color: var(--color-ink);
+  --mat-option-label-text-color: var(--color-ink);
+  --mat-option-selected-state-label-text-color: var(--color-primary);
+  --mdc-elevated-card-container-color: var(--color-surface);
+  --mat-app-background-color: transparent;
 }
 
 html,
@@ -110,26 +225,119 @@ body {
   font-family: var(--font-body);
   color: var(--color-ink);
   background: var(--color-base);
+  background-image: var(--color-base-gradient);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
 
+// Type: tracking is size-specific — tighten as it grows, body stays near 0.
 h1,
 h2,
 h3,
 h4 {
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.01em;
   color: var(--color-ink);
 }
 
-// Tabular figures for anything numeric (prices, stats, dates) so columns of
-// numbers line up — a functional choice, not decoration.
-.numeric,
-td.mat-mdc-cell:has(> .numeric) {
+h1 {
+  letter-spacing: -0.021em;
+  line-height: 1.14;
+}
+
+h2 {
+  letter-spacing: -0.014em;
+}
+
+h3,
+h4 {
+  letter-spacing: -0.008em;
+}
+
+/* ============================================================
+   Liquid Glass utilities
+   Never stack one light glass surface directly on another —
+   the page background is solid so cards have something to blur.
+   ============================================================ */
+.glass-card {
+  position: relative;
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+
+  // The lit top lip that makes the surface read as a real material.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-card-edge), transparent);
+    pointer-events: none;
+  }
+}
+
+// Angular Material cards inherit the same material.
+mat-card.mat-mdc-card {
+  background: var(--glass-card-bg) !important;
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md) !important;
+  color: var(--color-ink);
+}
+
+// Tabular figures for anything numeric, so columns of numbers line up.
+.numeric {
   font-variant-numeric: tabular-nums;
 }
 
 ::selection {
   background: var(--color-primary-soft);
+}
+
+// Easing the theme swap avoids an abrupt brightness jump.
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color 260ms ease,
+    background-image 260ms ease,
+    border-color 260ms ease,
+    color 260ms ease !important;
+}
+
+/* ---- Accessibility: the material adapts, it doesn't just disappear ---- */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-card-bg: var(--color-surface);
+    --glass-bar-bg: var(--color-surface);
+    --glass-overlay-bg: var(--color-surface);
+    --glass-card-blur: none;
+    --glass-bar-blur: none;
+  }
+
+  .glass-card,
+  mat-card.mat-mdc-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass-card-bg: var(--color-surface);
+    --glass-card-border: var(--color-border-strong);
+    --color-ink-soft: var(--color-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition * {
+    transition: none !important;
+  }
 }

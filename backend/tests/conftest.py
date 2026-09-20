@@ -1,7 +1,13 @@
 import asyncio
 import os
 
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://odonto:odonto@localhost:5433/odonto_test"
+# Points at the Postgres from infra/docker-compose.yml (published on 5434 to
+# avoid clashing with a local Postgres on the default port). Override with
+# TEST_DATABASE_URL to run the suite against a different database.
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL", "postgresql+asyncpg://odonto:odonto@localhost:5434/odonto_test"
+)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -17,7 +23,28 @@ from app.main import app
 from app.modules.clinics.models import Clinic
 from app.modules.users.models import Permission, Role, User
 
-TEST_DATABASE_URL = "postgresql+asyncpg://odonto:odonto@localhost:5433/odonto_test"
+# Kept in sync with the Phase 5 migration.
+EXCLUSION_CONSTRAINTS = [
+    "CREATE EXTENSION IF NOT EXISTS btree_gist",
+    """
+    ALTER TABLE appointments
+    ADD CONSTRAINT appointments_no_professional_overlap
+    EXCLUDE USING gist (
+        professional_id WITH =,
+        tstzrange(starts_at, ends_at, '[)') WITH &&
+    )
+    WHERE (status NOT IN ('cancelada', 'no_asistio'))
+    """,
+    """
+    ALTER TABLE appointments
+    ADD CONSTRAINT appointments_no_operatory_overlap
+    EXCLUDE USING gist (
+        operatory_id WITH =,
+        tstzrange(starts_at, ends_at, '[)') WITH &&
+    )
+    WHERE (operatory_id IS NOT NULL AND status NOT IN ('cancelada', 'no_asistio'))
+    """,
+]
 
 
 def _prepare_schema_sync() -> None:
@@ -30,6 +57,12 @@ def _prepare_schema_sync() -> None:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
+            # create_all cannot express the appointment exclusion constraints
+            # (they live as raw SQL in the migration), so mirror them here —
+            # otherwise the tests would run against a schema that allows the
+            # double bookings production rejects.
+            for statement in EXCLUSION_CONSTRAINTS:
+                await conn.exec_driver_sql(statement)
 
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
         async with session_factory() as session:

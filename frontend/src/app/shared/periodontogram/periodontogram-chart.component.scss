@@ -1,0 +1,279 @@
+:host {
+  // The two profile lines are the chart's signal. They must stay apart for a
+  // colour-blind reader, so they differ in lightness as well as hue and the
+  // pocket line is thicker.
+  --perio-margin: #c2410c;
+  --perio-pocket: #1d4ed8;
+  --perio-bleed: #dc2626;
+  --perio-moderate: rgba(240, 140, 0, 0.22);
+  --perio-severe: rgba(201, 42, 42, 0.26);
+}
+
+:host-context([data-theme='dark']) {
+  --perio-margin: #fb923c;
+  --perio-pocket: #7aa2ff;
+  --perio-bleed: #f87171;
+  --perio-moderate: rgba(240, 140, 0, 0.3);
+  --perio-severe: rgba(239, 122, 112, 0.34);
+}
+
+.perio {
+  display: grid;
+  gap: 18px;
+}
+
+.arch {
+  padding: 14px 16px 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+}
+
+.arch-title {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  letter-spacing: -0.008em;
+  color: var(--color-ink-soft);
+}
+
+// The label column stays put while the arch scrolls under it.
+.arch-scroll {
+  overflow-x: auto;
+  padding-left: 84px;
+}
+
+.arch-inner {
+  position: relative;
+}
+
+.row-label {
+  position: absolute;
+  left: -84px;
+  width: 80px;
+  text-align: right;
+  font-size: 0.66rem;
+  line-height: 20px;
+  color: var(--color-ink-faint);
+  white-space: nowrap;
+}
+
+.fdi-row,
+.data-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.data-row {
+  min-height: 21px;
+}
+
+.tooth-slot {
+  display: inline-flex;
+  justify-content: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.fdi-cell {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+  padding: 4px 0;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+
+  // An absent tooth is struck through rather than hidden: the gap in the arch
+  // is itself a finding, and the column has to stay for the numbers to line up.
+  &.is-absent {
+    text-decoration: line-through;
+    color: var(--color-ink-faint);
+  }
+}
+
+.wall {
+  position: relative;
+  margin-top: 10px;
+  // The wall's name gets its own line in the gutter; without this padding it
+  // lands on top of the first row's label.
+  padding-top: 22px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.wall-label {
+  position: absolute;
+  left: -84px;
+  top: 5px;
+  width: 80px;
+  text-align: right;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.cell {
+  height: 19px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  margin: 0 0.5px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: center;
+  font-size: 0.64rem;
+  padding: 0;
+
+  &:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -1px;
+    z-index: 1;
+    position: relative;
+  }
+
+  &:disabled {
+    background: transparent;
+    border-color: transparent;
+  }
+}
+
+.tooth-cell {
+  width: 22px;
+}
+
+// Depth cells carry a tint as well as the number, so a deep pocket is visible
+// while scanning the row rather than only when read.
+.depth-moderate {
+  background: var(--perio-moderate);
+  font-weight: 700;
+}
+
+.depth-severe {
+  background: var(--perio-severe);
+  font-weight: 700;
+}
+
+.dot {
+  height: 15px;
+  padding: 0;
+  margin: 0 0.5px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &.on {
+    background: var(--color-ink-soft);
+    border-color: transparent;
+  }
+
+  &.on.is-bleeding {
+    background: var(--perio-bleed);
+  }
+}
+
+.graph-row {
+  margin-top: 4px;
+}
+
+.profile {
+  display: block;
+  background: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  border-radius: 4px;
+}
+
+.cej {
+  stroke: var(--color-ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.tooth-divider {
+  stroke: var(--color-border);
+  stroke-width: 0.5;
+}
+
+.margin-line {
+  fill: none;
+  stroke: var(--perio-margin);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.pocket-line {
+  fill: none;
+  stroke: var(--perio-pocket);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+
+.bleed-dot {
+  fill: var(--perio-bleed);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 0.72rem;
+  color: var(--color-ink-soft);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.swatch {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.margin-swatch {
+  background: var(--perio-margin);
+}
+
+.pocket-swatch {
+  background: var(--perio-pocket);
+}
+
+.bleed-swatch {
+  background: var(--perio-bleed);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend .depth-moderate,
+.legend .depth-severe {
+  width: 14px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    transition: none;
+  }
+}

@@ -1,92 +1,118 @@
 <div class="login-page">
-  <aside class="login-brand-panel">
-    <svg class="login-arch" viewBox="0 0 400 200" fill="none" aria-hidden="true">
-      <path
-        d="M20 180 C20 60, 120 20, 200 20 C280 20, 380 60, 380 180"
-        stroke="rgba(255,255,255,0.14)"
-        stroke-width="2"
-      />
-      <path
-        d="M60 180 C60 90, 130 55, 200 55 C270 55, 340 90, 340 180"
-        stroke="rgba(255,255,255,0.24)"
-        stroke-width="2"
-      />
-      <path
-        d="M100 180 C100 120, 145 92, 200 92 C255 92, 300 120, 300 180"
-        stroke="rgba(255,255,255,0.36)"
-        stroke-width="2"
-      />
-    </svg>
+  <!-- A dental arch, drawn large and faint: the subject matter as backdrop
+       rather than a decorative blob. -->
+  <svg class="login-arch" viewBox="0 0 900 460" fill="none" aria-hidden="true">
+    <path d="M60 440 C60 150, 260 60, 450 60 C640 60, 840 150, 840 440" stroke="rgba(255,255,255,0.07)" stroke-width="2" />
+    <path d="M140 440 C140 210, 300 135, 450 135 C600 135, 760 210, 760 440" stroke="rgba(255,255,255,0.09)" stroke-width="2" />
+    <path d="M225 440 C225 275, 340 215, 450 215 C560 215, 675 275, 675 440" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+  </svg>
 
-    <div class="login-brand-content">
-      <div class="login-brand-mark">
-        <mat-icon>medical_services</mat-icon>
+  <div class="login-split">
+    <!-- Brand side: what the product is, before asking who you are. -->
+    <section class="login-pitch">
+      <span class="pitch-mark"><app-tooth-mark [size]="30" [filled]="true" /></span>
+
+      <h1>La clínica entera,<br />en una sola pantalla.</h1>
+      <p class="pitch-sub">
+        Historia clínica versionada, odontograma interactivo y agenda sin choques de horario.
+      </p>
+
+      <ul class="pitch-points">
+        <li>
+          <mat-icon>dentistry</mat-icon>
+          <div>
+            <strong>Odontograma interactivo</strong>
+            <span>Cinco superficies por pieza, con historial de cada cambio.</span>
+          </div>
+        </li>
+        <li>
+          <mat-icon>history_edu</mat-icon>
+          <div>
+            <strong>Historia clínica que no se pisa</strong>
+            <span>Cada versión queda guardada y firmada; nada se sobrescribe.</span>
+          </div>
+        </li>
+        <li>
+          <mat-icon>event_available</mat-icon>
+          <div>
+            <strong>Agenda sin doble reserva</strong>
+            <span>El solape lo impide la base de datos, no un aviso en pantalla.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Form side -->
+    <main class="login-card">
+      <div class="login-brand">
+        <span class="login-mark"><app-tooth-mark [size]="26" [filled]="true" /></span>
+        <div>
+          <h2>Iniciar sesión</h2>
+          <p>Ingresa con la cuenta de tu clínica.</p>
+        </div>
       </div>
-      <h1>Sistema Odontológico</h1>
-      <p>La historia clínica, el odontograma y los tratamientos de tu clínica, en un solo lugar.</p>
-    </div>
-  </aside>
 
-  <main class="login-form-panel">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
-      <div class="login-form-header">
-        <h2>Iniciar sesión</h2>
-        <p>Ingresa con tus credenciales para continuar.</p>
-      </div>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Correo electrónico</mat-label>
+          <mat-icon matPrefix>alternate_email</mat-icon>
+          <input matInput type="email" formControlName="email" autocomplete="username" />
+          @if (form.controls.email.hasError('required')) {
+            <mat-error>El correo es obligatorio</mat-error>
+          }
+          @if (form.controls.email.hasError('email')) {
+            <mat-error>Ingresa un correo válido</mat-error>
+          }
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Correo electrónico</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="username" />
-        @if (form.controls.email.hasError('required')) {
-          <mat-error>El correo es obligatorio</mat-error>
+        <mat-form-field appearance="outline">
+          <mat-label>Contraseña</mat-label>
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="hidePassword.set(!hidePassword())"
+            [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.password.hasError('required')) {
+            <mat-error>La contraseña es obligatoria</mat-error>
+          }
+        </mat-form-field>
+
+        @if (errorMessage()) {
+          <p class="login-error" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            {{ errorMessage() }}
+          </p>
         }
-        @if (form.controls.email.hasError('email')) {
-          <mat-error>Ingresa un correo válido</mat-error>
-        }
-      </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Contraseña</mat-label>
-        <input
-          matInput
-          [type]="hidePassword() ? 'password' : 'text'"
-          formControlName="password"
-          autocomplete="current-password"
-        />
         <button
-          mat-icon-button
-          matSuffix
-          type="button"
-          (click)="hidePassword.set(!hidePassword())"
-          [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          mat-flat-button
+          type="submit"
+          class="login-submit"
+          [disabled]="form.invalid || loading()"
         >
-          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          @if (loading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Ingresar
+          }
         </button>
-        @if (form.controls.password.hasError('required')) {
-          <mat-error>La contraseña es obligatoria</mat-error>
-        }
-      </mat-form-field>
+      </form>
 
-      @if (errorMessage()) {
-        <p class="login-error">
-          <mat-icon>error_outline</mat-icon>
-          {{ errorMessage() }}
-        </p>
-      }
-
-      <button
-        mat-flat-button
-        color="primary"
-        type="submit"
-        class="login-submit"
-        [disabled]="form.invalid || loading()"
-      >
-        @if (loading()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          Ingresar
-        }
-      </button>
-    </form>
-  </main>
+      <p class="login-foot">
+        <mat-icon>shield</mat-icon>
+        Acceso auditado. Cada inicio de sesión queda registrado.
+      </p>
+    </main>
+  </div>
 </div>

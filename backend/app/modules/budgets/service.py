@@ -95,6 +95,15 @@ async def update_status(
     if new_status in ("aceptado", "rechazado"):
         budget.responded_at = datetime.now(timezone.utc)
 
+    # Accepting a budget is the moment the money becomes owed, so the charge
+    # is raised here rather than left for someone to remember. The import is
+    # local to keep the budgets module from depending on finance at import
+    # time — the dependency runs one way, at the one point it is needed.
+    if new_status == "aceptado" and before_status != "aceptado":
+        from app.modules.payments.service import charge_for_accepted_budget
+
+        await charge_for_accepted_budget(db, clinic_id, actor_id, budget)
+
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="budget",
         entity_id=str(budget_id), before={"status": before_status}, after={"status": new_status},

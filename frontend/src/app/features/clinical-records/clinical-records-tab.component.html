@@ -1,0 +1,342 @@
+<div class="records-tab">
+  <nav class="section-switch">
+    <button type="button" [class.active]="section() === 'evoluciones'" (click)="section.set('evoluciones')">
+      <mat-icon>history_edu</mat-icon> Evoluciones
+    </button>
+    <button type="button" [class.active]="section() === 'recetas'" (click)="section.set('recetas')">
+      <mat-icon>medication</mat-icon> Recetas
+    </button>
+    <button type="button" [class.active]="section() === 'consentimientos'" (click)="section.set('consentimientos')">
+      <mat-icon>gavel</mat-icon> Consentimientos
+    </button>
+    <button type="button" [class.active]="section() === 'documentos'" (click)="section.set('documentos')">
+      <mat-icon>folder</mat-icon> Documentos
+    </button>
+  </nav>
+
+  <!-- ================= Evoluciones ================= -->
+  @if (section() === 'evoluciones') {
+    <div class="section-head">
+      <p class="section-hint">Lo que se hizo en cada visita. Un registro clínico no se elimina; las correcciones quedan auditadas.</p>
+      @if (canWriteEvolutions()) {
+        <button mat-flat-button color="primary" (click)="toggleForm('evoluciones')">
+          <mat-icon>add</mat-icon> Nueva evolución
+        </button>
+      }
+    </div>
+
+    @if (openForm() === 'evoluciones') {
+      <mat-card class="form-card">
+        <form [formGroup]="evolutionForm" (ngSubmit)="saveEvolution()" class="record-form">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Procedimiento realizado</mat-label>
+            <input matInput formControlName="procedure" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Piezas tratadas (FDI)</mat-label>
+            <input matInput formControlName="fdi_numbers" placeholder="Ej. 46, 26" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Anestesia</mat-label>
+            <input matInput formControlName="anesthesia" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Material utilizado</mat-label>
+            <input matInput formControlName="materials" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Diagnóstico</mat-label>
+            <input matInput formControlName="diagnosis" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Evolución</mat-label>
+            <textarea matInput formControlName="evolution" rows="2"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Indicaciones al paciente</mat-label>
+            <textarea matInput formControlName="instructions" rows="2"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Notas para la próxima cita</mat-label>
+            <input matInput formControlName="next_appointment_notes" />
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="evolutionForm.invalid || saving()">
+              Guardar evolución
+            </button>
+            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
+          </div>
+        </form>
+      </mat-card>
+    }
+
+    @if (evolutions().length === 0) {
+      <p class="empty-hint">Sin evoluciones registradas.</p>
+    }
+
+    @for (item of evolutions(); track item.id) {
+      <mat-card class="record-card">
+        <div class="record-head">
+          <strong>{{ item.procedure }}</strong>
+          <span class="record-date">{{ item.created_at | date: 'd MMM y, HH:mm' }}</span>
+        </div>
+        <dl class="record-grid">
+          @if (item.fdi_numbers) { <div><dt>Piezas</dt><dd>{{ item.fdi_numbers }}</dd></div> }
+          @if (item.anesthesia) { <div><dt>Anestesia</dt><dd>{{ item.anesthesia }}</dd></div> }
+          @if (item.materials) { <div><dt>Material</dt><dd>{{ item.materials }}</dd></div> }
+          @if (item.diagnosis) { <div><dt>Diagnóstico</dt><dd>{{ item.diagnosis }}</dd></div> }
+          @if (item.evolution) { <div class="full"><dt>Evolución</dt><dd>{{ item.evolution }}</dd></div> }
+          @if (item.instructions) { <div class="full"><dt>Indicaciones</dt><dd>{{ item.instructions }}</dd></div> }
+          @if (item.next_appointment_notes) {
+            <div class="full"><dt>Próxima cita</dt><dd>{{ item.next_appointment_notes }}</dd></div>
+          }
+        </dl>
+      </mat-card>
+    }
+  }
+
+  <!-- ================= Recetas ================= -->
+  @if (section() === 'recetas') {
+    <div class="section-head">
+      <p class="section-hint">Recetas emitidas para este paciente.</p>
+      @if (canWritePrescriptions()) {
+        <button mat-flat-button color="primary" (click)="toggleForm('recetas')">
+          <mat-icon>add</mat-icon> Nueva receta
+        </button>
+      }
+    </div>
+
+    @if (openForm() === 'recetas') {
+      <mat-card class="form-card">
+        <form [formGroup]="prescriptionForm" (ngSubmit)="savePrescription()">
+          @for (item of prescriptionItems(); track $index) {
+            <div class="medication-row">
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Medicamento</mat-label>
+                <input matInput [value]="item.medication" (input)="updateItem($index, 'medication', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Dosis</mat-label>
+                <input matInput [value]="item.dosage || ''" (input)="updateItem($index, 'dosage', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Frecuencia</mat-label>
+                <input matInput [value]="item.frequency || ''" (input)="updateItem($index, 'frequency', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Duración</mat-label>
+                <input matInput [value]="item.duration || ''" (input)="updateItem($index, 'duration', $any($event.target).value)" />
+              </mat-form-field>
+              @if (prescriptionItems().length > 1) {
+                <button mat-icon-button type="button" (click)="removePrescriptionItem($index)" aria-label="Quitar">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          <button mat-button type="button" (click)="addPrescriptionItem()">
+            <mat-icon>add</mat-icon> Agregar medicamento
+          </button>
+
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Indicaciones generales</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Emitir receta</button>
+            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
+          </div>
+        </form>
+      </mat-card>
+    }
+
+    @if (prescriptions().length === 0) {
+      <p class="empty-hint">Sin recetas emitidas.</p>
+    }
+
+    @for (prescription of prescriptions(); track prescription.id) {
+      <mat-card class="record-card">
+        <div class="record-head">
+          <strong>Receta</strong>
+          <span class="record-date">{{ prescription.created_at | date: 'd MMM y' }}</span>
+          <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+        </div>
+        <ul class="medication-list">
+          @for (item of prescription.items; track item.id) {
+            <li>
+              <strong>{{ item.medication }}</strong>
+              <span>
+                @if (item.dosage) { {{ item.dosage }} }
+                @if (item.frequency) { · {{ item.frequency }} }
+                @if (item.duration) { · por {{ item.duration }} }
+              </span>
+              @if (item.instructions) { <em>{{ item.instructions }}</em> }
+            </li>
+          }
+        </ul>
+        @if (prescription.notes) {
+          <p class="record-note">{{ prescription.notes }}</p>
+        }
+      </mat-card>
+    }
+  }
+
+  <!-- ================= Consentimientos ================= -->
+  @if (section() === 'consentimientos') {
+    <div class="section-head">
+      <p class="section-hint">El texto se guarda tal como se firmó: editar la plantilla después no cambia lo ya aceptado.</p>
+      @if (canWriteConsents()) {
+        <button mat-flat-button color="primary" (click)="toggleForm('consentimientos')">
+          <mat-icon>add</mat-icon> Nuevo consentimiento
+        </button>
+      }
+    </div>
+
+    @if (openForm() === 'consentimientos') {
+      <mat-card class="form-card">
+        <form [formGroup]="consentForm" (ngSubmit)="saveConsent()" class="record-form">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Plantilla</mat-label>
+            <mat-select formControlName="template_id" (selectionChange)="onTemplateSelected($event.value)">
+              <mat-option value="">Redactar manualmente</mat-option>
+              @for (template of templates(); track template.id) {
+                <mat-option [value]="template.id">{{ template.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Título</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Texto del consentimiento</mat-label>
+            <textarea matInput formControlName="body" rows="5"></textarea>
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Crear consentimiento</button>
+            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
+          </div>
+        </form>
+      </mat-card>
+    }
+
+    @if (consents().length === 0) {
+      <p class="empty-hint">Sin consentimientos registrados.</p>
+    }
+
+    @for (consent of consents(); track consent.id) {
+      <mat-card class="record-card">
+        <div class="record-head">
+          <strong>{{ consent.title }}</strong>
+          <span class="status-tag" [class.signed]="consent.status === 'firmado'">
+            {{ consent.status === 'firmado' ? 'Firmado' : 'Pendiente de firma' }}
+          </span>
+          <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+        </div>
+        <p class="consent-body">{{ consent.body }}</p>
+        @if (consent.status === 'firmado') {
+          <p class="record-note">
+            Firmado por {{ consent.signed_by_name }} el {{ consent.signed_at | date: 'd MMM y, HH:mm' }}
+          </p>
+        } @else if (canWriteConsents()) {
+          <button mat-stroked-button (click)="startSigning(consent)">
+            <mat-icon>draw</mat-icon> Registrar firma
+          </button>
+        }
+      </mat-card>
+    }
+  }
+
+  <!-- ================= Documentos ================= -->
+  @if (section() === 'documentos') {
+    <div class="section-head">
+      <p class="section-hint">Archivos del paciente. Cada descarga queda registrada en la auditoría.</p>
+      @if (canWriteDocuments()) {
+        <button mat-flat-button color="primary" (click)="toggleForm('documentos')">
+          <mat-icon>upload</mat-icon> Subir documento
+        </button>
+      }
+    </div>
+
+    @if (openForm() === 'documentos') {
+      <mat-card class="form-card">
+        <form [formGroup]="documentForm" (ngSubmit)="uploadDocument()" class="record-form">
+          <div class="file-picker full">
+            <input type="file" id="document-file" (change)="onFileSelected($event)" />
+            @if (selectedFile(); as file) {
+              <span class="file-name">{{ file.name }} · {{ fileSize(file.size) }}</span>
+            }
+          </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Título</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="document_type">
+              @for (type of documentTypes; track type) {
+                <mat-option [value]="type">{{ documentTypeLabels[type] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Descripción</mat-label>
+            <input matInput formControlName="description" />
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="!selectedFile() || documentForm.invalid || saving()">
+              Subir
+            </button>
+            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
+          </div>
+        </form>
+      </mat-card>
+    }
+
+    @if (documents().length === 0) {
+      <p class="empty-hint">Sin documentos cargados.</p>
+    }
+
+    @for (doc of documents(); track doc.id) {
+      <div class="document-row">
+        <mat-icon>description</mat-icon>
+        <div class="document-main">
+          <strong>{{ doc.title }}</strong>
+          <span>
+            {{ documentTypeLabels[doc.document_type] || doc.document_type }}
+            · {{ doc.original_filename }}
+            @if (doc.size_bytes) { · {{ fileSize(doc.size_bytes) }} }
+            · {{ doc.created_at | date: 'd MMM y' }}
+          </span>
+        </div>
+        <button mat-button (click)="download(doc)">
+          <mat-icon>download</mat-icon> Descargar
+        </button>
+      </div>
+    }
+  }
+</div>
+
+<!-- Signature capture -->
+@if (signingConsent(); as consent) {
+  <div class="overlay" (click)="signingConsent.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Registrar firma</h3>
+      <p class="panel-hint">{{ consent.title }}</p>
+      <form [formGroup]="signForm" (ngSubmit)="confirmSignature()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nombre de quien firma</mat-label>
+          <input matInput formControlName="signed_by_name" />
+        </mat-form-field>
+        <p class="panel-note">
+          Se registra la firma presencial con fecha y hora. La firma digital con certificado llega en una fase posterior.
+        </p>
+        <div class="form-actions">
+          <button mat-flat-button color="primary" type="submit" [disabled]="signForm.invalid">Confirmar firma</button>
+          <button mat-button type="button" (click)="signingConsent.set(null)">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

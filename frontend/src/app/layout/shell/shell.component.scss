@@ -1,73 +1,343 @@
 .shell-container {
   height: 100vh;
-  background: var(--color-base);
+  background: transparent;
 }
 
+// The sidebar is the heaviest material in the app: it separates a structural
+// region, so it gets the deepest blur and the darkest tint.
 .shell-sidenav {
-  width: 264px;
+  width: 256px;
   border-right: none;
-  background: var(--color-sidenav-bg);
+  background: var(--glass-sidebar-bg);
+  backdrop-filter: var(--glass-sidebar-blur);
+  -webkit-backdrop-filter: var(--glass-sidebar-blur);
+  box-shadow: 1px 0 0 var(--glass-sidebar-edge);
   color: #fff;
+  transition: width 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+
+  &.collapsed {
+    width: 68px;
+  }
+
+  // Material projects sidenav content into this inner container, so the column
+  // layout that pins the collapse button to the bottom has to live there.
+  ::ng-deep .mat-drawer-inner-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-x: hidden;
+  }
 }
 
 .shell-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 22px 20px 18px;
+  gap: 11px;
+  padding: 20px 20px 14px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.02rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.012em;
   color: #fff;
+  white-space: nowrap;
+}
 
-  mat-icon {
-    color: var(--color-accent);
+// The mark sits on its own lit tile so the tooth reads as a logo rather than
+// as one more nav icon.
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  color: var(--color-mint);
+  --tooth-mark-shine: rgba(6, 34, 32, 0.55);
+  background: linear-gradient(145deg, rgba(94, 224, 206, 0.26), rgba(47, 191, 174, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+
+  small {
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.45);
   }
 }
 
+.collapsed .shell-brand {
+  justify-content: center;
+  padding: 20px 0 14px;
+}
+
+// ---- Sections ----------------------------------------------------------
+
+.nav-section {
+  padding: 4px 10px 8px;
+}
+
+// Over a translucent surface, flat grey text loses legibility — a touch more
+// weight and letter-spacing keeps these readable against whatever scrolls under.
+.nav-section-title {
+  display: block;
+  padding: 8px 10px 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.nav-section-rule {
+  display: block;
+  height: 1px;
+  margin: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .shell-sidenav mat-nav-list {
-  padding: 6px 10px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 
-  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.78);
+  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.82);
   --mdc-list-list-item-leading-icon-icon-color: rgba(255, 255, 255, 0.62);
   --mdc-list-list-item-hover-label-text-color: #fff;
-  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.08);
-  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.08);
+  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.1);
+  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.1);
 }
 
 .shell-sidenav a[mat-list-item] {
   border-radius: var(--radius-sm);
-  font-size: 0.87rem;
+  font-size: 0.86rem;
+}
+
+.collapsed a[mat-list-item] {
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .shell-sidenav a.active-link {
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(90deg, rgba(52, 211, 192, 0.24), rgba(52, 211, 192, 0.08));
+  box-shadow: inset 2px 0 0 var(--color-mint);
   --mdc-list-list-item-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-icon-color: var(--color-accent);
+  --mdc-list-list-item-leading-icon-icon-color: var(--color-mint);
   font-weight: 600;
 }
 
+.collapse-toggle {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 20px);
+  margin-left: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+.collapsed .collapse-toggle {
+  justify-content: center;
+}
+
+// ---- Toolbar: a lighter material than the sidebar ----------------------
+
 .shell-toolbar {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--glass-bar-bg);
+  backdrop-filter: var(--glass-bar-blur);
+  -webkit-backdrop-filter: var(--glass-bar-blur);
+  // A soft edge where content meets the floating bar, rather than a hard rule.
+  box-shadow: 0 1px 0 var(--color-border), 0 10px 20px -18px rgba(8, 28, 29, 0.5);
+  gap: 12px;
 }
 
 .shell-spacer {
   flex: 1 1 auto;
 }
 
-.shell-content {
-  padding: 28px 32px;
-  background: var(--color-base);
-  min-height: calc(100vh - 64px);
-  box-sizing: border-box;
+.global-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  width: 340px;
+  max-width: 44vw;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-soft);
+  }
+
+  > mat-icon {
+    color: var(--color-ink-faint);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    font: inherit;
+    font-size: 0.86rem;
+    color: var(--color-ink);
+
+    &::placeholder {
+      color: var(--color-ink-faint);
+    }
+  }
+
+  kbd {
+    font-family: var(--font-body);
+    font-size: 0.64rem;
+    color: var(--color-ink-faint);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--glass-overlay-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 20;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-ink);
+
+  &:hover {
+    background: var(--color-primary-soft);
+  }
+}
+
+.search-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.search-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.84rem;
+  line-height: 1.3;
+
+  span {
+    font-size: 0.74rem;
+    color: var(--color-ink-faint);
+  }
+}
+
+// ---- Theme toggle & user menu -----------------------------------------
+
+.theme-toggle {
+  color: var(--color-ink-soft);
+
+  &:hover {
+    color: var(--color-primary);
+  }
+}
+
+.user-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.user-name {
+  font-size: 0.85rem;
 }
 
 .user-menu-roles {
   padding: 6px 16px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--color-ink-soft);
+}
+
+// ---- Content -----------------------------------------------------------
+
+.shell-content {
+  padding: 28px 32px;
+  min-height: calc(100vh - 64px);
+  box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+  .global-search kbd,
+  .user-name {
+    display: none;
+  }
 }

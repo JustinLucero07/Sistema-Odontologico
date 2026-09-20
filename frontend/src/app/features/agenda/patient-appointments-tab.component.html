@@ -1,0 +1,48 @@
+<div class="appointments-tab">
+  @if (appointments().length === 0) {
+    <p class="empty-hint">Este paciente no tiene citas registradas. Se agendan desde la Agenda.</p>
+  }
+
+  @if (upcoming.length > 0) {
+    <section>
+      <h3>Próximas citas</h3>
+      @for (appointment of upcoming; track appointment.id) {
+        <div class="appointment-row">
+          <span class="status-bar" [style.background]="statusColor(appointment)"></span>
+          <div class="appointment-main">
+            <strong>{{ appointment.starts_at | date: 'EEEE d MMM, HH:mm' }}</strong>
+            <span>
+              {{ appointment.professional_name }}
+              @if (appointment.treatment_name) { · {{ appointment.treatment_name }} }
+              · {{ appointment.duration_minutes }} min
+            </span>
+          </div>
+          <span class="status-tag" [style.color]="statusColor(appointment)">
+            {{ statusLabels[appointment.status] }}
+          </span>
+        </div>
+      }
+    </section>
+  }
+
+  @if (past.length > 0) {
+    <section>
+      <h3>Historial</h3>
+      @for (appointment of past; track appointment.id) {
+        <div class="appointment-row is-past">
+          <span class="status-bar" [style.background]="statusColor(appointment)"></span>
+          <div class="appointment-main">
+            <strong>{{ appointment.starts_at | date: 'd MMM y, HH:mm' }}</strong>
+            <span>
+              {{ appointment.professional_name }}
+              @if (appointment.treatment_name) { · {{ appointment.treatment_name }} }
+            </span>
+          </div>
+          <span class="status-tag" [style.color]="statusColor(appointment)">
+            {{ statusLabels[appointment.status] }}
+          </span>
+        </div>
+      }
+    </section>
+  }
+</div>

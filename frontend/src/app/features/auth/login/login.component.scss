@@ -1,121 +1,302 @@
 .login-page {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
-
-  @media (max-width: 860px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.login-brand-panel {
   position: relative;
-  background: linear-gradient(160deg, var(--color-sidenav-bg-elevated) 0%, var(--color-sidenav-bg) 70%);
+  min-height: 100vh;
   display: flex;
-  align-items: flex-end;
-  padding: 56px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
   overflow: hidden;
-  color: #fff;
-
-  @media (max-width: 860px) {
-    display: none;
-  }
+  background:
+    radial-gradient(900px 620px at 18% -6%, rgba(47, 191, 174, 0.3), transparent 62%),
+    radial-gradient(780px 540px at 90% 10%, rgba(52, 211, 192, 0.18), transparent 60%),
+    linear-gradient(160deg, #0f4c48 0%, #0a3330 55%, #07231f 100%);
 }
 
 .login-arch {
   position: absolute;
-  bottom: -20px;
+  bottom: -10%;
   left: 50%;
   transform: translateX(-50%);
-  width: 130%;
-  max-width: 640px;
+  width: min(1200px, 135%);
+  pointer-events: none;
 }
 
-.login-brand-content {
+.login-split {
   position: relative;
   z-index: 1;
-  max-width: 380px;
+  width: 100%;
+  max-width: 1000px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 404px;
+  align-items: center;
+  gap: 56px;
+}
+
+// ---- Brand side --------------------------------------------------------
+
+.login-pitch {
+  color: #fff;
+  max-width: 460px;
 
   h1 {
-    font-size: 1.85rem;
-    margin: 20px 0 12px;
+    margin: 22px 0 12px;
+    font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+    // Large type reads too loose at default tracking — tighten as it grows.
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+    color: #fff;
+  }
+}
+
+.pitch-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  color: #8bf0de;
+  --tooth-mark-shine: rgba(5, 32, 30, 0.5);
+  background: linear-gradient(145deg, rgba(94, 224, 206, 0.32), rgba(47, 191, 174, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+// Over a translucent, moving backdrop flat grey dissolves — these keep a
+// little extra weight and tracking so they stay legible.
+.pitch-sub {
+  margin: 0 0 30px;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  letter-spacing: 0.004em;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.pitch-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+
+  li {
+    display: flex;
+    gap: 13px;
+    align-items: flex-start;
+  }
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    color: #8bf0de;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    color: #fff;
+  }
+
+  span {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.62);
+  }
+}
+
+// ---- Form side ---------------------------------------------------------
+
+// A single glass panel floating over the gradient — one material layer, never
+// glass stacked on glass.
+.login-card {
+  position: relative;
+  padding: 32px 32px 26px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  box-shadow: 0 34px 80px rgba(3, 18, 16, 0.5);
+
+  // The lit top lip that makes the panel read as a real pane of glass.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.16rem;
+    letter-spacing: -0.016em;
     color: #fff;
   }
 
   p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 0.95rem;
-    line-height: 1.55;
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.004em;
+    color: rgba(255, 255, 255, 0.66);
   }
 }
 
-.login-brand-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.12);
-  display: flex;
+.login-mark {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  mat-icon {
-    color: var(--color-accent);
-  }
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  color: #8bf0de;
+  --tooth-mark-shine: rgba(5, 32, 30, 0.5);
+  background: linear-gradient(145deg, rgba(94, 224, 206, 0.3), rgba(47, 191, 174, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.login-form-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--color-surface);
-}
-
+// Material's outlined fields need explicit light-on-glass treatment; the app's
+// default ink colours are meant for a light page, not for this panel.
 .login-form {
-  width: 100%;
-  max-width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
+  gap: 2px;
 
-.login-form-header {
-  margin-bottom: 20px;
+  --mdc-outlined-text-field-input-text-color: #ffffff;
+  --mdc-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.66);
+  --mdc-outlined-text-field-hover-label-text-color: rgba(255, 255, 255, 0.86);
+  --mdc-outlined-text-field-focus-label-text-color: #8bf0de;
+  --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.26);
+  --mdc-outlined-text-field-hover-outline-color: rgba(255, 255, 255, 0.44);
+  --mdc-outlined-text-field-focus-outline-color: #5ee0ce;
+  --mdc-outlined-text-field-caret-color: #5ee0ce;
+  --mat-form-field-focus-select-arrow-color: #5ee0ce;
 
-  h2 {
-    margin: 0 0 6px;
-    font-size: 1.5rem;
+  .mat-mdc-form-field-icon-prefix > mat-icon {
+    padding: 0 6px 0 4px;
+    color: rgba(255, 255, 255, 0.5);
   }
 
-  p {
-    margin: 0;
-    color: var(--color-ink-soft);
-    font-size: 0.9rem;
+  .mat-mdc-icon-button {
+    color: rgba(255, 255, 255, 0.7);
   }
 }
 
 .login-error {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
+  gap: 8px;
+  margin: 6px 0 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 0.83rem;
-  margin: 4px 0 12px;
+  background: rgba(255, 138, 128, 0.16);
+  border: 1px solid rgba(255, 138, 128, 0.3);
+  color: #ffc7c2;
+  font-size: 0.82rem;
+  line-height: 1.35;
 
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
+    flex-shrink: 0;
   }
 }
 
 .login-submit {
-  height: 46px;
-  margin-top: 8px;
+  height: 50px;
+  margin-top: 10px;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  --mdc-filled-button-container-color: #2fbfae;
+  --mdc-filled-button-label-text-color: #04231f;
+  transition: transform 0.12s ease, filter 0.12s ease;
+
+  &:hover:not([disabled]) {
+    --mdc-filled-button-container-color: #45cfbd;
+  }
+
+  // Feedback lands on the press, not on the release.
+  &:active:not([disabled]) {
+    transform: scale(0.985);
+  }
+}
+
+.login-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  letter-spacing: 0.006em;
+  color: rgba(255, 255, 255, 0.5);
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+}
+
+// Below the split, the pitch would push the form off-screen — the form leads.
+@media (max-width: 900px) {
+  .login-split {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 420px;
+    gap: 28px;
+  }
+
+  .login-pitch {
+    text-align: center;
+    max-width: none;
+
+    h1 {
+      font-size: 1.6rem;
+      br {
+        display: none;
+      }
+    }
+  }
+
+  .pitch-sub {
+    margin-bottom: 0;
+  }
+
+  .pitch-points {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .login-card {
+    background: #0c3b37;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

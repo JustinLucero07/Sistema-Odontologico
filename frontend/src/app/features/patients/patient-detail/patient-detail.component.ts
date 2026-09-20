@@ -16,7 +16,13 @@ import { firstValueFrom } from 'rxjs';
 import { PatientsService } from '../../../core/services/patients.service';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 import { MedicalHistory, Patient, Sex } from '../../../core/models/patient.models';
+import { Appointment } from '../../../core/models/appointment.models';
+import { AppointmentsService } from '../../../core/services/appointments.service';
+import { PatientAppointmentsTabComponent } from '../../agenda/patient-appointments-tab.component';
+import { ClinicalRecordsTabComponent } from '../../clinical-records/clinical-records-tab.component';
+import { ImagingTabComponent } from '../../imaging/imaging-tab.component';
 import { OdontogramComponent } from '../../odontogram/odontogram.component';
+import { PeriodontogramTabComponent } from '../../periodontogram/periodontogram-tab.component';
 import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plans-tab.component';
 
 @Component({
@@ -35,7 +41,11 @@ import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plan
     MatTabsModule,
     HasPermissionDirective,
     OdontogramComponent,
+    PeriodontogramTabComponent,
+    ImagingTabComponent,
     TreatmentPlansTabComponent,
+    PatientAppointmentsTabComponent,
+    ClinicalRecordsTabComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.scss',
@@ -46,6 +56,7 @@ export class PatientDetailComponent implements OnInit {
   private readonly patientsService = inject(PatientsService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly appointmentsService = inject(AppointmentsService);
 
   readonly patient = signal<Patient | null>(null);
   readonly latestHistory = signal<MedicalHistory | null>(null);
@@ -54,6 +65,7 @@ export class PatientDetailComponent implements OnInit {
   readonly editingHistory = signal(false);
   readonly showVersionHistory = signal(false);
   readonly saving = signal(false);
+  readonly nextAppointment = signal<Appointment | null>(null);
 
   readonly demographicsForm = this.fb.nonNullable.group({
     first_name: [''],
@@ -98,6 +110,7 @@ export class PatientDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id')!;
     await this.loadPatient(id);
     await this.loadHistory(id);
+    await this.loadNextAppointment(id);
   }
 
   private async loadPatient(id: string): Promise<void> {
@@ -124,6 +137,20 @@ export class PatientDetailComponent implements OnInit {
   private async loadHistory(id: string): Promise<void> {
     const latest = await firstValueFrom(this.patientsService.getLatestMedicalHistory(id));
     this.latestHistory.set(latest);
+  }
+
+  private async loadNextAppointment(id: string): Promise<void> {
+    try {
+      const appointments = await firstValueFrom(this.appointmentsService.listForPatient(id));
+      const now = Date.now();
+      const upcoming = appointments
+        .filter((a) => new Date(a.starts_at).getTime() >= now && a.status !== 'cancelada')
+        .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+      this.nextAppointment.set(upcoming[0] ?? null);
+    } catch {
+      // A role without appointments:read simply sees no next-appointment chip.
+      this.nextAppointment.set(null);
+    }
   }
 
   async loadVersions(): Promise<void> {

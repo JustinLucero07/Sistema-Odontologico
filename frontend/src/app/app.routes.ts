@@ -61,6 +61,29 @@ export const routes: Routes = [
           import('./features/settings/roles/roles.component').then((m) => m.RolesComponent),
       },
       {
+        path: 'agenda',
+        canActivate: [permissionGuard],
+        data: { permission: 'appointments:read' },
+        loadComponent: () =>
+          import('./features/agenda/agenda.component').then((m) => m.AgendaComponent),
+      },
+      {
+        path: 'treatment-plans',
+        canActivate: [permissionGuard],
+        data: { permission: 'treatments:read' },
+        loadComponent: () =>
+          import('./features/treatment-plans/treatment-plans-page.component').then(
+            (m) => m.TreatmentPlansPageComponent,
+          ),
+      },
+      {
+        path: 'budgets',
+        canActivate: [permissionGuard],
+        data: { permission: 'budgets:read' },
+        loadComponent: () =>
+          import('./features/budgets/budgets-page.component').then((m) => m.BudgetsPageComponent),
+      },
+      {
         path: 'settings/treatments',
         canActivate: [permissionGuard],
         data: { permission: 'treatments:write' },

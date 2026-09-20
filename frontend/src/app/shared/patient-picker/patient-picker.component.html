@@ -1,0 +1,29 @@
+<mat-card class="picker-card">
+  <mat-form-field appearance="outline" class="picker-field">
+    <mat-label>Buscar paciente por nombre, cédula o teléfono</mat-label>
+    <input matInput [formControl]="searchControl" />
+    <mat-icon matSuffix>search</mat-icon>
+  </mat-form-field>
+
+  @if (results().length > 0) {
+    <div class="picker-results">
+      @for (patient of results(); track patient.id) {
+        <button type="button" class="picker-result" (click)="pick(patient)">
+          <span class="picker-avatar">{{ patient.first_name.charAt(0) }}{{ patient.last_name.charAt(0) }}</span>
+          <span class="picker-info">
+            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+            <span class="picker-meta">
+              {{ patient.national_id || 'Sin cédula' }}
+              @if (patient.age !== null) { · {{ patient.age }} años }
+            </span>
+          </span>
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      }
+    </div>
+  } @else if (searchControl.value && !searching()) {
+    <p class="picker-hint">No se encontraron pacientes con ese criterio.</p>
+  } @else {
+    <p class="picker-hint">{{ hint }}</p>
+  }
+</mat-card>

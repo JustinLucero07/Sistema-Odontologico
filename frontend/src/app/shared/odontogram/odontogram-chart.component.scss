@@ -1,109 +1,247 @@
+// A real tooth is two materials: pearl-white enamel over a warmer, more opaque
+// ivory root. Both lift in dark mode or the figure disappears into the panel.
+:host {
+  --tooth-enamel: #fcfcfa;
+  --tooth-root: #ecdfc4;
+  --tooth-outline: rgba(15, 36, 39, 0.46);
+  --tooth-detail: rgba(15, 36, 39, 0.3);
+  --tooth-gloss: rgba(255, 255, 255, 0.9);
+  --tooth-shade: rgba(15, 36, 39, 0.15);
+}
+
+:host-context([data-theme='dark']) {
+  --tooth-enamel: #e3eae8;
+  --tooth-root: #cdbb92;
+  --tooth-outline: rgba(6, 18, 20, 0.8);
+  --tooth-detail: rgba(6, 18, 20, 0.45);
+  --tooth-gloss: rgba(255, 255, 255, 0.55);
+  --tooth-shade: rgba(6, 18, 20, 0.22);
+}
+
 .odontogram {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   overflow-x: auto;
-  padding: 28px 16px;
-  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-base) 100%);
+  padding: 20px 16px 16px;
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
 }
 
-.arch-caption {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--color-ink-faint);
+.arch-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: max-content;
+}
+
+// Two halves of equal weight, so the divider between them lands on the midline.
+.quadrant-captions {
+  display: flex;
+  width: 100%;
+
+  span {
+    flex: 1;
+    text-align: center;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-ink-faint);
+  }
 }
 
 .arch-row {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  min-width: max-content;
-  padding: 18px 8px;
+  gap: 2px;
 }
 
 .arch-midline {
-  width: 70%;
-  max-width: 420px;
+  position: relative;
+  width: 100%;
+  max-width: 620px;
   height: 1px;
+  margin: 12px 0;
   background: repeating-linear-gradient(
     90deg,
     var(--color-border-strong) 0,
-    var(--color-border-strong) 4px,
-    transparent 4px,
-    transparent 9px
+    var(--color-border-strong) 5px,
+    transparent 5px,
+    transparent 11px
   );
-  margin: 4px 0;
-}
 
-.tooth {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  transition: transform 0.25s ease;
-}
-
-.tooth.has-activity .tooth-svg {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
-}
-
-.tooth:not(.readonly):hover {
-  transform: translateY(-3px) !important;
-  z-index: 2;
-}
-
-.tooth-svg {
-  display: block;
-  transition: width 0.2s ease, height 0.2s ease;
-}
-
-.region {
-  stroke: rgba(0, 0, 0, 0.18);
-  stroke-width: 0.5;
-  cursor: pointer;
-  transition: filter 0.15s ease;
-
-  &:hover {
-    filter: brightness(0.93);
+  span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--color-base);
+    padding: 0 10px;
+    font-size: 0.6rem;
+    color: var(--color-ink-faint);
   }
 }
 
-.tooth.readonly .region,
-.tooth.readonly .tooth-outline {
-  cursor: default;
+.tooth-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 0;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+
+  &.is-lower {
+    flex-direction: column-reverse;
+
+    .tooth-figure {
+      transform: scaleY(-1);
+    }
+  }
+
+  // The vertical rule that separates the two quadrants, drawn once.
+  &.starts-quadrant::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 -2px;
+    width: 1px;
+    background: var(--color-border-strong);
+  }
+
+  &:not(.readonly):hover {
+    background: var(--color-primary-soft);
+  }
+}
+
+// ---- Anatomical figure -------------------------------------------------
+
+.tooth-figure {
+  display: block;
+  cursor: pointer;
+  overflow: visible;
+}
+
+.tooth-root {
+  fill: var(--tooth-root);
+  stroke: var(--tooth-outline);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.tooth-crown {
+  stroke: var(--tooth-outline);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  transition: fill 0.18s ease;
+}
+
+// Landmarks — the cementoenamel junction and the grooves between cusps. They
+// are hairlines: present when you look, invisible when you don't.
+.tooth-detail {
+  fill: none;
+  stroke: var(--tooth-detail);
+  stroke-width: 0.9;
+  stroke-linecap: round;
   pointer-events: none;
 }
 
-.tooth-outline {
-  fill: var(--color-surface);
-  stroke: rgba(20, 36, 43, 0.35);
-  stroke-width: 1.25;
-  cursor: pointer;
+.tooth-gloss {
+  fill: none;
+  stroke: var(--tooth-gloss);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
 
-  &.absent {
-    fill: rgba(20, 36, 43, 0.04);
+// The shadow is what actually reads: a highlight is invisible on a white
+// crown, but the dark wall works on white and on a filled tooth alike.
+.tooth-shade {
+  fill: none;
+  stroke: var(--tooth-shade);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.has-activity .tooth-figure {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22));
+}
+
+.is-absent {
+  .tooth-root,
+  .tooth-crown {
+    fill: color-mix(in srgb, var(--color-ink) 6%, transparent);
     stroke-dasharray: 3 2;
+  }
+
+  .tooth-detail,
+  .tooth-gloss,
+  .tooth-shade {
+    display: none;
   }
 }
 
 .absent-mark {
-  stroke: #9e9e9e;
-  stroke-width: 2.5;
+  stroke: #8d8d8d;
+  stroke-width: 2.6;
   stroke-linecap: round;
 }
 
+// ---- Circular five-surface wheel ---------------------------------------
+
+.surface-wheel {
+  display: block;
+  width: 27px;
+  height: 27px;
+}
+
+.surface {
+  fill: transparent;
+  stroke: var(--tooth-outline);
+  stroke-width: 0.8;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.9);
+  }
+}
+
+.surface-center {
+  stroke-width: 0.9;
+}
+
+.wheel-outline {
+  fill: none;
+  stroke: var(--tooth-outline);
+  stroke-width: 1.2;
+  pointer-events: none;
+}
+
+.readonly {
+  .surface,
+  .tooth-figure {
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+// ---- FDI number --------------------------------------------------------
+
 .tooth-number {
   font-size: 0.62rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-ink-soft);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 4px;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
@@ -114,11 +252,23 @@
   }
 }
 
-.tooth.readonly .tooth-number {
+.has-activity .tooth-number {
+  color: var(--color-primary);
+}
+
+.readonly .tooth-number {
   cursor: default;
 
   &:hover {
     background: none;
     color: inherit;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooth-cell,
+  .tooth-crown,
+  .surface {
+    transition: none;
   }
 }

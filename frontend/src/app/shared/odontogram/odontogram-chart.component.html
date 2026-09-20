@@ -1,69 +1,106 @@
 <div class="odontogram">
-  <span class="arch-caption">Arcada superior</span>
-  <div class="arch-row">
-    @for (tooth of upperRow(); track tooth.fdi) {
-      <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
-    }
+  <div class="arch-block">
+    <div class="quadrant-captions">
+      <span>{{ captions().upperRight }}</span>
+      <span>{{ captions().upperLeft }}</span>
+    </div>
+    <div class="arch-row">
+      @for (tooth of upperRow(); track tooth.fdi) {
+        <ng-container [ngTemplateOutlet]="toothCell" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
+      }
+    </div>
   </div>
-  <div class="arch-midline"></div>
-  <div class="arch-row">
-    @for (tooth of lowerRow(); track tooth.fdi) {
-      <ng-container [ngTemplateOutlet]="toothTpl" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
-    }
+
+  <div class="arch-midline"><span>Línea media</span></div>
+
+  <div class="arch-block">
+    <div class="arch-row">
+      @for (tooth of lowerRow(); track tooth.fdi) {
+        <ng-container [ngTemplateOutlet]="toothCell" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
+      }
+    </div>
+    <div class="quadrant-captions">
+      <span>{{ captions().lowerRight }}</span>
+      <span>{{ captions().lowerLeft }}</span>
+    </div>
   </div>
-  <span class="arch-caption">Arcada inferior</span>
 </div>
 
-<ng-template #toothTpl let-tooth="tooth">
+<!-- One column per tooth: the anatomical figure on the outside, then the
+     five-surface wheel, then the FDI number against the midline — the order
+     printed charts use, so both arches mirror around the centre band. -->
+<ng-template #toothCell let-tooth="tooth">
   <div
-    class="tooth"
+    class="tooth-cell"
+    [class.is-lower]="tooth.arch === 'lower'"
     [class.readonly]="readonly"
     [class.has-activity]="tooth.hasActivity"
-    [style.transform]="tooth.curveTransform"
+    [class.is-absent]="isAbsent(tooth)"
+    [class.starts-quadrant]="tooth.startsQuadrant"
+    [style.width.px]="tooth.anatomy.width"
     [title]="tooth.tooltip"
   >
     <svg
-      viewBox="0 0 40 40"
-      class="tooth-svg"
-      [style.width.px]="tooth.sizePx"
-      [style.height.px]="tooth.sizePx"
+      class="tooth-figure"
+      viewBox="0 0 40 64"
+      [style.width.px]="tooth.anatomy.width"
       [attr.aria-label]="tooth.tooltip"
+      (click)="onToothClick(tooth)"
     >
+      @for (root of tooth.anatomy.roots; track $index) {
+        <path [attr.d]="root" class="tooth-root" />
+      }
+      <path [attr.d]="tooth.anatomy.crown" class="tooth-crown" [style.fill]="tooth.crownFill" />
+      @for (line of tooth.anatomy.detail; track $index) {
+        <path [attr.d]="line" class="tooth-detail" />
+      }
+      <path [attr.d]="tooth.anatomy.shade" class="tooth-shade" />
+      <path [attr.d]="tooth.anatomy.gloss" class="tooth-gloss" />
       @if (isAbsent(tooth)) {
-        <rect x="2" y="2" width="36" height="36" rx="8" class="tooth-outline absent" (click)="onSurfaceClick(tooth, 'whole')" />
-        <line x1="6" y1="6" x2="34" y2="34" class="absent-mark" />
-        <line x1="34" y1="6" x2="6" y2="34" class="absent-mark" />
-      } @else if (tooth.wholeCondition) {
-        <rect
-          x="2" y="2" width="36" height="36" rx="8"
-          class="tooth-outline"
-          [style.fill]="colorFor(tooth.wholeCondition)"
-          (click)="onSurfaceClick(tooth, 'whole')"
-        />
-      } @else {
-        <clipPath [attr.id]="'clip-' + tooth.fdi">
-          <rect x="2" y="2" width="36" height="36" rx="8" />
-        </clipPath>
-        <g [attr.clip-path]="'url(#clip-' + tooth.fdi + ')'">
-          <polygon points="0,0 40,0 28,12 12,12" class="region"
-            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.top])"
-            (click)="onSurfaceClick(tooth, tooth.regionSurface.top)" />
-          <polygon points="40,0 40,40 28,28 28,12" class="region"
-            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.right])"
-            (click)="onSurfaceClick(tooth, tooth.regionSurface.right)" />
-          <polygon points="40,40 0,40 12,28 28,28" class="region"
-            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.bottom])"
-            (click)="onSurfaceClick(tooth, tooth.regionSurface.bottom)" />
-          <polygon points="0,40 0,0 12,12 12,28" class="region"
-            [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.left])"
-            (click)="onSurfaceClick(tooth, tooth.regionSurface.left)" />
-          <rect x="12" y="12" width="16" height="16" class="region"
-            [style.fill]="colorFor(tooth.surfaceConditions['oclusal'])"
-            (click)="onSurfaceClick(tooth, 'oclusal')" />
-        </g>
-        <rect x="2" y="2" width="36" height="36" rx="8" class="tooth-outline" />
+        <line x1="8" y1="14" x2="32" y2="56" class="absent-mark" />
+        <line x1="32" y1="14" x2="8" y2="56" class="absent-mark" />
       }
     </svg>
-    <button type="button" class="tooth-number" (click)="onToothLabelClick(tooth)">{{ tooth.fdi }}</button>
+
+    <svg class="surface-wheel" viewBox="0 0 40 40" [attr.aria-label]="'Superficies de la pieza ' + tooth.fdi">
+      <path
+        [attr.d]="wheelSegment"
+        class="surface"
+        [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.top])"
+        (click)="onSurfaceClick(tooth, tooth.regionSurface.top)"
+      />
+      <path
+        [attr.d]="wheelSegment"
+        class="surface"
+        transform="rotate(90 20 20)"
+        [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.right])"
+        (click)="onSurfaceClick(tooth, tooth.regionSurface.right)"
+      />
+      <path
+        [attr.d]="wheelSegment"
+        class="surface"
+        transform="rotate(180 20 20)"
+        [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.bottom])"
+        (click)="onSurfaceClick(tooth, tooth.regionSurface.bottom)"
+      />
+      <path
+        [attr.d]="wheelSegment"
+        class="surface"
+        transform="rotate(270 20 20)"
+        [style.fill]="colorFor(tooth.surfaceConditions[tooth.regionSurface.left])"
+        (click)="onSurfaceClick(tooth, tooth.regionSurface.left)"
+      />
+      <circle
+        cx="20"
+        cy="20"
+        r="7"
+        class="surface surface-center"
+        [style.fill]="colorFor(tooth.surfaceConditions['oclusal'])"
+        (click)="onSurfaceClick(tooth, 'oclusal')"
+      />
+      <circle cx="20" cy="20" r="18" class="wheel-outline" />
+    </svg>
+
+    <button type="button" class="tooth-number" (click)="onToothClick(tooth)">{{ tooth.fdi }}</button>
   </div>
 </ng-template>

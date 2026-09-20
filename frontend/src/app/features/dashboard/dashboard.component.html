@@ -1,71 +1,290 @@
 @if (auth.currentUser(); as user) {
   <div class="dashboard">
-    <header class="dashboard-hero">
-      <div>
-        <p class="hero-eyebrow">Panel principal</p>
-        <h1>Hola, {{ user.first_name }}</h1>
-        <p class="hero-sub">
-          {{ user.roles.join(' · ') || 'Sin roles asignados' }}
-          @if (user.is_superadmin) { · Superadministrador }
-        </p>
+    <header class="dash-head">
+      <div class="greet">
+        <p class="greet-date">{{ today() }}</p>
+        <h1>{{ greeting() }}, {{ user.first_name }} <span class="wave">👋</span></h1>
+        <p class="greet-sub">Esto es lo que ocurre hoy en tu clínica.</p>
+      </div>
+
+      <div class="head-side">
+        <span class="period-chip">
+          <mat-icon>calendar_today</mat-icon>
+          Próximos 7 días
+        </span>
+        <span class="role-chip">
+          {{ user.is_superadmin ? 'Superadministrador' : (user.roles.join(' · ') || 'Sin rol') }}
+        </span>
       </div>
     </header>
 
-    <div class="stat-row">
-      @if (patientCount() !== null) {
-        <mat-card class="stat-card stat-card--primary">
-          <mat-icon>groups</mat-icon>
-          <div>
-            <span class="stat-value numeric">{{ patientCount() }}</span>
-            <span class="stat-label">Pacientes registrados</span>
+    @if (summary(); as data) {
+      <section class="stat-row">
+        <article class="glass-card stat-card">
+          <div class="stat-body">
+            <span class="stat-label">Citas hoy</span>
+            <span class="stat-value numeric">{{ data.appointments_today }}</span>
+            @if (weeklyTrend(); as trend) {
+              <span class="stat-delta" [class.down]="!trend.up">
+                <mat-icon>{{ trend.up ? 'trending_up' : 'trending_down' }}</mat-icon>
+                {{ trend.percent }}%
+                <em>vs semana pasada</em>
+              </span>
+            } @else {
+              <span class="stat-delta muted"><em>Sin comparación previa</em></span>
+            }
           </div>
-        </mat-card>
-      }
-      @if (treatmentCount() !== null) {
-        <mat-card class="stat-card">
-          <mat-icon>medical_services</mat-icon>
-          <div>
-            <span class="stat-value numeric">{{ treatmentCount() }}</span>
-            <span class="stat-label">Tratamientos en catálogo</span>
-          </div>
-        </mat-card>
-      }
-      <mat-card class="stat-card">
-        <mat-icon>verified_user</mat-icon>
-        <div>
-          <span class="stat-value numeric">{{ user.permissions.length }}</span>
-          <span class="stat-label">Permisos activos</span>
-        </div>
-      </mat-card>
-    </div>
+          <span class="stat-icon tone-teal"><mat-icon>event_available</mat-icon></span>
+        </article>
 
-    @if (visibleQuickLinks.length > 0) {
-      <section class="quick-links">
-        <h2>Accesos rápidos</h2>
-        <div class="quick-links-grid">
-          @for (link of visibleQuickLinks; track link.route) {
-            <button type="button" class="quick-link-card" (click)="goTo(link.route)">
-              <mat-icon>{{ link.icon }}</mat-icon>
-              <div>
-                <strong>{{ link.label }}</strong>
-                <span>{{ link.description }}</span>
-              </div>
-              <mat-icon class="quick-link-arrow">arrow_forward</mat-icon>
-            </button>
+        <article class="glass-card stat-card">
+          <div class="stat-body">
+            <span class="stat-label">Pacientes</span>
+            <span class="stat-value numeric">{{ data.total_patients }}</span>
+            @if (data.new_patients_30d > 0) {
+              <span class="stat-delta">
+                <mat-icon>trending_up</mat-icon>
+                {{ data.new_patients_30d }}
+                <em>nuevos en 30 días</em>
+              </span>
+            } @else {
+              <span class="stat-delta muted"><em>Sin altas en 30 días</em></span>
+            }
+          </div>
+          <span class="stat-icon tone-mint"><mat-icon>groups</mat-icon></span>
+        </article>
+
+        <article class="glass-card stat-card">
+          <div class="stat-body">
+            <span class="stat-label">Tratamientos pendientes</span>
+            <span class="stat-value numeric">{{ data.treatments_pending }}</span>
+            <span class="stat-delta muted"><em>En planes activos</em></span>
+          </div>
+          <span class="stat-icon tone-gold"><mat-icon>assignment</mat-icon></span>
+        </article>
+
+        <article class="glass-card stat-card">
+          <div class="stat-body">
+            <span class="stat-label">Presupuestos aceptados</span>
+            <span class="stat-value numeric">
+              <small>$</small>{{ money(data.budget_accepted_total) }}
+            </span>
+            <span class="stat-delta muted">
+              <em>$ {{ money(data.budget_awaiting_total) }} sin respuesta</em>
+            </span>
+          </div>
+          <span class="stat-icon tone-ink"><mat-icon>request_quote</mat-icon></span>
+        </article>
+      </section>
+
+      <section class="charts-row">
+        <!-- Citas por día: one measure over time → area, single hue, no legend. -->
+        <article class="glass-card chart-card">
+          <header class="card-head">
+            <div>
+              <h2>Citas por día</h2>
+              <p class="card-sub">Agenda de los próximos 7 días</p>
+            </div>
+            <span class="card-badge numeric">{{ donutTotal() }} en total</span>
+          </header>
+
+          @if (points().length === 0) {
+            <p class="chart-empty">No hay citas agendadas en este periodo.</p>
+          } @else {
+            <div class="area-wrap">
+              <svg
+                class="area-chart"
+                [attr.viewBox]="'0 0 ' + chart.w + ' ' + chart.h"
+                role="img"
+                aria-label="Citas agendadas por día durante los próximos siete días"
+                (pointermove)="trackPointer($event)"
+                (pointerleave)="hoverDay.set(null)"
+              >
+                <defs>
+                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" class="area-stop-top" />
+                    <stop offset="100%" class="area-stop-bottom" />
+                  </linearGradient>
+                </defs>
+
+                @for (line of gridLines(); track line.value) {
+                  <line
+                    class="grid-line"
+                    [attr.x1]="chart.left"
+                    [attr.x2]="chart.w - chart.right"
+                    [attr.y1]="line.y"
+                    [attr.y2]="line.y"
+                  />
+                  <text class="grid-label numeric" [attr.x]="chart.left - 10" [attr.y]="line.y + 3">
+                    {{ line.value }}
+                  </text>
+                }
+
+                <path class="area-fill" [attr.d]="areaPath()" />
+                <path class="area-line" [attr.d]="linePath()" />
+
+                @if (hoveredPoint(); as hp) {
+                  <line
+                    class="crosshair"
+                    [attr.x1]="hp.x"
+                    [attr.x2]="hp.x"
+                    [attr.y1]="chart.top"
+                    [attr.y2]="chart.h - chart.bottom"
+                  />
+                }
+
+                @for (p of points(); track p.x) {
+                  <circle
+                    class="area-dot"
+                    [class.is-today]="p.isToday"
+                    [class.is-active]="hoveredPoint() === p"
+                    [attr.cx]="p.x"
+                    [attr.cy]="p.y"
+                    r="4.5"
+                  />
+                  <text class="axis-label" [attr.x]="p.x" [attr.y]="chart.h - 8">
+                    {{ p.weekday }} {{ p.day }}
+                  </text>
+                }
+              </svg>
+
+              @if (hoveredPoint(); as hp) {
+                <div class="area-tooltip" [style.left.%]="tooltipLeft(hp)">
+                  <strong class="numeric">{{ hp.count }}</strong>
+                  <span>{{ hp.count === 1 ? 'cita' : 'citas' }} · {{ hp.weekday }} {{ hp.day }}</span>
+                </div>
+              }
+            </div>
           }
-        </div>
+        </article>
+
+        <!-- Estado de las citas: identity, so every slice is named and counted —
+             the colour never carries the meaning on its own. -->
+        <article class="glass-card chart-card">
+          <header class="card-head">
+            <div>
+              <h2>Estado de las citas</h2>
+              <p class="card-sub">Distribución de la semana</p>
+            </div>
+          </header>
+
+          @if (donutTotal() === 0) {
+            <p class="chart-empty">No hay citas agendadas en este periodo.</p>
+          } @else {
+            <div class="donut-wrap">
+              <div class="donut-figure">
+                <svg viewBox="0 0 160 160" class="donut" role="img" aria-label="Citas por estado">
+                  <circle cx="80" cy="80" [attr.r]="donutRadius" class="donut-track" />
+                  @for (segment of donut(); track segment.status) {
+                    <circle
+                      cx="80"
+                      cy="80"
+                      [attr.r]="donutRadius"
+                      class="donut-segment"
+                      [class.is-dimmed]="hoverStatus() && hoverStatus() !== segment.status"
+                      [style.stroke]="segment.color"
+                      [attr.stroke-dasharray]="segment.dash"
+                      [attr.stroke-dashoffset]="segment.offset"
+                      (pointerenter)="hoverStatus.set(segment.status)"
+                      (pointerleave)="hoverStatus.set(null)"
+                    >
+                      <title>{{ segment.label }}: {{ segment.count }}</title>
+                    </circle>
+                  }
+                </svg>
+
+                <div class="donut-center">
+                  <strong class="numeric" [style.color]="donutFocus().color || null">
+                    {{ donutFocus().value }}
+                  </strong>
+                  <span>{{ donutFocus().caption }}</span>
+                </div>
+              </div>
+
+              <ul class="donut-legend">
+                @for (segment of donut(); track segment.status) {
+                  <li
+                    [class.is-dimmed]="hoverStatus() && hoverStatus() !== segment.status"
+                    (pointerenter)="hoverStatus.set(segment.status)"
+                    (pointerleave)="hoverStatus.set(null)"
+                  >
+                    <span class="legend-dot" [style.background]="segment.color"></span>
+                    <span class="legend-label">{{ segment.label }}</span>
+                    <span class="legend-count numeric">{{ segment.count }}</span>
+                    <span class="legend-percent numeric">{{ segment.percent }}%</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </article>
+      </section>
+
+      <section class="lower-row">
+        <article class="glass-card panel-card">
+          <header class="card-head">
+            <div>
+              <h2>Presupuestos</h2>
+              <p class="card-sub">Aceptados frente a los que esperan respuesta</p>
+            </div>
+          </header>
+
+          @if (budgetSplit(); as split) {
+            <div class="budget-rows">
+              <div class="budget-row">
+                <span class="budget-label">
+                  <span class="legend-dot accepted"></span>
+                  Aceptados
+                </span>
+                <span class="budget-amount numeric">$ {{ money(split.accepted) }}</span>
+                <div class="budget-track">
+                  <div class="budget-fill accepted" [style.width.%]="split.acceptedPercent"></div>
+                </div>
+              </div>
+
+              <div class="budget-row">
+                <span class="budget-label">
+                  <span class="legend-dot awaiting"></span>
+                  Sin respuesta
+                </span>
+                <span class="budget-amount numeric">$ {{ money(split.awaiting) }}</span>
+                <div class="budget-track">
+                  <div class="budget-fill awaiting" [style.width.%]="split.awaitingPercent"></div>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <p class="chart-empty">Todavía no hay presupuestos registrados.</p>
+          }
+        </article>
+
+        @if (visibleQuickLinks.length > 0) {
+          <article class="glass-card panel-card">
+            <header class="card-head">
+              <div>
+                <h2>Accesos rápidos</h2>
+                <p class="card-sub">Lo que abres todos los días</p>
+              </div>
+            </header>
+
+            <div class="quick-grid">
+              @for (link of visibleQuickLinks; track link.route) {
+                <button type="button" class="quick-tile" (click)="goTo(link.route)">
+                  <span class="quick-icon"><mat-icon>{{ link.icon }}</mat-icon></span>
+                  <strong>{{ link.label }}</strong>
+                  <span class="quick-sub">{{ link.description }}</span>
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </section>
+    } @else if (loading()) {
+      <section class="stat-row">
+        @for (skeleton of [1, 2, 3, 4]; track skeleton) {
+          <div class="glass-card stat-card is-skeleton"></div>
+        }
       </section>
     }
-
-    <mat-card class="roadmap-card">
-      <mat-icon>map</mat-icon>
-      <div>
-        <strong>Este panel sigue creciendo</strong>
-        <p>
-          Las próximas fases suman agenda y citas, evoluciones clínicas, pagos y reportes — este panel
-          se irá completando con citas de hoy, ingresos del día y alertas a medida que esos módulos existan.
-        </p>
-      </div>
-    </mat-card>
   </div>
 }

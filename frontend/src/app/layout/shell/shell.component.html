@@ -1,43 +1,103 @@
 <mat-sidenav-container class="shell-container">
-  <mat-sidenav mode="side" opened class="shell-sidenav">
+  <mat-sidenav mode="side" opened class="shell-sidenav" [class.collapsed]="collapsed()">
     <div class="shell-brand">
-      <mat-icon>medical_services</mat-icon>
-      <span>Sistema Odontológico</span>
+      <span class="brand-mark"><app-tooth-mark [size]="20" [filled]="true" /></span>
+      @if (!collapsed()) {
+        <span class="brand-name">
+          Sistema Odontológico
+          <small>Gestión clínica</small>
+        </span>
+      }
     </div>
 
-    <mat-nav-list>
-      @for (item of navItems; track item.route) {
-        @if (item.permission) {
-          <a
-            mat-list-item
-            *appHasPermission="item.permission"
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-          >
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
-          </a>
-        } @else {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
-          </a>
-        }
+    @for (section of sections; track section.title) {
+      @if (visibleItems(section).length > 0) {
+        <div class="nav-section">
+          @if (!collapsed()) {
+            <span class="nav-section-title">{{ section.title }}</span>
+          } @else {
+            <span class="nav-section-rule"></span>
+          }
+
+          <mat-nav-list>
+            @for (item of visibleItems(section); track item.route) {
+              <a
+                mat-list-item
+                [routerLink]="item.route"
+                routerLinkActive="active-link"
+                [matTooltip]="collapsed() ? item.label : ''"
+                matTooltipPosition="right"
+              >
+                <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                @if (!collapsed()) {
+                  <span matListItemTitle>{{ item.label }}</span>
+                }
+              </a>
+            }
+          </mat-nav-list>
+        </div>
       }
-    </mat-nav-list>
+    }
+
+    <button type="button" class="collapse-toggle" (click)="toggleCollapsed()">
+      <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+      @if (!collapsed()) {
+        <span>Contraer menú</span>
+      }
+    </button>
   </mat-sidenav>
 
   <mat-sidenav-content>
     <mat-toolbar class="shell-toolbar">
+      <div class="global-search" *appHasPermission="'patients:read'">
+        <mat-icon>search</mat-icon>
+        <input
+          id="global-search"
+          type="text"
+          [formControl]="searchControl"
+          placeholder="Buscar paciente…"
+          autocomplete="off"
+          (focus)="searchOpen.set(true)"
+        />
+        <kbd>Ctrl</kbd><kbd>K</kbd>
+
+        @if (searchOpen() && searchResults().length > 0) {
+          <div class="search-results">
+            @for (patient of searchResults(); track patient.id) {
+              <button type="button" class="search-result" (click)="openPatient(patient)">
+                <span class="search-avatar">
+                  {{ patient.first_name.charAt(0) }}{{ patient.last_name.charAt(0) }}
+                </span>
+                <span class="search-info">
+                  <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+                  <span>{{ patient.national_id || 'Sin cédula' }}</span>
+                </span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
       <span class="shell-spacer"></span>
 
+      <button
+        mat-icon-button
+        class="theme-toggle"
+        (click)="theme.cycle()"
+        [matTooltip]="themeLabel()"
+        [attr.aria-label]="themeLabel()"
+      >
+        <mat-icon>{{ themeIcon() }}</mat-icon>
+      </button>
+
       @if (auth.currentUser(); as user) {
-        <button mat-button [matMenuTriggerFor]="userMenu">
-          <mat-icon>account_circle</mat-icon>
-          {{ user.first_name }} {{ user.last_name }}
+        <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
+          <span class="user-avatar">{{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}</span>
+          <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+          <mat-icon>expand_more</mat-icon>
         </button>
         <mat-menu #userMenu="matMenu">
-          <div class="user-menu-roles">{{ user.roles.join(', ') }}</div>
+          <div class="user-menu-roles">{{ user.roles.join(', ') || 'Sin roles' }}</div>
           <button mat-menu-item (click)="logout()">
             <mat-icon>logout</mat-icon>
             <span>Cerrar sesión</span>
@@ -46,7 +106,7 @@
       }
     </mat-toolbar>
 
-    <div class="shell-content">
+    <div class="shell-content" (click)="closeSearch()">
       <router-outlet></router-outlet>
     </div>
   </mat-sidenav-content>

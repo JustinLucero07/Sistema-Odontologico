@@ -26,7 +26,14 @@
         } @else {
           <mat-chip>Sin alergias registradas</mat-chip>
         }
-        <mat-chip>Próxima cita: disponible en Fase 5</mat-chip>
+        @if (nextAppointment(); as next) {
+          <mat-chip>
+            <mat-icon>event</mat-icon>
+            Próxima cita: {{ next.starts_at | date: 'd MMM, HH:mm' }}
+          </mat-chip>
+        } @else {
+          <mat-chip>Sin próxima cita agendada</mat-chip>
+        }
         <mat-chip>Saldo: disponible en Fase 8</mat-chip>
       </div>
     </mat-card>
@@ -245,13 +252,31 @@
           <app-odontogram [patientId]="p.id"></app-odontogram>
         </div>
       </mat-tab>
+      <mat-tab label="Periodontograma">
+        <div class="tab-content">
+          <app-periodontogram-tab [patientId]="p.id"></app-periodontogram-tab>
+        </div>
+      </mat-tab>
+      <mat-tab label="Radiografías">
+        <div class="tab-content">
+          <app-imaging-tab [patientId]="p.id"></app-imaging-tab>
+        </div>
+      </mat-tab>
       <mat-tab label="Tratamientos">
         <div class="tab-content">
           <app-treatment-plans-tab [patientId]="p.id"></app-treatment-plans-tab>
         </div>
       </mat-tab>
+      <mat-tab label="Documentos">
+        <div class="tab-content">
+          <app-clinical-records-tab [patientId]="p.id"></app-clinical-records-tab>
+        </div>
+      </mat-tab>
+
       <mat-tab label="Citas">
-        <div class="tab-content"><p class="empty-hint">Disponible en la Fase 5.</p></div>
+        <div class="tab-content">
+          <app-patient-appointments-tab [patientId]="p.id"></app-patient-appointments-tab>
+        </div>
       </mat-tab>
       <mat-tab label="Pagos">
         <div class="tab-content"><p class="empty-hint">Disponible en la Fase 8.</p></div>

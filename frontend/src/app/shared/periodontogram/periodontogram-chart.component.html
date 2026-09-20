@@ -1,0 +1,155 @@
+<div class="perio">
+  @for (arch of [{ row: upper(), label: 'Arcada superior', inner: 'Palatino' },
+                 { row: lower(), label: 'Arcada inferior', inner: 'Lingual' }];
+        track arch.label) {
+    <section class="arch">
+      <h3 class="arch-title">{{ arch.label }}</h3>
+
+      <div class="arch-scroll">
+        <div class="arch-inner" [style.width.px]="rowWidth(arch.row)">
+          <!-- FDI header -->
+          <div class="fdi-row">
+            @for (tooth of arch.row; track tooth.fdi) {
+              <button
+                type="button"
+                class="fdi-cell"
+                [class.is-absent]="tooth.absent"
+                [style.width.px]="toothWidth"
+                [disabled]="readonly"
+                [title]="tooth.absent ? 'Pieza ausente — clic para reponerla' : 'Marcar como ausente'"
+                (click)="toggleAbsent(tooth)"
+              >
+                {{ tooth.fdi }}
+              </button>
+            }
+          </div>
+
+          <!-- Tooth-level findings -->
+          @for (field of [{ key: 'mobility', label: 'Movilidad' }, { key: 'furcation', label: 'Furca' }];
+                track field.key) {
+            <div class="data-row">
+              <span class="row-label">{{ field.label }}</span>
+              @for (tooth of arch.row; track tooth.fdi) {
+                <span class="tooth-slot" [style.width.px]="toothWidth">
+                  @if (!tooth.absent) {
+                    <input
+                      class="cell tooth-cell numeric"
+                      type="text"
+                      inputmode="numeric"
+                      maxlength="1"
+                      [disabled]="readonly"
+                      [value]="(field.key === 'mobility' ? tooth.mobility : tooth.furcation) ?? ''"
+                      (input)="setTooth(tooth, $any(field.key), $any($event.target).value)"
+                    />
+                  }
+                </span>
+              }
+            </div>
+          }
+
+          <!-- Two walls: vestibular outside, palatal/lingual inside -->
+          @for (wall of [{ id: 'buccal', label: 'Vestibular' }, { id: 'lingual', label: arch.inner }];
+                track wall.id) {
+            <div class="wall">
+              <span class="wall-label">{{ wall.label }}</span>
+
+              @for (metric of [{ key: 'recession', label: 'Margen (mm)' }, { key: 'depth', label: 'Sondaje (mm)' }];
+                    track metric.key) {
+                <div class="data-row">
+                  <span class="row-label">{{ metric.label }}</span>
+                  @for (tooth of arch.row; track tooth.fdi) {
+                    <span class="tooth-slot" [style.width.px]="toothWidth">
+                      @if (!tooth.absent) {
+                        @for (site of sitesFor($any(wall.id), tooth); track site) {
+                          <input
+                            class="cell numeric"
+                            [class]="'cell numeric ' + (metric.key === 'depth' ? 'depth-' + severity(tooth, site) : 'margin-cell')"
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="3"
+                            [style.width.px]="siteWidth"
+                            [disabled]="readonly"
+                            [value]="(metric.key === 'depth' ? tooth.sites[site].probing_depth : tooth.sites[site].recession) ?? ''"
+                            [attr.aria-label]="metric.label + ' ' + tooth.fdi + ' ' + site"
+                            (input)="metric.key === 'depth'
+                              ? setDepth(tooth, site, $any($event.target).value)
+                              : setRecession(tooth, site, $any($event.target).value)"
+                          />
+                        }
+                      }
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Bleeding and plaque are per-site toggles, not numbers -->
+              @for (flag of [{ key: 'bleeding', label: 'Sangrado' }, { key: 'plaque', label: 'Placa' }];
+                    track flag.key) {
+                <div class="data-row">
+                  <span class="row-label">{{ flag.label }}</span>
+                  @for (tooth of arch.row; track tooth.fdi) {
+                    <span class="tooth-slot" [style.width.px]="toothWidth">
+                      @if (!tooth.absent) {
+                        @for (site of sitesFor($any(wall.id), tooth); track site) {
+                          <button
+                            type="button"
+                            class="dot"
+                            [class.on]="flagValue(tooth, site, $any(flag.key))"
+                            [class.is-bleeding]="flag.key === 'bleeding'"
+                            [style.width.px]="siteWidth"
+                            [disabled]="readonly"
+                            [attr.aria-pressed]="flagValue(tooth, site, $any(flag.key))"
+                            [attr.aria-label]="flag.label + ' ' + tooth.fdi"
+                            (click)="toggle(tooth, site, $any(flag.key))"
+                          ></button>
+                        }
+                      }
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- The profile: margin line, pocket line, and the band of
+                   attachment loss between them. -->
+              <div class="data-row graph-row">
+                <span class="row-label">Perfil</span>
+                <svg
+                  class="profile"
+                  [attr.width]="rowWidth(arch.row)"
+                  [attr.height]="graphHeight"
+                  [attr.viewBox]="'0 0 ' + rowWidth(arch.row) + ' ' + graphHeight"
+                  role="img"
+                  [attr.aria-label]="'Perfil periodontal ' + wall.label + ' de la ' + arch.label"
+                >
+                  <line class="cej" x1="0" [attr.x2]="rowWidth(arch.row)" [attr.y1]="cejY" [attr.y2]="cejY" />
+                  @for (tooth of arch.row; track tooth.fdi; let i = $index) {
+                    <line
+                      class="tooth-divider"
+                      [attr.x1]="(i + 1) * toothWidth"
+                      [attr.x2]="(i + 1) * toothWidth"
+                      y1="0"
+                      [attr.y2]="graphHeight"
+                    />
+                  }
+                  <polyline class="margin-line" [attr.points]="curve(arch.row, $any(wall.id), 'margin')" />
+                  <polyline class="pocket-line" [attr.points]="curve(arch.row, $any(wall.id), 'pocket')" />
+                  @for (dot of bleedingDots(arch.row, $any(wall.id)); track $index) {
+                    <circle class="bleed-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" r="2.6" />
+                  }
+                </svg>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <div class="legend">
+    <span><i class="swatch margin-swatch"></i> Margen gingival</span>
+    <span><i class="swatch pocket-swatch"></i> Fondo de la bolsa</span>
+    <span><i class="swatch bleed-swatch"></i> Sangrado al sondaje</span>
+    <span><i class="swatch depth-moderate"></i> 4–5 mm</span>
+    <span><i class="swatch depth-severe"></i> 6 mm o más</span>
+  </div>
+</div>

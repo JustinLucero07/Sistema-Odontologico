@@ -2,35 +2,10 @@
   <h1>Odontograma</h1>
 
   @if (!selectedPatient()) {
-    <mat-card class="search-card">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Buscar paciente por nombre, cédula o teléfono</mat-label>
-        <input matInput [formControl]="searchControl" autofocus />
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
-
-      @if (results().length > 0) {
-        <div class="results-list">
-          @for (patient of results(); track patient.id) {
-            <button type="button" class="result-row" (click)="selectPatient(patient)">
-              <span class="result-avatar">{{ patient.first_name.charAt(0) }}{{ patient.last_name.charAt(0) }}</span>
-              <span class="result-info">
-                <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
-                <span class="result-meta">
-                  {{ patient.national_id || 'Sin cédula' }}
-                  @if (patient.age !== null) { · {{ patient.age }} años }
-                </span>
-              </span>
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
-          }
-        </div>
-      } @else if (searchControl.value) {
-        <p class="empty-hint">No se encontraron pacientes con ese criterio.</p>
-      } @else {
-        <p class="empty-hint">Escribe para buscar un paciente y abrir su odontograma directamente.</p>
-      }
-    </mat-card>
+    <app-patient-picker
+      hint="Busca un paciente para abrir su odontograma directamente."
+      (selected)="select($event)"
+    ></app-patient-picker>
   } @else {
     <div class="selected-header">
       <button type="button" class="back-button" (click)="clearSelection()">

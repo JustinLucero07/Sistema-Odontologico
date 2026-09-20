@@ -1,0 +1,337 @@
+<div class="account">
+  <header class="account-head">
+    <div>
+      <h2>Estado de cuenta</h2>
+      <p class="account-sub">
+        El saldo se calcula en cada consulta a partir de los cargos y pagos vigentes. Nada se
+        elimina: un error se anula con motivo.
+      </p>
+    </div>
+    @if (canWrite) {
+      <div class="account-actions">
+        <button mat-flat-button (click)="showPaymentForm.set(!showPaymentForm()); showChargeForm.set(false)">
+          <mat-icon>payments</mat-icon>
+          Registrar pago
+        </button>
+        <button mat-stroked-button (click)="showChargeForm.set(!showChargeForm()); showPaymentForm.set(false)">
+          <mat-icon>receipt_long</mat-icon>
+          Nuevo cargo
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="account-empty">Cargando estado de cuenta…</p>
+  } @else if (account(); as acc) {
+    <section class="totals">
+      <article class="total-card" [attr.data-tone]="balanceTone()">
+        <span class="total-label">Saldo</span>
+        <span class="total-value numeric">
+          <small>$</small>{{ money(acc.balance) }}
+        </span>
+        <span class="total-hint">
+          {{ balanceTone() === 'owed' ? 'El paciente debe' :
+             balanceTone() === 'credit' ? 'Saldo a favor del paciente' : 'Cuenta saldada' }}
+        </span>
+      </article>
+
+      <article class="total-card">
+        <span class="total-label">Total facturado</span>
+        <span class="total-value numeric"><small>$</small>{{ money(acc.total_charged) }}</span>
+      </article>
+
+      <article class="total-card">
+        <span class="total-label">Total cobrado</span>
+        <span class="total-value numeric"><small>$</small>{{ money(acc.total_paid) }}</span>
+      </article>
+
+      @if (acc.overdue_amount !== '0.00') {
+        <article class="total-card" data-tone="overdue">
+          <span class="total-label">Cuotas vencidas</span>
+          <span class="total-value numeric"><small>$</small>{{ money(acc.overdue_amount) }}</span>
+        </article>
+      }
+
+      @if (acc.unallocated !== '0.00') {
+        <article class="total-card">
+          <span class="total-label">Pagos a cuenta</span>
+          <span class="total-value numeric"><small>$</small>{{ money(acc.unallocated) }}</span>
+          <span class="total-hint">Todavía sin aplicar a un cargo</span>
+        </article>
+      }
+    </section>
+
+    @if (showPaymentForm()) {
+      <form class="form-card" [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
+        <h3>Registrar pago</h3>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Importe</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Medio de pago</mat-label>
+            <mat-select formControlName="method">
+              @for (method of methods(); track method.code) {
+                <mat-option [value]="method.code">{{ method.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Aplicar a</mat-label>
+            <mat-select formControlName="charge_id">
+              <mat-option value="">A cuenta (sin cargo)</mat-option>
+              @for (charge of openCharges(); track charge.id) {
+                <mat-option [value]="charge.id">
+                  {{ charge.description }} — pendiente $ {{ money(charge.pending) }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (selectedMethodNeedsReference()) {
+            <mat-form-field appearance="outline">
+              <mat-label>Referencia / autorización</mat-label>
+              <input matInput formControlName="reference" />
+              <mat-hint>Necesaria para conciliar con el banco</mat-hint>
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Notas</mat-label>
+            <input matInput formControlName="notes" />
+          </mat-form-field>
+        </div>
+        <div class="form-actions">
+          <button mat-flat-button type="submit" [disabled]="paymentForm.invalid || saving()">
+            Guardar pago
+          </button>
+          <button mat-stroked-button type="button" (click)="showPaymentForm.set(false)">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    @if (showChargeForm()) {
+      <form class="form-card" [formGroup]="chargeForm" (ngSubmit)="submitCharge()">
+        <h3>Nuevo cargo</h3>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Concepto</mat-label>
+            <input matInput formControlName="description" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Importe</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Notas</mat-label>
+            <input matInput formControlName="notes" />
+          </mat-form-field>
+        </div>
+        <div class="form-actions">
+          <button mat-flat-button type="submit" [disabled]="chargeForm.invalid || saving()">
+            Guardar cargo
+          </button>
+          <button mat-stroked-button type="button" (click)="showChargeForm.set(false)">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    <!-- Charges -->
+    <section class="block">
+      <h3>Cargos</h3>
+      @if (acc.charges.length === 0) {
+        <p class="account-empty">Todavía no hay cargos para este paciente.</p>
+      } @else {
+        <div class="charge-list">
+          @for (charge of acc.charges; track charge.id) {
+            <article class="charge" [class.is-void]="charge.status === 'anulada'">
+              <div class="charge-main">
+                <div class="charge-head">
+                  <strong>{{ charge.description }}</strong>
+                  <span class="tag" [attr.data-status]="charge.status">
+                    {{ chargeLabels[charge.status] }}
+                  </span>
+                  @if (charge.budget_id) {
+                    <span class="tag origin">Desde presupuesto</span>
+                  }
+                </div>
+                <span class="charge-meta">
+                  {{ charge.issued_on | date: 'dd/MM/yyyy' }} ·
+                  Pagado $ {{ money(charge.paid) }} de $ {{ money(charge.amount) }}
+                </span>
+                @if (charge.void_reason) {
+                  <span class="void-note">Anulado: {{ charge.void_reason }}</span>
+                }
+
+                @if (charge.status !== 'anulada' && charge.amount !== charge.paid) {
+                  <div class="progress" [attr.aria-label]="'Avance del pago'">
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="(+charge.paid / +charge.amount) * 100"
+                    ></div>
+                  </div>
+                }
+
+                @if (charge.installments.length > 0) {
+                  <ul class="installments">
+                    @for (row of charge.installments; track row.number) {
+                      <li [attr.data-status]="row.status">
+                        <span class="inst-n numeric">{{ row.number }}</span>
+                        <span class="inst-date">{{ row.due_on | date: 'dd/MM/yy' }}</span>
+                        <span class="inst-amount numeric">$ {{ money(row.amount) }}</span>
+                        <span class="inst-state">{{ installmentLabels[row.status] }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <div class="charge-side">
+                <span class="charge-pending numeric">
+                  <small>Pendiente</small>
+                  <b>$ {{ money(charge.pending) }}</b>
+                </span>
+                @if (canWrite && charge.status !== 'anulada') {
+                  <div class="charge-buttons">
+                    <button
+                      mat-icon-button
+                      matTooltip="Plan de cuotas"
+                      aria-label="Plan de cuotas"
+                      (click)="openPlan(charge)"
+                    >
+                      <mat-icon>event_repeat</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      matTooltip="Anular cargo"
+                      aria-label="Anular cargo"
+                      (click)="askVoid({ kind: 'charge', item: charge })"
+                    >
+                      <mat-icon>block</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Payments -->
+    <section class="block">
+      <h3>Pagos</h3>
+      @if (acc.payments.length === 0) {
+        <p class="account-empty">Todavía no se ha registrado ningún pago.</p>
+      } @else {
+        <table class="payments">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Medio</th>
+              <th>Aplicado a</th>
+              <th>Referencia</th>
+              <th class="right">Importe</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of acc.payments; track payment.id) {
+              <tr [class.is-void]="payment.voided_at">
+                <td>{{ payment.received_on | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ methodLabel(payment.method) }}</td>
+                <td>{{ chargeLabel(payment.charge_id) }}</td>
+                <td class="muted">{{ payment.reference ?? '—' }}</td>
+                <td class="right numeric">$ {{ money(payment.amount) }}</td>
+                <td class="right">
+                  @if (payment.voided_at) {
+                    <span class="tag" data-status="anulada" [matTooltip]="payment.void_reason ?? ''">
+                      Anulado
+                    </span>
+                  } @else if (canWrite) {
+                    <button
+                      mat-icon-button
+                      matTooltip="Anular pago"
+                      aria-label="Anular pago"
+                      (click)="askVoid({ kind: 'payment', item: payment })"
+                    >
+                      <mat-icon>block</mat-icon>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+</div>
+
+<!-- Instalment plan -->
+@if (planningFor(); as charge) {
+  <div class="overlay" (click)="planningFor.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Plan de cuotas</h3>
+      <p class="panel-hint">
+        «{{ charge.description }}» · $ {{ money(charge.amount) }}. El redondeo se acumula en la
+        última cuota, de modo que el plan suma exactamente el cargo.
+      </p>
+      <form [formGroup]="planForm" (ngSubmit)="submitPlan()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Número de cuotas</mat-label>
+            <input matInput type="number" formControlName="count" min="2" max="36" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Primer vencimiento</mat-label>
+            <input matInput type="date" formControlName="first_due_on" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Días entre cuotas</mat-label>
+            <input matInput type="number" formControlName="every_days" min="7" max="90" />
+          </mat-form-field>
+        </div>
+        <div class="form-actions">
+          <button mat-flat-button type="submit" [disabled]="planForm.invalid || saving()">
+            Guardar plan
+          </button>
+          <button mat-stroked-button type="button" (click)="planningFor.set(null)">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Void -->
+@if (voiding(); as pending) {
+  <div class="overlay" (click)="voiding.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Anular {{ pending.kind === 'payment' ? 'pago' : 'cargo' }}</h3>
+      <p class="panel-hint">
+        No se borra nada: la fila queda con su motivo para que la caja del día siga cuadrando
+        contra lo que realmente ocurrió.
+      </p>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Motivo</mat-label>
+        <input matInput [(ngModel)]="voidReason" [ngModelOptions]="{ standalone: true }" />
+      </mat-form-field>
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          [disabled]="voidReason.trim().length < 3 || saving()"
+          (click)="confirmVoid()"
+        >
+          Anular
+        </button>
+        <button mat-stroked-button (click)="voiding.set(null)">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}

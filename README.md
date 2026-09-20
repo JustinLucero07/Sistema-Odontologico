@@ -1,4 +1,4 @@
-# Sistema Odontológico — Fases 1 a 4
+# Sistema Odontológico — Fases 1 a 6
 
 Arquitectura completa en [este documento](https://claude.ai/code/artifact/8991af38-1531-4963-8933-c9094d25488a).
 
@@ -6,6 +6,9 @@ Arquitectura completa en [este documento](https://claude.ai/code/artifact/8991af
 - **Fase 2**: pacientes (alta, búsqueda, baja) e historia clínica versionada — cada edición crea una nueva versión, nunca sobrescribe la anterior — con la ficha del paciente como expediente digital.
 - **Fase 3**: odontograma digital interactivo (SVG, no imagen estática) con numeración FDI, dentición permanente y temporal, 5 superficies por pieza más condición de diente completo, versionado por snapshots, historial de versiones, y acceso directo desde el menú con buscador de paciente.
 - **Fase 4**: diagnósticos, catálogo de tratamientos, planes de tratamiento (con ítems por pieza/diagnóstico, estados y progreso calculado automáticamente) y presupuestos generados desde un plan (subtotal, impuesto, total, y flujo de estados borrador → enviado → visto → aceptado/rechazado que no permite retroceder).
+- **Fase 5**: agenda y citas — vistas de día y semana, filtro por profesional, estados de cita (programada → confirmada → en atención → atendida, más cancelada/no asistió) y **prevención de doble reserva garantizada por la propia base de datos** (constraints de exclusión GiST, no solo validación en el servicio). Incluye recordatorios programados (24 h y 2 h antes) listos para conectar con WhatsApp/email en la Fase 11.
+
+- **Fase 6**: evoluciones clínicas (append-only, con auditoría de cada corrección), recetas con varios medicamentos, consentimientos informados a partir de plantillas —el texto queda congelado tal como se firmó, editar la plantilla después no cambia lo aceptado— y gestión documental con subida/descarga real de archivos detrás de una capa `StorageProvider` (disco local hoy, S3 sin tocar el código de negocio).
 
 Todo con frontend Angular funcional de extremo a extremo.
 
@@ -70,4 +73,6 @@ npm start   # http://localhost:4200, apunta a http://localhost:8000/api/v1 (ver 
 - ✅ Fase 2: pacientes, historia clínica versionada, ficha del paciente
 - ✅ Fase 3: odontograma digital interactivo versionado (dentición permanente y temporal)
 - ✅ Fase 4: diagnósticos, tratamientos, planes de tratamiento con progreso, presupuestos
-- ⬜ Fase 5 en adelante: ver el documento de arquitectura, sección "Plan de desarrollo por fases"
+- ✅ Fase 5: agenda, citas, estados y recordatorios programados
+- ✅ Fase 6: evoluciones clínicas, recetas, consentimientos y documentos
+- ⬜ Fase 7 en adelante: ver el documento de arquitectura, sección "Plan de desarrollo por fases"

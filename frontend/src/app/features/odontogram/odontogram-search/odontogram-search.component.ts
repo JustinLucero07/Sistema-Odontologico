@@ -1,57 +1,47 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { PatientListItem } from '../../../core/models/patient.models';
 import { PatientsService } from '../../../core/services/patients.service';
+import { PatientPickerComponent } from '../../../shared/patient-picker/patient-picker.component';
 import { OdontogramComponent } from '../odontogram.component';
 
 @Component({
   selector: 'app-odontogram-search',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    OdontogramComponent,
-  ],
+  imports: [MatIconModule, PatientPickerComponent, OdontogramComponent],
   templateUrl: './odontogram-search.component.html',
   styleUrl: './odontogram-search.component.scss',
 })
-export class OdontogramSearchComponent implements OnInit {
+export class OdontogramSearchComponent {
+  private readonly route = inject(ActivatedRoute);
   private readonly patientsService = inject(PatientsService);
-  private readonly fb = inject(FormBuilder);
 
-  readonly searchControl = this.fb.nonNullable.control('');
-  private readonly search$ = new Subject<string>();
-
-  readonly results = signal<PatientListItem[]>([]);
   readonly selectedPatient = signal<PatientListItem | null>(null);
 
-  ngOnInit(): void {
-    this.search$.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => this.search(term));
-    this.searchControl.valueChanges.subscribe((value) => this.search$.next(value));
+  constructor() {
+    // Lets the global search jump straight to a patient's odontogram.
+    const patientId = this.route.snapshot.queryParamMap.get('patient');
+    if (patientId) void this.preselect(patientId);
   }
 
-  private async search(term: string): Promise<void> {
-    if (!term.trim()) {
-      this.results.set([]);
-      return;
-    }
-    const results = await firstValueFrom(this.patientsService.listPatients(term));
-    this.results.set(results);
+  private async preselect(patientId: string): Promise<void> {
+    const patient = await firstValueFrom(this.patientsService.getPatient(patientId));
+    this.selectedPatient.set({
+      id: patient.id,
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      national_id: patient.national_id,
+      age: patient.age,
+      phone: patient.phone,
+      whatsapp: patient.whatsapp,
+    });
   }
 
-  selectPatient(patient: PatientListItem): void {
+  select(patient: PatientListItem): void {
     this.selectedPatient.set(patient);
-    this.results.set([]);
-    this.searchControl.setValue('', { emitEvent: false });
   }
 
   clearSelection(): void {

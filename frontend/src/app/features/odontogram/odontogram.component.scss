@@ -96,7 +96,7 @@
 .picker-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(13, 37, 35, 0.5);
+  background: var(--glass-scrim);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -106,7 +106,9 @@
 }
 
 .picker-panel {
-  background: var(--color-surface);
+  background: var(--glass-overlay-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
   border-radius: var(--radius-lg);
   padding: 22px;
   width: 360px;

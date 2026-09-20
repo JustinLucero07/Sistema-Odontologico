@@ -1,0 +1,235 @@
+<div class="agenda">
+  <header class="agenda-header">
+    <div class="agenda-title">
+      <h1>Agenda</h1>
+      <span class="range-label">{{ rangeLabel() }}</span>
+    </div>
+
+    <div class="agenda-controls">
+      <button mat-stroked-button (click)="goToday()">Hoy</button>
+      <button mat-icon-button (click)="move(-1)" aria-label="Anterior"><mat-icon>chevron_left</mat-icon></button>
+      <button mat-icon-button (click)="move(1)" aria-label="Siguiente"><mat-icon>chevron_right</mat-icon></button>
+
+      <mat-button-toggle-group [value]="view()" (change)="setView($event.value)">
+        <mat-button-toggle value="day">Día</mat-button-toggle>
+        <mat-button-toggle value="week">Semana</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" class="professional-filter" subscriptSizing="dynamic">
+        <mat-label>Profesional</mat-label>
+        <mat-select [value]="professionalFilter() ?? ''" (selectionChange)="setProfessionalFilter($event.value)">
+          <mat-option value="">Todos</mat-option>
+          @for (professional of professionals(); track professional.id) {
+            <mat-option [value]="professional.id">
+              {{ professional.first_name }} {{ professional.last_name }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </header>
+
+  <div class="calendar" [class.day-view]="view() === 'day'">
+    <div class="time-gutter">
+      <div class="column-head"></div>
+      @for (hour of hours; track hour) {
+        <div class="time-label" [style.height.px]="hourHeight">
+          <span>{{ hour }}:00</span>
+        </div>
+      }
+    </div>
+
+    @for (column of columns(); track column.date.getTime()) {
+      <div class="day-column" [class.is-today]="column.isToday">
+        <div class="column-head">
+          <span class="weekday">{{ column.weekday }}</span>
+          <span class="day-number">{{ column.label }}</span>
+        </div>
+
+        <div class="slots" [style.height.px]="hours.length * hourHeight">
+          @for (hour of hours; track hour) {
+            <button
+              type="button"
+              class="slot"
+              [style.height.px]="hourHeight"
+              [disabled]="!canEdit()"
+              (click)="openSlot(column.date, hour)"
+              [attr.aria-label]="'Agendar a las ' + hour + ':00'"
+            ></button>
+          }
+
+          @for (item of column.appointments; track item.appointment.id) {
+            <button
+              type="button"
+              class="appointment"
+              [class.is-cancelled]="item.appointment.status === 'cancelada' || item.appointment.status === 'no_asistio'"
+              [style.top.px]="item.top"
+              [style.height.px]="item.height"
+              [style.--appointment-color]="item.color"
+              (click)="select(item.appointment)"
+            >
+              <span class="appointment-time">{{ item.appointment.starts_at | date: 'HH:mm' }}</span>
+              <span class="appointment-patient">{{ item.appointment.patient_name }}</span>
+              @if (item.height > 40 && item.appointment.treatment_name) {
+                <span class="appointment-treatment">{{ item.appointment.treatment_name }}</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="legend">
+    @for (status of statusOptions; track status) {
+      <span class="legend-item">
+        <span class="legend-dot" [style.background]="statusColor(status)"></span>
+        {{ statusLabels[status] }}
+      </span>
+    }
+  </div>
+</div>
+
+<!-- Appointment detail -->
+@if (selected(); as appointment) {
+  <div class="overlay" (click)="closeDetail()">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>{{ appointment.patient_name }}</h2>
+        <button mat-icon-button (click)="closeDetail()" aria-label="Cerrar"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <dl class="detail-grid">
+        <div><dt>Fecha</dt><dd>{{ appointment.starts_at | date: 'EEEE d MMMM, HH:mm' }}</dd></div>
+        <div><dt>Duración</dt><dd>{{ appointment.duration_minutes }} min</dd></div>
+        <div><dt>Profesional</dt><dd>{{ appointment.professional_name }}</dd></div>
+        <div><dt>Tratamiento</dt><dd>{{ appointment.treatment_name || '—' }}</dd></div>
+        <div>
+          <dt>Recordatorios</dt>
+          <dd>
+            @if (pendingReminders(appointment) > 0) {
+              {{ pendingReminders(appointment) }} pendiente(s) por enviar
+            } @else {
+              Sin recordatorios pendientes
+            }
+          </dd>
+        </div>
+        @if (appointment.notes) {
+          <div class="full"><dt>Notas</dt><dd>{{ appointment.notes }}</dd></div>
+        }
+        @if (appointment.cancellation_reason) {
+          <div class="full"><dt>Motivo de cancelación</dt><dd>{{ appointment.cancellation_reason }}</dd></div>
+        }
+      </dl>
+
+      @if (canEdit()) {
+        <div class="status-actions">
+          <span class="status-actions-label">Cambiar estado</span>
+          <div class="status-buttons">
+            @for (status of statusOptions; track status) {
+              <button
+                type="button"
+                class="status-chip"
+                [class.active]="appointment.status === status"
+                [style.--chip-color]="statusColor(status)"
+                (click)="changeStatus(appointment, status)"
+              >
+                {{ statusLabels[status] }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- New appointment -->
+@if (formOpen()) {
+  <div class="overlay" (click)="closeForm()">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h2>Nueva cita</h2>
+        <button mat-icon-button (click)="closeForm()" aria-label="Cerrar"><mat-icon>close</mat-icon></button>
+      </div>
+
+      @if (!formPatient()) {
+        <app-patient-picker
+          hint="Busca el paciente para esta cita."
+          (selected)="formPatient.set($event)"
+        ></app-patient-picker>
+      } @else {
+        <div class="chosen-patient">
+          <span class="chosen-avatar">
+            {{ formPatient()!.first_name.charAt(0) }}{{ formPatient()!.last_name.charAt(0) }}
+          </span>
+          <strong>{{ formPatient()!.first_name }} {{ formPatient()!.last_name }}</strong>
+          <button mat-button (click)="formPatient.set(null)">Cambiar</button>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submitAppointment()" class="appointment-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Profesional</mat-label>
+            <mat-select formControlName="professional_id">
+              @for (professional of professionals(); track professional.id) {
+                <mat-option [value]="professional.id">
+                  {{ professional.first_name }} {{ professional.last_name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tratamiento</mat-label>
+            <mat-select formControlName="treatment_id">
+              <mat-option value="">Sin especificar</mat-option>
+              @for (treatment of treatments(); track treatment.id) {
+                <mat-option [value]="treatment.id">{{ treatment.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha</mat-label>
+            <input matInput type="date" formControlName="date" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Hora</mat-label>
+            <input matInput type="time" formControlName="time" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Duración (min)</mat-label>
+            <input matInput type="number" formControlName="duration" min="5" step="5" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Notas</mat-label>
+            <input matInput formControlName="notes" />
+          </mat-form-field>
+
+          <div class="reminder-options full-width">
+            <span>Programar recordatorios (24 h y 2 h antes):</span>
+            <label><input type="checkbox" formControlName="remind_whatsapp" /> WhatsApp</label>
+            <label><input type="checkbox" formControlName="remind_email" /> Email</label>
+          </div>
+
+          @if (formError()) {
+            <p class="form-error full-width">
+              <mat-icon>error_outline</mat-icon>
+              {{ formError() }}
+            </p>
+          }
+
+          <div class="form-actions full-width">
+            <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving()">
+              Agendar cita
+            </button>
+            <button mat-button type="button" (click)="closeForm()">Cancelar</button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+}

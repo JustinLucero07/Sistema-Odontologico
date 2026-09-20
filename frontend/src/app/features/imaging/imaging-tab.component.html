@@ -1,0 +1,199 @@
+<div class="imaging">
+  <header class="imaging-head">
+    <div>
+      <h2>Imágenes y radiografías</h2>
+      <p class="imaging-sub">
+        Panorámicas, periapicales, bitewings y fotografías clínicas. Las imágenes no se
+        eliminan: se archivan con un motivo.
+      </p>
+    </div>
+
+    <div class="imaging-actions">
+      <mat-slide-toggle
+        [checked]="showArchived()"
+        (change)="toggleArchived($event.checked)"
+      >
+        Ver archivadas
+      </mat-slide-toggle>
+
+      @if (canWrite) {
+        <button mat-flat-button (click)="showForm.set(!showForm())">
+          <mat-icon>{{ showForm() ? 'close' : 'add_photo_alternate' }}</mat-icon>
+          {{ showForm() ? 'Cancelar' : 'Subir imagen' }}
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (showForm()) {
+    <form class="upload-card" [formGroup]="form" (ngSubmit)="upload()">
+      <label class="file-drop">
+        <input type="file" accept="image/*" hidden (change)="onFileSelected($event)" />
+        <mat-icon>{{ selectedFile ? 'check_circle' : 'upload_file' }}</mat-icon>
+        <span>{{ selectedFile ? selectedFile.name : 'Elegir archivo de imagen' }}</span>
+      </label>
+
+      <div class="upload-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Título</mat-label>
+          <input matInput formControlName="title" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo de estudio</mat-label>
+          <mat-select formControlName="image_type">
+            @for (type of types(); track type.code) {
+              <mat-option [value]="type.code">{{ type.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha del estudio</mat-label>
+          <input matInput type="date" formControlName="taken_on" />
+        </mat-form-field>
+
+        @if (selectedTypeIsToothScoped) {
+          <mat-form-field appearance="outline">
+            <mat-label>Piezas (FDI, separadas por coma)</mat-label>
+            <input matInput formControlName="fdi_numbers" placeholder="16,17" />
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Descripción / hallazgos</mat-label>
+          <textarea matInput rows="2" formControlName="description"></textarea>
+        </mat-form-field>
+      </div>
+
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="!selectedFile || form.invalid || uploading()"
+      >
+        {{ uploading() ? 'Subiendo…' : 'Guardar imagen' }}
+      </button>
+    </form>
+  }
+
+  @if (loading()) {
+    <p class="imaging-empty">Cargando estudios…</p>
+  } @else if (images().length === 0) {
+    <p class="imaging-empty">
+      <mat-icon>image_not_supported</mat-icon>
+      Todavía no hay imágenes para este paciente.
+    </p>
+  } @else {
+    <div class="gallery">
+      @for (image of images(); track image.id) {
+        <article class="study" [class.is-archived]="image.archived_at">
+          <button type="button" class="study-thumb" (click)="open(image)">
+            @if (previews()[image.id]) {
+              <img [src]="previews()[image.id]" [alt]="image.title" loading="lazy" />
+            } @else {
+              <mat-icon class="thumb-placeholder">{{ icons[image.image_type] }}</mat-icon>
+            }
+            @if (image.archived_at) {
+              <span class="archived-badge">Archivada</span>
+            }
+          </button>
+
+          <div class="study-body">
+            <strong class="study-title">{{ image.title }}</strong>
+            <span class="study-meta">
+              <mat-icon>{{ icons[image.image_type] }}</mat-icon>
+              {{ typeLabel(image.image_type) }}
+            </span>
+            <span class="study-meta">
+              {{ (image.taken_on ?? image.created_at) | date: 'dd/MM/yyyy' }}
+              @if (image.size_bytes) { · {{ sizeLabel(image.size_bytes) }} }
+            </span>
+            @if (image.fdi_numbers?.length) {
+              <span class="teeth-tags">
+                @for (fdi of image.fdi_numbers; track fdi) {
+                  <span class="tooth-tag numeric">{{ fdi }}</span>
+                }
+              </span>
+            }
+            @if (image.archived_reason) {
+              <span class="archived-reason">Motivo: {{ image.archived_reason }}</span>
+            }
+          </div>
+
+          @if (canWrite && !image.archived_at) {
+            <button
+              mat-icon-button
+              class="study-archive"
+              aria-label="Archivar imagen"
+              matTooltip="Archivar"
+              (click)="askArchive(image)"
+            >
+              <mat-icon>inventory_2</mat-icon>
+            </button>
+          }
+        </article>
+      }
+    </div>
+  }
+</div>
+
+<!-- Viewer -->
+@if (viewing(); as image) {
+  <div class="overlay" (click)="closeViewer()">
+    <div class="viewer" (click)="$event.stopPropagation()">
+      <header class="viewer-head">
+        <div>
+          <strong>{{ image.title }}</strong>
+          <span>{{ typeLabel(image.image_type) }} · {{ (image.taken_on ?? image.created_at) | date: 'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="viewer-tools">
+          <button mat-icon-button aria-label="Alejar" (click)="adjustZoom(-0.25)">
+            <mat-icon>zoom_out</mat-icon>
+          </button>
+          <span class="zoom-level numeric">{{ (zoom() * 100).toFixed(0) }}%</span>
+          <button mat-icon-button aria-label="Acercar" (click)="adjustZoom(0.25)">
+            <mat-icon>zoom_in</mat-icon>
+          </button>
+          <button mat-icon-button aria-label="Cerrar" (click)="closeViewer()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </header>
+
+      <div class="viewer-stage">
+        @if (viewerUrl()) {
+          <img [src]="viewerUrl()" [alt]="image.title" [style.transform]="'scale(' + zoom() + ')'" />
+        } @else {
+          <p>Cargando imagen…</p>
+        }
+      </div>
+
+      @if (image.description) {
+        <p class="viewer-notes">{{ image.description }}</p>
+      }
+    </div>
+  </div>
+}
+
+<!-- Archive confirmation -->
+@if (archiving(); as image) {
+  <div class="overlay" (click)="archiving.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Archivar «{{ image.title }}»</h3>
+      <p class="panel-hint">
+        La imagen deja de aparecer en la lista activa, pero se conserva: saber qué estudio se
+        vio en cada momento forma parte de la historia clínica.
+      </p>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Motivo</mat-label>
+        <input matInput [(ngModel)]="archiveReason" [ngModelOptions]="{ standalone: true }" />
+      </mat-form-field>
+      <div class="panel-actions">
+        <button mat-flat-button [disabled]="!archiveReason.trim()" (click)="confirmArchive()">
+          Archivar
+        </button>
+        <button mat-stroked-button (click)="archiving.set(null)">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}

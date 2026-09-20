@@ -1,0 +1,122 @@
+.perio-tab {
+  display: grid;
+  gap: 16px;
+}
+
+.perio-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.perio-sub {
+  margin: 3px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-faint);
+  max-width: 560px;
+}
+
+.perio-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.version-picker {
+  width: 230px;
+}
+
+.edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &.historical {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+}
+
+// ---- Indices -----------------------------------------------------------
+
+.indices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.index-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  // The tone is a hint, never the message: every card states its own label
+  // and number, so the colour adds emphasis rather than meaning.
+  border-left: 3px solid var(--color-border-strong);
+
+  &[data-tone='good'] {
+    border-left-color: var(--color-success);
+  }
+  &[data-tone='warn'] {
+    border-left-color: var(--color-accent);
+  }
+  &[data-tone='bad'] {
+    border-left-color: var(--color-danger);
+  }
+}
+
+.index-value {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.index-label {
+  font-size: 0.7rem;
+  color: var(--color-ink-faint);
+}
+
+.exam-notes {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-ink-soft);
+}
+
+.notes-field {
+  width: 100%;
+  max-width: 560px;
+}
+
+.perio-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-ink-faint);
+  font-size: 0.88rem;
+}

@@ -1,0 +1,110 @@
+<div class="perio-tab">
+  <header class="perio-head">
+    <div>
+      <h2>Periodontograma</h2>
+      <p class="perio-sub">
+        Seis sitios por pieza. Cada examen se guarda como una versión nueva: los anteriores
+        nunca se modifican.
+      </p>
+    </div>
+
+    <div class="perio-actions">
+      @if (versions().length > 0 && !editing()) {
+        <mat-form-field appearance="outline" class="version-picker">
+          <mat-label>Versión</mat-label>
+          <mat-select
+            [value]="selectedVersionId()"
+            (valueChange)="selectVersion($event)"
+          >
+            @for (version of versions(); track version.id; let first = $first) {
+              <mat-option [value]="version.id">
+                {{ version.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                {{ version.type === 'initial' ? '· Inicial' : '' }}
+                {{ first ? '· Actual' : '' }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
+      @if (canEdit && !editing()) {
+        @if (current()) {
+          <button mat-flat-button (click)="startNew()">
+            <mat-icon>add_chart</mat-icon>
+            Nuevo examen
+          </button>
+          <button mat-stroked-button (click)="startBlank()">Empezar en blanco</button>
+        } @else {
+          <button mat-flat-button (click)="startBlank()">
+            <mat-icon>add_chart</mat-icon>
+            Registrar periodontograma
+          </button>
+        }
+      }
+
+      @if (editing()) {
+        <button mat-flat-button [disabled]="saving()" (click)="save()">
+          <mat-icon>save</mat-icon>
+          {{ saving() ? 'Guardando…' : 'Guardar examen' }}
+        </button>
+        <button mat-stroked-button [disabled]="saving()" (click)="cancel()">Cancelar</button>
+      }
+    </div>
+  </header>
+
+  @if (editing()) {
+    <p class="edit-banner">
+      <mat-icon>info</mat-icon>
+      Estás registrando un examen nuevo. Al guardar se crea una versión; el examen anterior
+      queda intacto.
+    </p>
+  } @else if (isHistorical) {
+    <p class="edit-banner historical">
+      <mat-icon>history</mat-icon>
+      Estás viendo un examen anterior, en solo lectura.
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="perio-empty">Cargando…</p>
+  } @else {
+    @if (current(); as exam) {
+      @if (!editing()) {
+        <section class="indices">
+          @for (metric of [
+            { label: 'Índice de sangrado', value: exam.indices.bleeding_index + ' %', tone: exam.indices.bleeding_index > 25 ? 'bad' : 'good' },
+            { label: 'Índice de placa', value: exam.indices.plaque_index + ' %', tone: exam.indices.plaque_index > 25 ? 'bad' : 'good' },
+            { label: 'Sondaje medio', value: (exam.indices.mean_probing_depth ?? '—') + ' mm', tone: 'neutral' },
+            { label: 'Sitios 4–5 mm', value: exam.indices.sites_over_3mm - exam.indices.sites_over_5mm, tone: 'warn' },
+            { label: 'Sitios ≥ 6 mm', value: exam.indices.sites_over_5mm, tone: exam.indices.sites_over_5mm > 0 ? 'bad' : 'good' },
+            { label: 'Sitios registrados', value: exam.indices.sites_recorded, tone: 'neutral' }
+          ]; track metric.label) {
+            <article class="index-card" [attr.data-tone]="metric.tone">
+              <span class="index-value numeric">{{ metric.value }}</span>
+              <span class="index-label">{{ metric.label }}</span>
+            </article>
+          }
+        </section>
+
+        @if (exam.notes) {
+          <p class="exam-notes"><strong>Notas:</strong> {{ exam.notes }}</p>
+        }
+      }
+    }
+
+    <app-periodontogram-chart [value]="current()" [readonly]="!editing()" />
+
+    @if (editing()) {
+      <mat-form-field appearance="outline" class="notes-field">
+        <mat-label>Notas del examen</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="notes"></textarea>
+      </mat-form-field>
+    }
+
+    @if (!current() && !editing()) {
+      <p class="perio-empty">
+        Este paciente todavía no tiene periodontograma registrado.
+      </p>
+    }
+  }
+</div>

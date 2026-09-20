@@ -1,0 +1,282 @@
+import { DatePipe } from '@angular/common';
+import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { firstValueFrom } from 'rxjs';
+
+import { AuthService } from '../../core/auth/auth.service';
+import {
+  ClinicalEvolution,
+  Consent,
+  ConsentTemplate,
+  DOCUMENT_TYPE_LABELS,
+  PatientDocument,
+  Prescription,
+  PrescriptionItem,
+} from '../../core/models/clinical-record.models';
+import { ClinicalRecordsService } from '../../core/services/clinical-records.service';
+
+type Section = 'evoluciones' | 'recetas' | 'consentimientos' | 'documentos';
+
+@Component({
+  selector: 'app-clinical-records-tab',
+  standalone: true,
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatSelectModule,
+  ],
+  templateUrl: './clinical-records-tab.component.html',
+  styleUrl: './clinical-records-tab.component.scss',
+})
+export class ClinicalRecordsTabComponent implements OnChanges {
+  @Input({ required: true }) patientId!: string;
+
+  private readonly service = inject(ClinicalRecordsService);
+  private readonly auth = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly snackBar = inject(MatSnackBar);
+
+  readonly documentTypeLabels = DOCUMENT_TYPE_LABELS;
+  readonly documentTypes = Object.keys(DOCUMENT_TYPE_LABELS);
+
+  readonly section = signal<Section>('evoluciones');
+  readonly evolutions = signal<ClinicalEvolution[]>([]);
+  readonly prescriptions = signal<Prescription[]>([]);
+  readonly consents = signal<Consent[]>([]);
+  readonly templates = signal<ConsentTemplate[]>([]);
+  readonly documents = signal<PatientDocument[]>([]);
+
+  readonly openForm = signal<Section | null>(null);
+  readonly saving = signal(false);
+  readonly selectedFile = signal<File | null>(null);
+  readonly prescriptionItems = signal<PrescriptionItem[]>([{ medication: '' }]);
+
+  readonly canWriteEvolutions = computed(() => this.auth.hasPermission('evolutions:write'));
+  readonly canWritePrescriptions = computed(() => this.auth.hasPermission('prescriptions:write'));
+  readonly canWriteConsents = computed(() => this.auth.hasPermission('consents:write'));
+  readonly canWriteDocuments = computed(() => this.auth.hasPermission('documents:write'));
+
+  readonly evolutionForm = this.fb.nonNullable.group({
+    procedure: ['', Validators.required],
+    fdi_numbers: [''],
+    anesthesia: [''],
+    materials: [''],
+    diagnosis: [''],
+    evolution: [''],
+    instructions: [''],
+    next_appointment_notes: [''],
+  });
+
+  readonly prescriptionForm = this.fb.nonNullable.group({ notes: [''] });
+
+  readonly consentForm = this.fb.nonNullable.group({
+    template_id: [''],
+    title: [''],
+    body: [''],
+  });
+
+  readonly documentForm = this.fb.nonNullable.group({
+    title: ['', Validators.required],
+    document_type: ['otro', Validators.required],
+    description: [''],
+  });
+
+  readonly signForm = this.fb.nonNullable.group({ signed_by_name: ['', Validators.required] });
+  readonly signingConsent = signal<Consent | null>(null);
+
+  async ngOnChanges(): Promise<void> {
+    if (this.patientId) await this.reload();
+  }
+
+  async reload(): Promise<void> {
+    const results = await Promise.allSettled([
+      firstValueFrom(this.service.listEvolutions(this.patientId)),
+      firstValueFrom(this.service.listPrescriptions(this.patientId)),
+      firstValueFrom(this.service.listConsents(this.patientId)),
+      firstValueFrom(this.service.listDocuments(this.patientId)),
+      firstValueFrom(this.service.listConsentTemplates()),
+    ]);
+    // A role may hold only some of these permissions; the sections it cannot
+    // read simply stay empty rather than breaking the whole tab.
+    if (results[0].status === 'fulfilled') this.evolutions.set(results[0].value);
+    if (results[1].status === 'fulfilled') this.prescriptions.set(results[1].value);
+    if (results[2].status === 'fulfilled') this.consents.set(results[2].value);
+    if (results[3].status === 'fulfilled') this.documents.set(results[3].value);
+    if (results[4].status === 'fulfilled') this.templates.set(results[4].value);
+  }
+
+  toggleForm(section: Section): void {
+    this.openForm.set(this.openForm() === section ? null : section);
+  }
+
+  // ---- Evolutions ------------------------------------------------------
+
+  async saveEvolution(): Promise<void> {
+    if (this.evolutionForm.invalid || this.saving()) return;
+    this.saving.set(true);
+    try {
+      await firstValueFrom(this.service.createEvolution(this.patientId, this.evolutionForm.getRawValue()));
+      this.evolutionForm.reset();
+      this.openForm.set(null);
+      this.snackBar.open('Evolución registrada', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  // ---- Prescriptions ---------------------------------------------------
+
+  addPrescriptionItem(): void {
+    this.prescriptionItems.set([...this.prescriptionItems(), { medication: '' }]);
+  }
+
+  removePrescriptionItem(index: number): void {
+    this.prescriptionItems.set(this.prescriptionItems().filter((_, i) => i !== index));
+  }
+
+  updateItem(index: number, field: keyof PrescriptionItem, value: string): void {
+    const items = [...this.prescriptionItems()];
+    items[index] = { ...items[index], [field]: value };
+    this.prescriptionItems.set(items);
+  }
+
+  async savePrescription(): Promise<void> {
+    const items = this.prescriptionItems().filter((item) => item.medication.trim());
+    if (items.length === 0 || this.saving()) {
+      this.snackBar.open('Agrega al menos un medicamento', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await firstValueFrom(
+        this.service.createPrescription(this.patientId, {
+          notes: this.prescriptionForm.getRawValue().notes || null,
+          items,
+        }),
+      );
+      this.prescriptionForm.reset();
+      this.prescriptionItems.set([{ medication: '' }]);
+      this.openForm.set(null);
+      this.snackBar.open('Receta emitida', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  // ---- Consents --------------------------------------------------------
+
+  onTemplateSelected(templateId: string): void {
+    const template = this.templates().find((t) => t.id === templateId);
+    if (template) {
+      this.consentForm.patchValue({ title: template.name, body: template.body });
+    }
+  }
+
+  async saveConsent(): Promise<void> {
+    if (this.saving()) return;
+    const value = this.consentForm.getRawValue();
+    if (!value.template_id && (!value.title || !value.body)) {
+      this.snackBar.open('Elige una plantilla o escribe el título y el texto', 'Cerrar', { duration: 3500 });
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await firstValueFrom(
+        this.service.createConsent(this.patientId, {
+          template_id: value.template_id || null,
+          title: value.title || null,
+          body: value.body || null,
+        }),
+      );
+      this.consentForm.reset();
+      this.openForm.set(null);
+      this.snackBar.open('Consentimiento creado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  startSigning(consent: Consent): void {
+    this.signingConsent.set(consent);
+    this.signForm.reset();
+  }
+
+  async confirmSignature(): Promise<void> {
+    const consent = this.signingConsent();
+    if (!consent || this.signForm.invalid) return;
+    await firstValueFrom(
+      this.service.signConsent(consent.id, this.signForm.getRawValue().signed_by_name),
+    );
+    this.signingConsent.set(null);
+    this.snackBar.open('Consentimiento firmado', 'Cerrar', { duration: 3000 });
+    await this.reload();
+  }
+
+  // ---- Documents -------------------------------------------------------
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.selectedFile.set(file);
+    if (file && !this.documentForm.getRawValue().title) {
+      this.documentForm.patchValue({ title: file.name });
+    }
+  }
+
+  async uploadDocument(): Promise<void> {
+    const file = this.selectedFile();
+    if (!file || this.documentForm.invalid || this.saving()) return;
+    this.saving.set(true);
+    try {
+      const value = this.documentForm.getRawValue();
+      await firstValueFrom(
+        this.service.uploadDocument(this.patientId, file, value.title, value.document_type, value.description),
+      );
+      this.documentForm.reset({ document_type: 'otro' });
+      this.selectedFile.set(null);
+      this.openForm.set(null);
+      this.snackBar.open('Documento subido', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch {
+      this.snackBar.open('No se pudo subir el documento', 'Cerrar', { duration: 3000 });
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async download(doc: PatientDocument): Promise<void> {
+    const blob = await firstValueFrom(this.service.downloadDocument(doc.id));
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = doc.original_filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  fileSize(bytes: number | null): string {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  print(): void {
+    window.print();
+  }
+}
