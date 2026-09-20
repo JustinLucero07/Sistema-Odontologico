@@ -1,0 +1,296 @@
+<div class="lab">
+  <header class="lab-head">
+    <div>
+      <h1>Laboratorio</h1>
+      <p class="lab-sub">
+        Trabajos enviados a laboratorio. Cada paso queda registrado con su fecha: un caso solo
+        avanza, y si vuelve mal se marca como rechazado en vez de retroceder.
+      </p>
+    </div>
+
+    <div class="lab-actions">
+      @if (overdueCount() > 0) {
+        <span class="overdue-badge">
+          <mat-icon>warning</mat-icon>
+          {{ overdueCount() }} atrasado(s)
+        </span>
+      }
+      @if (canWrite) {
+        <button mat-flat-button [disabled]="laboratories().length === 0"
+                (click)="showOrderForm.set(!showOrderForm()); showLabForm.set(false)">
+          <mat-icon>{{ showOrderForm() ? 'close' : 'add' }}</mat-icon>
+          {{ showOrderForm() ? 'Cancelar' : 'Nuevo trabajo' }}
+        </button>
+        <button mat-stroked-button (click)="showLabForm.set(!showLabForm()); showOrderForm.set(false)">
+          <mat-icon>domain_add</mat-icon>
+          Laboratorio
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (laboratories().length === 0 && !loading()) {
+    <p class="lab-notice">
+      <mat-icon>info</mat-icon>
+      Registra primero un laboratorio para poder enviarle trabajos.
+    </p>
+  }
+
+  @if (showLabForm()) {
+    <form class="form-card" [formGroup]="labForm" (ngSubmit)="submitLab()">
+      <h3>Nuevo laboratorio</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Contacto</mat-label>
+          <input matInput formControlName="contact_name" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Teléfono</mat-label>
+          <input matInput formControlName="phone" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Correo</mat-label>
+          <input matInput formControlName="email" type="email" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Días de entrega habituales</mat-label>
+          <input matInput type="number" formControlName="default_turnaround_days" min="1" />
+          <mat-hint>Se usa para proponer la fecha de entrega</mat-hint>
+        </mat-form-field>
+      </div>
+      <button mat-flat-button type="submit" [disabled]="labForm.invalid || saving()">
+        Guardar laboratorio
+      </button>
+    </form>
+  }
+
+  @if (showOrderForm()) {
+    <form class="form-card" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
+      <h3>Nuevo trabajo</h3>
+
+      @if (chosenPatient(); as patient) {
+        <div class="chosen-patient">
+          <mat-icon>person</mat-icon>
+          <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+          <button mat-button type="button" (click)="chosenPatient.set(null)">Cambiar</button>
+        </div>
+      } @else {
+        <mat-form-field appearance="outline" class="patient-search">
+          <mat-label>Paciente</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput (input)="searchPatient($any($event.target).value)" />
+        </mat-form-field>
+        @if (patientResults().length > 0) {
+          <ul class="patient-results">
+            @for (patient of patientResults(); track patient.id) {
+              <li>
+                <button type="button" (click)="pickPatient(patient)">
+                  {{ patient.first_name }} {{ patient.last_name }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      }
+
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Laboratorio</mat-label>
+          <mat-select formControlName="laboratory_id">
+            @for (laboratory of laboratories(); track laboratory.id) {
+              <mat-option [value]="laboratory.id">{{ laboratory.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo de trabajo</mat-label>
+          <mat-select formControlName="work_type">
+            @for (type of catalog().work_types; track type.code) {
+              <mat-option [value]="type.code">{{ type.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="wide">
+          <mat-label>Descripción</mat-label>
+          <input matInput formControlName="description" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Piezas (FDI)</mat-label>
+          <input matInput formControlName="fdi_numbers" placeholder="16, 17" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Color</mat-label>
+          <input matInput formControlName="shade" placeholder="A2" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Material</mat-label>
+          <input matInput formControlName="material" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha de entrega</mat-label>
+          <input matInput type="date" formControlName="due_on" />
+          <mat-hint>Si se deja vacía se calcula con los días del laboratorio</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Costo</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput formControlName="cost" inputmode="decimal" />
+        </mat-form-field>
+      </div>
+
+      <button mat-flat-button type="submit" [disabled]="orderForm.invalid || !chosenPatient() || saving()">
+        Guardar trabajo
+      </button>
+    </form>
+  }
+
+  <div class="toolbar">
+    <button mat-stroked-button [class.filter-on]="openOnly()" (click)="toggleOpenOnly()">
+      <mat-icon>filter_alt</mat-icon>
+      {{ openOnly() ? 'Solo trabajos abiertos' : 'Todos los trabajos' }}
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="lab-empty">Cargando trabajos…</p>
+  } @else if (orders().length === 0) {
+    <p class="lab-empty">
+      <mat-icon>precision_manufacturing</mat-icon>
+      {{ openOnly() ? 'No hay trabajos abiertos.' : 'Todavía no hay trabajos registrados.' }}
+    </p>
+  } @else {
+    <div class="order-grid">
+      @for (order of orders(); track order.id) {
+        <article class="order" [class.is-overdue]="order.days_overdue !== null">
+          <header class="order-head">
+            <div>
+              <strong>{{ order.description }}</strong>
+              <span class="order-meta">
+                {{ workTypeLabel(order.work_type) }} · {{ order.patient_name }}
+              </span>
+            </div>
+            <span class="status" [attr.data-status]="order.status">
+              {{ statusLabel(order.status) }}
+            </span>
+          </header>
+
+          <dl class="order-facts">
+            <div>
+              <dt>Laboratorio</dt>
+              <dd>{{ order.laboratory_name }}</dd>
+            </div>
+            <div>
+              <dt>Enviado</dt>
+              <dd>{{ order.sent_on ? (order.sent_on | date: 'dd/MM/yy') : '—' }}</dd>
+            </div>
+            <div>
+              <dt>Entrega</dt>
+              <dd [class.late]="order.days_overdue !== null">
+                {{ order.due_on ? (order.due_on | date: 'dd/MM/yy') : '—' }}
+                @if (order.days_overdue !== null) {
+                  <span class="late-tag">+{{ order.days_overdue }} d</span>
+                }
+              </dd>
+            </div>
+            @if (order.shade) {
+              <div>
+                <dt>Color</dt>
+                <dd>{{ order.shade }}</dd>
+              </div>
+            }
+          </dl>
+
+          @if (order.fdi_numbers?.length) {
+            <div class="teeth">
+              @for (fdi of order.fdi_numbers; track fdi) {
+                <span class="tooth-tag numeric">{{ fdi }}</span>
+              }
+            </div>
+          }
+
+          <footer class="order-foot">
+            <button mat-button (click)="detail.set(order)">
+              <mat-icon>history</mat-icon>
+              Historial ({{ order.events.length }})
+            </button>
+            @if (canWrite && availableStatuses(order).length > 0) {
+              <button mat-flat-button (click)="openAdvance(order)">Cambiar estado</button>
+            }
+          </footer>
+        </article>
+      }
+    </div>
+  }
+</div>
+
+<!-- Status change -->
+@if (advancing(); as order) {
+  <div class="overlay" (click)="advancing.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Cambiar estado</h3>
+      <p class="panel-hint">
+        «{{ order.description }}» está en <b>{{ statusLabel(order.status) }}</b>. Solo se ofrecen
+        los pasos siguientes: un trabajo no retrocede.
+      </p>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nuevo estado</mat-label>
+        <mat-select [(ngModel)]="chosenStatus" [ngModelOptions]="{ standalone: true }">
+          @for (option of availableStatuses(order); track option.code) {
+            <mat-option [value]="option.code">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nota (opcional)</mat-label>
+        <input matInput [(ngModel)]="statusNote" [ngModelOptions]="{ standalone: true }" />
+      </mat-form-field>
+
+      <div class="panel-actions">
+        <button mat-flat-button [disabled]="!chosenStatus || saving()" (click)="submitStatus()">
+          Guardar
+        </button>
+        <button mat-stroked-button (click)="advancing.set(null)">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Timeline -->
+@if (detail(); as order) {
+  <div class="overlay" (click)="detail.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>{{ order.description }}</h3>
+      <p class="panel-hint">{{ order.patient_name }} · {{ order.laboratory_name }}</p>
+
+      <ol class="timeline">
+        @for (event of order.events; track event.id) {
+          <li>
+            <span class="dot" [attr.data-status]="event.status"></span>
+            <div>
+              <strong>{{ statusLabel(event.status) }}</strong>
+              <span class="when">{{ event.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+              @if (event.note) { <span class="note">{{ event.note }}</span> }
+            </div>
+          </li>
+        }
+      </ol>
+
+      <div class="panel-actions">
+        <button mat-stroked-button (click)="detail.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

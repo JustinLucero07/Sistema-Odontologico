@@ -211,11 +211,12 @@ export class AccountTabComponent implements OnInit {
     if (!pending || this.voidReason.trim().length < 3) return;
     this.saving.set(true);
     try {
-      const call =
-        pending.kind === 'payment'
-          ? this.finance.voidPayment(pending.item.id, this.voidReason.trim())
-          : this.finance.voidCharge(pending.item.id, this.voidReason.trim());
-      await firstValueFrom(call);
+      const reason = this.voidReason.trim();
+      if (pending.kind === 'payment') {
+        await firstValueFrom(this.finance.voidPayment(pending.item.id, reason));
+      } else {
+        await firstValueFrom(this.finance.voidCharge(pending.item.id, reason));
+      }
       this.voiding.set(null);
       await this.reload();
       this.snackBar.open('Anulado y registrado en la auditoría', 'Cerrar', { duration: 3500 });

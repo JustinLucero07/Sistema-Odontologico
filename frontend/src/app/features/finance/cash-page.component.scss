@@ -1,0 +1,242 @@
+.cash {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+}
+
+.cash-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+}
+
+.cash-sub {
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  color: var(--color-ink-faint);
+  max-width: 560px;
+}
+
+.day-picker {
+  width: 190px;
+}
+
+.cash-empty {
+  padding: 22px;
+  text-align: center;
+  color: var(--color-ink-faint);
+  font-size: 0.86rem;
+}
+
+// ---- Session -----------------------------------------------------------
+
+.session-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  border-left: 3px solid var(--color-border-strong);
+
+  &.is-open {
+    border-left-color: var(--color-success);
+  }
+}
+
+.session-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.session-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--color-success);
+
+  &.closed {
+    color: var(--color-ink-soft);
+  }
+
+  mat-icon {
+    font-size: 19px;
+    width: 19px;
+    height: 19px;
+  }
+}
+
+.session-meta {
+  font-size: 0.78rem;
+  color: var(--color-ink-faint);
+  max-width: 460px;
+}
+
+.open-form,
+.close-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.close-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+// ---- Report ------------------------------------------------------------
+
+.report {
+  display: grid;
+  gap: 14px;
+  padding: 20px 22px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+}
+
+.report-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.report-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.total-value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+
+  small {
+    font-size: 0.56em;
+    font-weight: 600;
+    margin-right: 2px;
+    color: var(--color-ink-soft);
+  }
+}
+
+.total-label {
+  font-size: 0.72rem;
+  color: var(--color-ink-faint);
+}
+
+// One measure across a handful of categories: bars, one hue, direct labels,
+// no legend needed.
+.method-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+
+  li {
+    display: grid;
+    grid-template-columns: 150px 28px minmax(0, 1fr) 96px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+  }
+}
+
+.method-name {
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.method-count {
+  font-size: 0.72rem;
+  color: var(--color-ink-faint);
+  text-align: right;
+}
+
+.method-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  overflow: hidden;
+}
+
+.method-fill {
+  height: 100%;
+  // Rounded data-end, square where it meets the baseline.
+  border-radius: 0 999px 999px 0;
+  background: var(--color-primary);
+  transition: width 0.35s ease;
+}
+
+.method-total {
+  text-align: right;
+  font-weight: 700;
+}
+
+.voided-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.78rem;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .method-list li {
+    grid-template-columns: 1fr auto;
+
+    .method-bar {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .method-fill {
+    transition: none;
+  }
+}

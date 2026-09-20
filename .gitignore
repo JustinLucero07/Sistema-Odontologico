@@ -21,3 +21,9 @@ infra/backups/*
 .vscode/
 .idea/
 .DS_Store
+
+# Respaldos: contienen la base de datos completa con historias clínicas.
+# Nunca deben acabar en el control de versiones.
+backups/
+*.dump
+*.dump.SOSPECHOSO

@@ -48,7 +48,7 @@
   span {
     flex: 1;
     text-align: center;
-    font-size: 0.66rem;
+    font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     color: var(--color-ink-faint);
@@ -64,9 +64,9 @@
 .arch-midline {
   position: relative;
   width: 100%;
-  max-width: 620px;
+  max-width: 880px;
   height: 1px;
-  margin: 12px 0;
+  margin: 14px 0;
   background: repeating-linear-gradient(
     90deg,
     var(--color-border-strong) 0,
@@ -195,10 +195,14 @@
 
 // ---- Circular five-surface wheel ---------------------------------------
 
+// The wheel fills its tooth's column and never exceeds it: a lower central
+// incisor is the narrowest cell in the mouth, and a fixed width wider than that
+// makes neighbouring wheels overlap.
 .surface-wheel {
   display: block;
-  width: 27px;
-  height: 27px;
+  width: 100%;
+  max-width: 38px;
+  height: auto;
 }
 
 .surface {
@@ -235,7 +239,7 @@
 // ---- FDI number --------------------------------------------------------
 
 .tooth-number {
-  font-size: 0.62rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--color-ink-soft);
   background: none;

@@ -23,7 +23,8 @@
 
   @if (loading()) {
     <p class="account-empty">Cargando estado de cuenta…</p>
-  } @else if (account(); as acc) {
+  } @else {
+    @if (account(); as acc) {
     <section class="totals">
       <article class="total-card" [attr.data-tone]="balanceTone()">
         <span class="total-label">Saldo</span>
@@ -269,8 +270,9 @@
             }
           </tbody>
         </table>
-      }
-    </section>
+        }
+      </section>
+    }
   }
 </div>
 

@@ -1,0 +1,235 @@
+<div class="comm">
+  <nav class="comm-nav">
+    @for (item of [
+      { key: 'mensajes', label: 'Mensajes', icon: 'forum' },
+      { key: 'asistente', label: 'Asistente', icon: 'auto_awesome' },
+      { key: 'portal', label: 'Portal del paciente', icon: 'link' }
+    ]; track item.key) {
+      <button
+        type="button"
+        class="comm-tab"
+        [class.active]="section() === item.key"
+        (click)="section.set($any(item.key))"
+      >
+        <mat-icon>{{ item.icon }}</mat-icon>
+        {{ item.label }}
+      </button>
+    }
+  </nav>
+
+  @if (loading()) {
+    <p class="comm-empty">Cargando…</p>
+  } @else {
+
+    <!-- ---------------- Mensajes ---------------- -->
+    @if (section() === 'mensajes') {
+      @if (provider(); as p) {
+        <p class="banner" [class.live]="p.is_live">
+          <mat-icon>{{ p.is_live ? 'verified' : 'science' }}</mat-icon>
+          {{ p.message }}
+        </p>
+      }
+
+      @if (canWrite) {
+        <div class="composer">
+          <mat-form-field appearance="outline" class="template-select">
+            <mat-label>Usar una plantilla</mat-label>
+            <mat-select [(ngModel)]="chosenTemplate" (valueChange)="useTemplate($event)">
+              @for (template of templates(); track template.id) {
+                <mat-option [value]="template.code">{{ template.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="body-field">
+            <mat-label>Mensaje</mat-label>
+            <textarea matInput rows="3" [(ngModel)]="messageBody"></textarea>
+            <mat-hint>Se envía por WhatsApp al número del paciente</mat-hint>
+          </mat-form-field>
+
+          <button mat-flat-button [disabled]="!messageBody.trim() || busy()" (click)="send()">
+            <mat-icon>send</mat-icon>
+            Enviar
+          </button>
+        </div>
+      }
+
+      @if (messages().length === 0) {
+        <p class="comm-empty">Todavía no se ha enviado ningún mensaje a este paciente.</p>
+      } @else {
+        <ul class="messages">
+          @for (message of messages(); track message.id) {
+            <li [attr.data-status]="message.status">
+              <div class="msg-head">
+                <span class="status">{{ messageLabels[message.status] }}</span>
+                <span class="when">{{ message.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+                <span class="to">{{ message.to_address }}</span>
+              </div>
+              <p class="msg-body">{{ message.body }}</p>
+              @if (message.error) {
+                <p class="msg-error"><mat-icon>error_outline</mat-icon>{{ message.error }}</p>
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+
+    <!-- ---------------- Asistente ---------------- -->
+    @if (section() === 'asistente') {
+      @if (aiStatus(); as ai) {
+        <p class="banner" [class.live]="ai.is_available">
+          <mat-icon>{{ ai.is_available ? 'verified' : 'power_off' }}</mat-icon>
+          {{ ai.message }}
+        </p>
+      }
+
+      <p class="rule">
+        <mat-icon>gavel</mat-icon>
+        El asistente solo ve el registro de este paciente. No diagnostica, no recomienda
+        tratamientos y no menciona importes: si lo intentara, el borrador se descarta antes de
+        llegar aquí. Lo que produce es un borrador que usted revisa y firma.
+      </p>
+
+      @if (canUseAi) {
+        <div class="composer">
+          <mat-form-field appearance="outline" class="template-select">
+            <mat-label>Qué necesita</mat-label>
+            <mat-select [(ngModel)]="suggestionKind">
+              @for (kind of kinds; track kind.code) {
+                <mat-option [value]="kind.code">{{ kind.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="body-field">
+            <mat-label>Indicación (opcional)</mat-label>
+            <input matInput [(ngModel)]="suggestionRequest"
+                   placeholder="p. ej. recordarle que traiga la férula" />
+            <mat-hint>Qué quiere transmitir, no un dato clínico</mat-hint>
+          </mat-form-field>
+
+          <button mat-flat-button [disabled]="busy()" (click)="generate()">
+            <mat-icon>auto_awesome</mat-icon>
+            Generar borrador
+          </button>
+          <button mat-stroked-button (click)="showContext()">Ver el contexto</button>
+        </div>
+      }
+
+      @if (context(); as ctx) {
+        <div class="context-box">
+          <div class="context-head">
+            <strong>Todo lo que ve el asistente</strong>
+            <button mat-icon-button aria-label="Cerrar" (click)="context.set(null)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <pre>{{ ctx }}</pre>
+        </div>
+      }
+
+      @if (suggestions().length === 0) {
+        <p class="comm-empty">Todavía no hay borradores para este paciente.</p>
+      } @else {
+        <ul class="suggestions">
+          @for (s of suggestions(); track s.id) {
+            <li [attr.data-status]="s.status">
+              <div class="sug-head">
+                <span class="status">{{ suggestionLabels[s.status] }}</span>
+                <span class="when">{{ s.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+                @if (s.model) { <span class="model">{{ s.model }}</span> }
+              </div>
+              <p class="sug-body">{{ s.output }}</p>
+              <div class="sug-actions">
+                <button mat-button (click)="copy(s.output)">
+                  <mat-icon>content_copy</mat-icon>
+                  Copiar
+                </button>
+                @if (s.status === 'borrador' && canUseAi) {
+                  <button mat-flat-button [disabled]="busy()" (click)="decide(s, true)">
+                    Aceptar
+                  </button>
+                  <button mat-stroked-button [disabled]="busy()" (click)="decide(s, false)">
+                    Descartar
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
+
+    <!-- ---------------- Portal ---------------- -->
+    @if (section() === 'portal') {
+      <p class="rule">
+        <mat-icon>shield</mat-icon>
+        El enlace deja ver al paciente <strong>solo</strong> sus citas y su saldo. Nunca su
+        historia clínica, diagnósticos ni documentos: un enlace puede acabar en el buzón
+        equivocado. Caduca solo y se puede revocar.
+      </p>
+
+      @if (canWrite) {
+        <button mat-flat-button [disabled]="busy()" (click)="createLink()">
+          <mat-icon>add_link</mat-icon>
+          Generar enlace
+        </button>
+      }
+
+      @if (freshLink(); as url) {
+        <div class="fresh-link">
+          <div>
+            <strong>Enlace generado</strong>
+            <span>Se muestra una sola vez: el servidor solo guarda su huella.</span>
+          </div>
+          <code>{{ url }}</code>
+          <button mat-flat-button (click)="copy(url)">
+            <mat-icon>content_copy</mat-icon>
+            Copiar
+          </button>
+        </div>
+      }
+
+      @if (links().length === 0) {
+        <p class="comm-empty">Este paciente no tiene ningún enlace generado.</p>
+      } @else {
+        <table class="links">
+          <thead>
+            <tr>
+              <th>Creado</th>
+              <th>Caduca</th>
+              <th>Último uso</th>
+              <th class="right">Usos</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (link of links(); track link.id) {
+              <tr [class.inactive]="!link.is_active">
+                <td>{{ link.created_at | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ link.expires_at | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ link.last_used_at ? (link.last_used_at | date: 'dd/MM/yy HH:mm') : 'Nunca' }}</td>
+                <td class="right numeric">{{ link.use_count }}</td>
+                <td>
+                  <span class="status" [attr.data-status]="link.is_active ? 'activo' : 'inactivo'">
+                    {{ link.revoked_at ? 'Revocado' : link.is_active ? 'Activo' : 'Caducado' }}
+                  </span>
+                </td>
+                <td class="right">
+                  @if (link.is_active && canWrite) {
+                    <button mat-icon-button matTooltip="Revocar" aria-label="Revocar"
+                            [disabled]="busy()" (click)="revoke(link)">
+                      <mat-icon>link_off</mat-icon>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+  }
+</div>

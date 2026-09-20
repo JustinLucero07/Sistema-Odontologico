@@ -333,6 +333,8 @@
   padding: 28px 32px;
   min-height: calc(100vh - 64px);
   box-sizing: border-box;
+  max-width: var(--page-max);
+  margin-inline: auto;
 }
 
 @media (max-width: 720px) {

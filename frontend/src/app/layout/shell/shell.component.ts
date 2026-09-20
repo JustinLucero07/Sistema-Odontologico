@@ -85,6 +85,15 @@ export class ShellComponent {
           permission: 'treatments:read',
         },
         { label: 'Presupuestos', icon: 'request_quote', route: '/budgets', permission: 'budgets:read' },
+        { label: 'Caja', icon: 'point_of_sale', route: '/cash', permission: 'payments:read' },
+        { label: 'Reportes', icon: 'insights', route: '/reports', permission: 'reports:read' },
+        { label: 'Inventario', icon: 'inventory_2', route: '/inventory', permission: 'inventory:read' },
+        {
+          label: 'Laboratorio',
+          icon: 'precision_manufacturing',
+          route: '/laboratory',
+          permission: 'laboratory:read',
+        },
         {
           label: 'Catálogo de tratamientos',
           icon: 'medical_services',

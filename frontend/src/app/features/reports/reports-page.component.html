@@ -1,0 +1,417 @@
+<div class="reports">
+  <header class="rep-head">
+    <div>
+      <h1>Reportes</h1>
+      <p class="rep-sub">
+        Todo se calcula al consultar, a partir de los registros vigentes. Una anulación se
+        refleja de inmediato en los totales.
+      </p>
+    </div>
+    <button mat-flat-button [disabled]="downloading() || loading()" (click)="download()">
+      <mat-icon>download</mat-icon>
+      {{ downloading() ? 'Generando…' : 'Descargar CSV' }}
+    </button>
+  </header>
+
+  <section class="range-bar">
+    <div class="presets">
+      @for (preset of presets; track preset.key) {
+        <button
+          type="button"
+          class="preset"
+          [class.active]="activePreset() === preset.key"
+          (click)="applyPreset(preset.key)"
+        >
+          {{ preset.label }}
+        </button>
+      }
+    </div>
+
+    <div class="custom-range">
+      <mat-form-field appearance="outline">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" [(ngModel)]="dateFrom" (change)="onCustomRange()" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" [(ngModel)]="dateTo" (change)="onCustomRange()" />
+      </mat-form-field>
+    </div>
+  </section>
+
+  @if (summary(); as s) {
+    <section class="kpis">
+      <article class="kpi">
+        <span class="kpi-label">Cobrado</span>
+        <span class="kpi-value numeric"><small>$</small>{{ money(s.collected) }}</span>
+      </article>
+      <article class="kpi" data-tone="warn">
+        <span class="kpi-label">Pendiente de cobro</span>
+        <span class="kpi-value numeric"><small>$</small>{{ money(s.outstanding) }}</span>
+        <span class="kpi-hint">A hoy, no del período</span>
+      </article>
+      <article class="kpi">
+        <span class="kpi-label">Citas</span>
+        <span class="kpi-value numeric">{{ s.appointments }}</span>
+      </article>
+      <article class="kpi" [attr.data-tone]="(s.no_show_rate ?? 0) > 15 ? 'bad' : null">
+        <span class="kpi-label">Inasistencia</span>
+        <span class="kpi-value numeric">{{ rate(s.no_show_rate) }}</span>
+        @if (s.no_show_rate === null) {
+          <span class="kpi-hint">Sin citas concluidas</span>
+        }
+      </article>
+      <article class="kpi">
+        <span class="kpi-label">Pacientes nuevos</span>
+        <span class="kpi-value numeric">{{ s.new_patients }}</span>
+      </article>
+      <article class="kpi">
+        <span class="kpi-label">Tratamientos completados</span>
+        <span class="kpi-value numeric">{{ s.treatments_completed }}</span>
+      </article>
+    </section>
+  }
+
+  <nav class="rep-tabs">
+    @for (tab of tabs; track tab.kind) {
+      <button
+        type="button"
+        class="rep-tab"
+        [class.active]="active() === tab.kind"
+        (click)="select(tab.kind)"
+      >
+        <mat-icon>{{ tab.icon }}</mat-icon>
+        {{ tab.label }}
+      </button>
+    }
+  </nav>
+
+  @if (loading()) {
+    <p class="rep-empty">Calculando…</p>
+  } @else {
+
+    <!-- Financiero -->
+    @if (active() === 'financial' && financial(); as f) {
+      <div class="panels">
+        <article class="panel wide">
+          <header class="panel-head">
+            <h2>Ingresos por día</h2>
+            @if (dailyPeak(); as peak) {
+              <span class="panel-note">
+                Máximo: {{ peak.day | date: 'dd/MM' }} · $ {{ money(peak.amount) }}
+              </span>
+            }
+          </header>
+          @if (f.daily.length < 2) {
+            <p class="rep-empty">No hay suficientes días con cobros para dibujar la curva.</p>
+          } @else {
+            <svg class="spark" viewBox="0 0 100 32" preserveAspectRatio="none" role="img"
+                 aria-label="Ingresos diarios del período">
+              <path class="spark-line" [attr.d]="dailyPath()" />
+            </svg>
+            <div class="spark-axis">
+              <span>{{ f.daily[0].day | date: 'dd/MM' }}</span>
+              <span>{{ f.daily[f.daily.length - 1].day | date: 'dd/MM' }}</span>
+            </div>
+          }
+        </article>
+
+        <article class="panel">
+          <h2>Por medio de pago</h2>
+          @if (f.by_method.length === 0) {
+            <p class="rep-empty">Sin cobros en el período.</p>
+          } @else {
+            <ul class="bars">
+              @for (row of f.by_method; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <span class="bar-count numeric">{{ row.count }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.amount, maxAmount(f.by_method))"></div>
+                  </div>
+                  <span class="bar-value numeric">$ {{ money(row.amount) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+
+        <article class="panel">
+          <h2>Antigüedad de la deuda</h2>
+          <p class="panel-note">Total pendiente: <b>$ {{ money(f.outstanding_total) }}</b></p>
+          <ul class="bars">
+            @for (bucket of f.aging; track bucket.label) {
+              <li>
+                <span class="bar-label">{{ bucket.label }}</span>
+                <span class="bar-count numeric">{{ bucket.count }}</span>
+                <div class="bar-track">
+                  <div
+                    class="bar-fill"
+                    [class.aged]="bucket.label === 'Más de 90 días'"
+                    [style.width.%]="share(bucket.amount, maxAmount(f.aging))"
+                  ></div>
+                </div>
+                <span class="bar-value numeric">$ {{ money(bucket.amount) }}</span>
+              </li>
+            }
+          </ul>
+        </article>
+
+        @if (f.by_professional.length > 0) {
+          <article class="panel">
+            <h2>Cobros por profesional</h2>
+            <ul class="bars">
+              @for (row of f.by_professional; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <span class="bar-count numeric">{{ row.count }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.amount, maxAmount(f.by_professional))"></div>
+                  </div>
+                  <span class="bar-value numeric">$ {{ money(row.amount) }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+
+        @if (f.voided_count > 0) {
+          <article class="panel note-panel">
+            <mat-icon>info</mat-icon>
+            <p>
+              {{ f.voided_count }} cobro(s) anulado(s) por $ {{ money(f.voided_total) }} en el
+              período. No suman al total, pero siguen en el historial con su motivo.
+            </p>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- Clínico -->
+    @if (active() === 'clinical' && clinical(); as c) {
+      <div class="panels">
+        <article class="panel">
+          <h2>Tratamientos más realizados</h2>
+          @if (c.by_treatment.length === 0) {
+            <p class="rep-empty">Ningún tratamiento completado en el período.</p>
+          } @else {
+            <ul class="bars">
+              @for (row of c.by_treatment; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <span class="bar-count numeric">{{ row.count }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(c.by_treatment))"></div>
+                  </div>
+                  <span class="bar-value numeric">$ {{ money(row.amount) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+
+        <article class="panel">
+          <h2>Producción por profesional</h2>
+          @if (c.by_professional.length === 0) {
+            <p class="rep-empty">Sin producción registrada.</p>
+          } @else {
+            <ul class="bars">
+              @for (row of c.by_professional; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <span class="bar-count numeric">{{ row.count }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.amount, maxAmount(c.by_professional))"></div>
+                  </div>
+                  <span class="bar-value numeric">$ {{ money(row.amount) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+
+        <article class="panel">
+          <h2>Presupuestos</h2>
+          <div class="conversion">
+            <span class="conversion-rate numeric">{{ rate(c.budgets.conversion_rate) }}</span>
+            <span class="conversion-label">
+              de conversión
+              <em>sobre presupuestos respondidos</em>
+            </span>
+          </div>
+          <dl class="facts">
+            <div>
+              <dt>Aceptados</dt>
+              <dd>{{ c.budgets.accepted_count }} · $ {{ money(c.budgets.accepted_amount) }}</dd>
+            </div>
+            <div>
+              <dt>Rechazados</dt>
+              <dd>{{ c.budgets.rejected_count }} · $ {{ money(c.budgets.rejected_amount) }}</dd>
+            </div>
+            <div>
+              <dt>Sin respuesta</dt>
+              <dd>{{ c.budgets.pending_count }} · $ {{ money(c.budgets.pending_amount) }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        @if (c.top_diagnoses.length > 0) {
+          <article class="panel">
+            <h2>Diagnósticos más frecuentes</h2>
+            <ul class="bars">
+              @for (row of c.top_diagnoses; track row.key) {
+                <li>
+                  <span class="bar-label wide-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(c.top_diagnoses))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- Agenda -->
+    @if (active() === 'appointments' && appointments(); as a) {
+      <div class="panels">
+        <article class="panel">
+          <h2>Resultado de las citas</h2>
+          <p class="panel-note">
+            Las tasas se calculan sobre las <b>{{ a.concluded }}</b> citas concluidas: una cita
+            futura todavía no faltó.
+          </p>
+          <dl class="facts">
+            <div><dt>Atendidas</dt><dd>{{ a.attended }}</dd></div>
+            <div><dt>No asistió</dt><dd>{{ a.no_show }} · {{ rate(a.no_show_rate) }}</dd></div>
+            <div><dt>Canceladas</dt><dd>{{ a.cancelled }} · {{ rate(a.cancellation_rate) }}</dd></div>
+            <div><dt>Total del período</dt><dd>{{ a.total }}</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel">
+          <h2>Por estado</h2>
+          @if (a.by_status.length === 0) {
+            <p class="rep-empty">Sin citas en el período.</p>
+          } @else {
+            <ul class="bars">
+              @for (row of a.by_status; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(a.by_status))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </article>
+
+        <article class="panel">
+          <h2>Por día de la semana</h2>
+          <ul class="bars">
+            @for (row of a.by_weekday; track row.key) {
+              <li>
+                <span class="bar-label">{{ row.label }}</span>
+                <div class="bar-track">
+                  <div class="bar-fill" [style.width.%]="share(row.count, maxCount(a.by_weekday))"></div>
+                </div>
+                <span class="bar-value numeric">{{ row.count }}</span>
+              </li>
+            }
+          </ul>
+        </article>
+
+        @if (a.by_professional.length > 0) {
+          <article class="panel">
+            <h2>Por profesional</h2>
+            <ul class="bars">
+              @for (row of a.by_professional; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(a.by_professional))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    }
+
+    <!-- Pacientes -->
+    @if (active() === 'patients' && patients(); as p) {
+      <div class="panels">
+        <article class="panel">
+          <h2>Seguimiento</h2>
+          <dl class="facts">
+            <div><dt>Registrados</dt><dd>{{ p.total_active }}</dd></div>
+            <div><dt>Nuevos en el período</dt><dd>{{ p.new_patients }}</dd></div>
+            <div><dt>Atendidos en 12 meses</dt><dd>{{ p.seen_last_12m }}</dd></div>
+            <div><dt>Sin atención en 12 meses</dt><dd class="dormant">{{ p.dormant }}</dd></div>
+          </dl>
+          <p class="panel-note">
+            Los que no vienen desde hace un año son la lista desde la que se hace una campaña
+            de recitación.
+          </p>
+        </article>
+
+        @if (p.by_month.length > 0) {
+          <article class="panel">
+            <h2>Altas por mes</h2>
+            <ul class="bars">
+              @for (row of p.by_month; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(p.by_month))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+
+        @if (p.by_age_band.length > 0) {
+          <article class="panel">
+            <h2>Por edad</h2>
+            <ul class="bars">
+              @for (row of p.by_age_band; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(p.by_age_band))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+
+        @if (p.by_sex.length > 0) {
+          <article class="panel">
+            <h2>Por sexo</h2>
+            <ul class="bars">
+              @for (row of p.by_sex; track row.key) {
+                <li>
+                  <span class="bar-label">{{ row.label }}</span>
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.width.%]="share(row.count, maxCount(p.by_sex))"></div>
+                  </div>
+                  <span class="bar-value numeric">{{ row.count }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    }
+  }
+</div>

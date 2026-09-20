@@ -140,6 +140,11 @@ const MOLAR_LOWER: ToothAnatomy = {
   width: 46,
 };
 
+/** How big a tooth is drawn, relative to the base widths above. The chart is
+ *  the screen a dentist stares at longest, so it earns the room the page now
+ *  gives it — the paths are vector, so this costs nothing in sharpness. */
+const CHART_SCALE = 1.4;
+
 /** Width multipliers per FDI position. Real teeth are not interchangeable
  *  within a type: upper laterals are narrower than upper centrals, LOWER
  *  centrals are the smallest teeth in the mouth, and third molars shrink. */
@@ -166,8 +171,8 @@ export function anatomyFor(fdi: string, arch: 'upper' | 'lower'): ToothAnatomy {
     }
   })();
 
-  const scale = widthScale(fdi, arch);
-  return scale === 1 ? base : { ...base, width: Math.round(base.width * scale) };
+  const scale = widthScale(fdi, arch) * CHART_SCALE;
+  return { ...base, width: Math.round(base.width * scale) };
 }
 
 /** One quadrant of the circular surface wheel, drawn pointing up. The other

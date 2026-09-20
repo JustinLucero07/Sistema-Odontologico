@@ -1,0 +1,405 @@
+.account {
+  display: grid;
+  gap: 18px;
+}
+
+.account-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.account-sub {
+  margin: 3px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-faint);
+  max-width: 560px;
+}
+
+.account-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-ink-faint);
+  font-size: 0.86rem;
+}
+
+// ---- Totals ------------------------------------------------------------
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.total-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  // The tone marks the edge only; the label and the hint always say what the
+  // number means, so the colour never carries it alone.
+  border-left: 3px solid var(--color-border-strong);
+
+  &[data-tone='owed'] {
+    border-left-color: var(--color-accent);
+  }
+  &[data-tone='credit'] {
+    border-left-color: var(--color-primary);
+  }
+  &[data-tone='settled'] {
+    border-left-color: var(--color-success);
+  }
+  &[data-tone='overdue'] {
+    border-left-color: var(--color-danger);
+  }
+}
+
+.total-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+}
+
+.total-value {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.026em;
+  line-height: 1.1;
+
+  small {
+    font-size: 0.58em;
+    font-weight: 600;
+    margin-right: 2px;
+    color: var(--color-ink-soft);
+  }
+}
+
+.total-hint {
+  font-size: 0.68rem;
+  color: var(--color-ink-faint);
+}
+
+// ---- Forms -------------------------------------------------------------
+
+.form-card {
+  padding: 18px 20px 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 2px 14px;
+
+  .full {
+    grid-column: 1 / -1;
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+// ---- Blocks ------------------------------------------------------------
+
+.block {
+  display: grid;
+  gap: 10px;
+
+  > h3 {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.charge-list {
+  display: grid;
+  gap: 10px;
+}
+
+.charge {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+
+  // A voided charge stays visible but recedes: it is history, not clutter.
+  &.is-void {
+    opacity: 0.6;
+  }
+}
+
+.charge-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.charge-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  strong {
+    font-size: 0.9rem;
+  }
+}
+
+.charge-meta {
+  font-size: 0.74rem;
+  color: var(--color-ink-faint);
+}
+
+.void-note {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--color-danger);
+}
+
+.tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  color: var(--color-ink-soft);
+
+  &[data-status='pendiente'] {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+  &[data-status='parcial'] {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+  &[data-status='pagada'] {
+    background: var(--color-success-soft);
+    color: var(--color-success);
+  }
+  &[data-status='anulada'] {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  &.origin {
+    background: transparent;
+    border: 1px solid var(--color-border-strong);
+  }
+}
+
+.progress {
+  height: 6px;
+  margin-top: 4px;
+  max-width: 320px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 0.35s ease;
+}
+
+.installments {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    background: color-mix(in srgb, var(--color-ink) 3%, transparent);
+    border-left: 2px solid var(--color-border-strong);
+
+    &[data-status='pagada'] {
+      border-left-color: var(--color-success);
+    }
+    &[data-status='parcial'] {
+      border-left-color: var(--color-primary);
+    }
+    &[data-status='vencida'] {
+      border-left-color: var(--color-danger);
+    }
+  }
+}
+
+.inst-n {
+  width: 18px;
+  font-weight: 700;
+  color: var(--color-ink-faint);
+}
+
+.inst-date {
+  width: 68px;
+  color: var(--color-ink-soft);
+}
+
+.inst-amount {
+  width: 92px;
+  font-weight: 600;
+}
+
+.inst-state {
+  color: var(--color-ink-faint);
+}
+
+.charge-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.charge-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  small {
+    font-size: 0.66rem;
+    color: var(--color-ink-faint);
+  }
+
+  b {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    letter-spacing: -0.018em;
+  }
+}
+
+.charge-buttons {
+  display: flex;
+}
+
+// ---- Payments table ----------------------------------------------------
+
+.payments {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+
+  th {
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-ink-faint);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  tr.is-void td {
+    // Struck through, not hidden: the money moved and then un-moved, and both
+    // facts belong on the statement.
+    text-decoration: line-through;
+    color: var(--color-ink-faint);
+  }
+
+  .right {
+    text-align: right;
+  }
+
+  .muted {
+    color: var(--color-ink-faint);
+  }
+}
+
+// ---- Overlays ----------------------------------------------------------
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--glass-scrim);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.panel {
+  width: 520px;
+  max-width: 100%;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-overlay-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  box-shadow: var(--shadow-lg);
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 1.02rem;
+  }
+}
+
+.panel-hint {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+}
+
+.full-width {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill {
+    transition: none;
+  }
+}

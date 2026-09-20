@@ -14,12 +14,17 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { firstValueFrom } from 'rxjs';
 
 import { PatientsService } from '../../../core/services/patients.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 import { MedicalHistory, Patient, Sex } from '../../../core/models/patient.models';
 import { Appointment } from '../../../core/models/appointment.models';
 import { AppointmentsService } from '../../../core/services/appointments.service';
 import { PatientAppointmentsTabComponent } from '../../agenda/patient-appointments-tab.component';
 import { ClinicalRecordsTabComponent } from '../../clinical-records/clinical-records-tab.component';
+import { formatMoney } from '../../../core/models/finance.models';
+import { FinanceService } from '../../../core/services/finance.service';
+import { CommunicationTabComponent } from '../../communication/communication-tab.component';
+import { AccountTabComponent } from '../../finance/account-tab.component';
 import { ImagingTabComponent } from '../../imaging/imaging-tab.component';
 import { OdontogramComponent } from '../../odontogram/odontogram.component';
 import { PeriodontogramTabComponent } from '../../periodontogram/periodontogram-tab.component';
@@ -43,6 +48,8 @@ import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plan
     OdontogramComponent,
     PeriodontogramTabComponent,
     ImagingTabComponent,
+    AccountTabComponent,
+    CommunicationTabComponent,
     TreatmentPlansTabComponent,
     PatientAppointmentsTabComponent,
     ClinicalRecordsTabComponent,
@@ -51,6 +58,26 @@ import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plan
   styleUrl: './patient-detail.component.scss',
 })
 export class PatientDetailComponent implements OnInit {
+  private readonly auth = inject(AuthService);
+  private readonly finance = inject(FinanceService);
+  /** null until the account loads, or when the user cannot see money at all —
+   *  the chip then stays absent rather than showing a misleading zero. */
+  readonly balance = signal<number | null>(null);
+
+  balanceLabel(): string {
+    return formatMoney(Math.abs(this.balance() ?? 0));
+  }
+
+  private async loadBalance(patientId: string): Promise<void> {
+    if (!this.auth.hasPermission('payments:read')) return;
+    try {
+      const account = await firstValueFrom(this.finance.getAccount(patientId));
+      this.balance.set(Number(account.balance));
+    } catch {
+      // A statement that fails to load must not take the patient page with it.
+    }
+  }
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly patientsService = inject(PatientsService);
@@ -111,6 +138,7 @@ export class PatientDetailComponent implements OnInit {
     await this.loadPatient(id);
     await this.loadHistory(id);
     await this.loadNextAppointment(id);
+    await this.loadBalance(id);
   }
 
   private async loadPatient(id: string): Promise<void> {

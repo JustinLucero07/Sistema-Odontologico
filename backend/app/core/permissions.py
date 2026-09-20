@@ -60,6 +60,8 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         "treatments:read", "treatments:write",
         "budgets:read", "budgets:write",
         "appointments:read", "appointments:write",
+        "laboratory:read", "laboratory:write",
+        "inventory:read",
     ],
     "Recepción": [
         "patients:read", "patients:write",
@@ -71,6 +73,8 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         "appointments:read", "appointments:write",
         "payments:read", "payments:write",
         "budgets:read",
+        "inventory:read", "inventory:write",
+        "laboratory:read",
     ],
     "Asistente dental": [
         "patients:read",
@@ -82,6 +86,8 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         "documents:read",
         "treatments:read",
         "appointments:read",
+        "inventory:read", "inventory:write",
+        "laboratory:read",
     ],
     "Contabilidad": [
         "payments:read", "payments:write",

@@ -1,0 +1,297 @@
+<div class="inventory">
+  <header class="inv-head">
+    <div>
+      <h1>Inventario</h1>
+      <p class="inv-sub">
+        Las existencias son la suma de los movimientos, no una cifra guardada. Un error se
+        corrige con el movimiento contrario, y ambos quedan en el historial.
+      </p>
+    </div>
+
+    @if (canWrite) {
+      <button mat-flat-button (click)="showItemForm.set(!showItemForm())">
+        <mat-icon>{{ showItemForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showItemForm() ? 'Cancelar' : 'Nuevo artículo' }}
+      </button>
+    }
+  </header>
+
+  @if (alerts(); as a) {
+    @if (alertCount() > 0) {
+      <section class="alerts">
+        @if (a.below_minimum.length > 0) {
+          <article class="alert-card" data-tone="low">
+            <mat-icon>trending_down</mat-icon>
+            <div>
+              <strong>{{ a.below_minimum.length }} bajo mínimo</strong>
+              <span>{{ a.below_minimum[0].name }}@if (a.below_minimum.length > 1) { y {{ a.below_minimum.length - 1 }} más }</span>
+            </div>
+          </article>
+        }
+        @if (a.expiring_soon.length > 0) {
+          <article class="alert-card" data-tone="soon">
+            <mat-icon>schedule</mat-icon>
+            <div>
+              <strong>{{ a.expiring_soon.length }} por vencer</strong>
+              <span>En los próximos 60 días</span>
+            </div>
+          </article>
+        }
+        @if (a.expired.length > 0) {
+          <article class="alert-card" data-tone="expired">
+            <mat-icon>dangerous</mat-icon>
+            <div>
+              <strong>{{ a.expired.length }} con lote vencido</strong>
+              <span>Retirar del stock</span>
+            </div>
+          </article>
+        }
+      </section>
+    }
+  }
+
+  @if (showItemForm()) {
+    <form class="form-card" [formGroup]="itemForm" (ngSubmit)="submitItem()">
+      <h3>Nuevo artículo</h3>
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="wide">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Código / SKU</mat-label>
+          <input matInput formControlName="sku" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Categoría</mat-label>
+          <input matInput formControlName="category" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Unidad</mat-label>
+          <mat-select formControlName="unit">
+            @for (unit of catalog().units; track unit.code) {
+              <mat-option [value]="unit.code">{{ unit.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Stock mínimo</mat-label>
+          <input matInput formControlName="minimum_stock" inputmode="decimal" />
+          <mat-hint>Por debajo de esto aparece en alertas</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Costo unitario</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput formControlName="unit_cost" inputmode="decimal" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Proveedor</mat-label>
+          <mat-select formControlName="supplier_id">
+            <mat-option value="">Sin proveedor</mat-option>
+            @for (supplier of suppliers(); track supplier.id) {
+              <mat-option [value]="supplier.id">{{ supplier.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <button mat-flat-button type="submit" [disabled]="itemForm.invalid || saving()">
+        Guardar artículo
+      </button>
+    </form>
+  }
+
+  <div class="toolbar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar artículo</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
+    </mat-form-field>
+    <button
+      mat-stroked-button
+      [class.filter-on]="onlyAlerts()"
+      (click)="onlyAlerts.set(!onlyAlerts())"
+    >
+      <mat-icon>filter_alt</mat-icon>
+      Solo con alerta
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="inv-empty">Cargando inventario…</p>
+  } @else if (visibleItems().length === 0) {
+    <p class="inv-empty">
+      <mat-icon>inventory_2</mat-icon>
+      {{ items().length === 0 ? 'Todavía no hay artículos en el inventario.' : 'Ningún artículo coincide con el filtro.' }}
+    </p>
+  } @else {
+    <table class="items">
+      <thead>
+        <tr>
+          <th>Artículo</th>
+          <th>Categoría</th>
+          <th class="right">Existencias</th>
+          <th class="right">Mínimo</th>
+          <th>Próximo vencimiento</th>
+          <th>Proveedor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of visibleItems(); track item.id) {
+          <tr [class.is-low]="item.below_minimum">
+            <td>
+              <strong>{{ item.name }}</strong>
+              @if (item.sku) { <span class="sku">{{ item.sku }}</span> }
+            </td>
+            <td class="muted">{{ item.category ?? '—' }}</td>
+            <td class="right">
+              <span class="stock numeric" [class.low]="item.below_minimum">
+                {{ qty(item.on_hand) }}
+              </span>
+              <span class="unit">{{ unitLabel(item.unit) }}</span>
+            </td>
+            <td class="right muted numeric">{{ qty(item.minimum_stock) }}</td>
+            <td>
+              @if (item.next_expiry) {
+                <span
+                  class="expiry"
+                  [class.expired]="+item.expired_quantity > 0"
+                >
+                  {{ item.next_expiry | date: 'dd/MM/yyyy' }}
+                </span>
+                @if (+item.expired_quantity > 0) {
+                  <span class="expired-qty">{{ qty(item.expired_quantity) }} vencidas</span>
+                }
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td class="muted">{{ item.supplier_name ?? '—' }}</td>
+            <td class="right nowrap">
+              <button
+                mat-icon-button
+                matTooltip="Historial de movimientos"
+                aria-label="Historial"
+                (click)="openHistory(item)"
+              >
+                <mat-icon>history</mat-icon>
+              </button>
+              @if (canWrite) {
+                <button
+                  mat-icon-button
+                  matTooltip="Registrar movimiento"
+                  aria-label="Registrar movimiento"
+                  (click)="openMovement(item)"
+                >
+                  <mat-icon>swap_vert</mat-icon>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<!-- Movement -->
+@if (movingItem(); as item) {
+  <div class="overlay" (click)="movingItem.set(null)">
+    <div class="panel" (click)="$event.stopPropagation()">
+      <h3>Movimiento · {{ item.name }}</h3>
+      <p class="panel-hint">
+        Existencias actuales: <b>{{ qty(item.on_hand) }} {{ unitLabel(item.unit) }}</b>.
+        La cantidad siempre es positiva; el motivo decide si suma o resta.
+      </p>
+
+      <form [formGroup]="movementForm" (ngSubmit)="submitMovement()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Motivo</mat-label>
+            <mat-select formControlName="reason">
+              @for (reason of catalog().reasons; track reason.code) {
+                <mat-option [value]="reason.code">{{ reason.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad</mat-label>
+            <span matTextPrefix class="sign" [class.negative]="movementSign() < 0">
+              {{ movementSign() > 0 ? '+' : '−' }}&nbsp;
+            </span>
+            <input matInput formControlName="quantity" inputmode="decimal" />
+            <mat-hint>{{ unitLabel(item.unit) }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Lote</mat-label>
+            <input matInput formControlName="lot_number" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Vence</mat-label>
+            <input matInput type="date" formControlName="expires_on" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Notas</mat-label>
+            <input matInput formControlName="notes" />
+          </mat-form-field>
+        </div>
+
+        <div class="panel-actions">
+          <button mat-flat-button type="submit" [disabled]="movementForm.invalid || saving()">
+            Registrar movimiento
+          </button>
+          <button mat-stroked-button type="button" (click)="movingItem.set(null)">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- History -->
+@if (historyItem(); as item) {
+  <div class="overlay" (click)="historyItem.set(null)">
+    <div class="panel wide-panel" (click)="$event.stopPropagation()">
+      <h3>Movimientos · {{ item.name }}</h3>
+      <p class="panel-hint">
+        Nada se borra: las existencias de hoy son exactamente la suma de esta lista.
+      </p>
+
+      @if (movements().length === 0) {
+        <p class="inv-empty">Sin movimientos registrados.</p>
+      } @else {
+        <table class="movements">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Motivo</th>
+              <th class="right">Cantidad</th>
+              <th>Lote</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movement of movements(); track movement.id) {
+              <tr>
+                <td>{{ movement.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ reasonLabel(movement.reason) }}</td>
+                <td class="right numeric" [class.neg]="movement.sign < 0">
+                  {{ movement.sign > 0 ? '+' : '−' }}{{ qty(movement.quantity) }}
+                </td>
+                <td class="muted">{{ movement.lot_number ?? '—' }}</td>
+                <td class="muted">{{ movement.notes ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <div class="panel-actions">
+        <button mat-stroked-button (click)="historyItem.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

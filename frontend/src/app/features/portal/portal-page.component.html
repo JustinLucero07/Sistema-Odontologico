@@ -1,0 +1,102 @@
+<div class="portal">
+  <header class="portal-head">
+    <span class="mark"><app-tooth-mark [size]="24" [filled]="true" /></span>
+    @if (view(); as v) {
+      <div>
+        <strong>{{ v.clinic_name }}</strong>
+        <span>Información de {{ v.patient_name }}</span>
+      </div>
+    } @else {
+      <div><strong>Portal del paciente</strong></div>
+    }
+  </header>
+
+  @if (loading()) {
+    <p class="portal-msg">Cargando su información…</p>
+  } @else {
+    @if (error(); as message) {
+      <div class="portal-error">
+        <mat-icon>link_off</mat-icon>
+        <p>{{ message }}</p>
+      </div>
+    }
+
+    @if (view(); as v) {
+    <main class="portal-body">
+      <section class="card balance" [attr.data-tone]="balanceTone(v.balance)">
+        <span class="card-label">Su saldo</span>
+        <span class="balance-value numeric"><small>$</small>{{ money(v.balance) }}</span>
+        <span class="card-hint">
+          {{ balanceTone(v.balance) === 'owed' ? 'Pendiente de pago'
+             : balanceTone(v.balance) === 'credit' ? 'Saldo a su favor' : 'Al día' }}
+        </span>
+      </section>
+
+      <section class="card">
+        <h2>Próximas citas</h2>
+        @if (v.upcoming.length === 0) {
+          <p class="portal-msg small">No tiene citas agendadas. Contacte con su clínica para pedir una.</p>
+        } @else {
+          <ul class="appointments">
+            @for (a of v.upcoming; track a.starts_at) {
+              <li>
+                <span class="date">{{ a.starts_at | date: 'EEEE d \'de\' MMMM' }}</span>
+                <span class="time numeric">{{ a.starts_at | date: 'HH:mm' }}</span>
+                <span class="detail">
+                  {{ a.professional_name ?? '' }}
+                  @if (a.treatment_name) { · {{ a.treatment_name }} }
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      @if (v.charges.length > 0) {
+        <section class="card">
+          <h2>Sus conceptos</h2>
+          <ul class="charges">
+            @for (c of v.charges; track c.description + c.issued_on) {
+              <li>
+                <div>
+                  <strong>{{ c.description }}</strong>
+                  <span>{{ c.issued_on | date: 'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="amounts">
+                  <span class="numeric">$ {{ money(c.amount) }}</span>
+                  @if (+c.pending > 0) {
+                    <span class="pending numeric">Pendiente $ {{ money(c.pending) }}</span>
+                  } @else {
+                    <span class="paid">Pagado</span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (v.past.length > 0) {
+        <section class="card">
+          <h2>Visitas anteriores</h2>
+          <ul class="appointments past">
+            @for (a of v.past; track a.starts_at) {
+              <li>
+                <span class="date">{{ a.starts_at | date: 'dd/MM/yyyy' }}</span>
+                <span class="detail">{{ a.professional_name ?? '' }}</span>
+                <span class="tag">{{ a.status }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <footer class="portal-foot">
+        <mat-icon>lock</mat-icon>
+        Este enlace es personal y caduca el {{ v.expires_at | date: 'dd/MM/yyyy' }}.
+        No comparta este enlace.
+      </footer>
+    </main>
+    }
+  }
+</div>

@@ -30,6 +30,22 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
     REFRESH_TOKEN_COOKIE_SECURE: bool = False
 
+    # WhatsApp Cloud API. Absent both of these, messaging falls back to the
+    # console provider and every message is recorded as `simulado`.
+    WHATSAPP_TOKEN: str | None = None
+    WHATSAPP_PHONE_NUMBER_ID: str | None = None
+    WHATSAPP_API_VERSION: str = "v21.0"
+
+    # The assistant is OFF unless a key is present. There is no offline
+    # fallback that makes something up.
+    ANTHROPIC_API_KEY: str | None = None
+    AI_MODEL: str = "claude-sonnet-5"
+    AI_MAX_TOKENS: int = 1200
+
+    # How long a patient's portal link stays valid.
+    PORTAL_LINK_DAYS: int = 30
+    PORTAL_BASE_URL: str = "http://localhost:4200" 
+
 
 @lru_cache
 def get_settings() -> Settings:

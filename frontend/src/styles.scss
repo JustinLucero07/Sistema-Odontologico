@@ -154,6 +154,10 @@ $frontend-theme: mat.define-theme((
 }
 
 :root {
+  // The content column's ceiling. Pages no longer set their own: they fill the
+  // shell, and only a very wide monitor sees any margin at all.
+  --page-max: 1720px;
+
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 22px;

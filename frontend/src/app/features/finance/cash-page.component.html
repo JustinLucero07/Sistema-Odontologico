@@ -1,0 +1,129 @@
+<div class="cash">
+  <header class="cash-head">
+    <div>
+      <h1>Caja</h1>
+      <p class="cash-sub">
+        Apertura, arqueo y cierre del día. Solo el efectivo entra en la caja: tarjetas y
+        transferencias se cobran igual, pero no se cuentan aquí.
+      </p>
+    </div>
+
+    <mat-form-field appearance="outline" class="day-picker">
+      <mat-label>Día</mat-label>
+      <input matInput type="date" [value]="day" (change)="changeDay($any($event.target).value)" />
+    </mat-form-field>
+  </header>
+
+  @if (loading()) {
+    <p class="cash-empty">Cargando…</p>
+  } @else {
+    <section class="session-card" [class.is-open]="session()">
+      @if (session(); as open) {
+        <div class="session-main">
+          <span class="session-state">
+            <mat-icon>lock_open</mat-icon>
+            Caja abierta
+          </span>
+          <span class="session-meta">
+            Desde {{ open.opened_at | date: 'dd/MM/yyyy HH:mm' }} ·
+            Fondo inicial $ {{ money(open.opening_float) }}
+          </span>
+        </div>
+
+        @if (canWrite) {
+          @if (!closing()) {
+            <button mat-flat-button (click)="closing.set(true)">
+              <mat-icon>lock</mat-icon>
+              Cerrar caja
+            </button>
+          } @else {
+            <div class="close-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Efectivo contado</mat-label>
+                <span matTextPrefix>$&nbsp;</span>
+                <input matInput [(ngModel)]="countedCash" inputmode="decimal" placeholder="0.00" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Notas del cierre</mat-label>
+                <input matInput [(ngModel)]="closeNotes" />
+              </mat-form-field>
+              <div class="close-actions">
+                <button mat-flat-button [disabled]="!countedCash || saving()" (click)="close()">
+                  Confirmar cierre
+                </button>
+                <button mat-stroked-button (click)="closing.set(false)">Cancelar</button>
+              </div>
+            </div>
+          }
+        }
+      } @else {
+        <div class="session-main">
+          <span class="session-state closed">
+            <mat-icon>lock</mat-icon>
+            No hay caja abierta
+          </span>
+          <span class="session-meta">
+            Los cobros en efectivo se registran igual, pero no quedan asignados a ninguna caja.
+          </span>
+        </div>
+
+        @if (canWrite) {
+          <div class="open-form">
+            <mat-form-field appearance="outline">
+              <mat-label>Fondo inicial</mat-label>
+              <span matTextPrefix>$&nbsp;</span>
+              <input matInput [(ngModel)]="openingFloat" inputmode="decimal" />
+            </mat-form-field>
+            <button mat-flat-button [disabled]="saving()" (click)="open()">
+              <mat-icon>lock_open</mat-icon>
+              Abrir caja
+            </button>
+          </div>
+        }
+      }
+    </section>
+
+    @if (report(); as r) {
+      <section class="report">
+        <div class="report-head">
+          <div>
+            <h2>Cobros del día</h2>
+            <p class="cash-sub">{{ r.day | date: 'EEEE d \'de\' MMMM \'de\' y' }}</p>
+          </div>
+          <div class="report-total">
+            <span class="total-value numeric"><small>$</small>{{ money(r.total) }}</span>
+            <span class="total-label">{{ r.payment_count }} cobro(s)</span>
+          </div>
+        </div>
+
+        @if (r.by_method.length === 0) {
+          <p class="cash-empty">No se registraron cobros este día.</p>
+        } @else {
+          <ul class="method-list">
+            @for (method of r.by_method; track method.method) {
+              <li>
+                <span class="method-name">{{ method.label }}</span>
+                <span class="method-count numeric">{{ method.count }}</span>
+                <div class="method-bar">
+                  <div
+                    class="method-fill"
+                    [style.width.%]="(+method.total / maxMethodTotal()) * 100"
+                  ></div>
+                </div>
+                <span class="method-total numeric">$ {{ money(method.total) }}</span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (r.voided_count > 0) {
+          <p class="voided-note">
+            <mat-icon>info</mat-icon>
+            {{ r.voided_count }} cobro(s) anulado(s) por $ {{ money(r.voided_total) }}. No se
+            suman al total, pero quedan en el historial con su motivo.
+          </p>
+        }
+      </section>
+    }
+  }
+</div>

@@ -19,6 +19,13 @@ from app.modules.users.models import RefreshToken, Role, User
 settings = get_settings()
 
 
+# After this many consecutive failures the account locks itself for a while.
+# The per-IP rate limit does not cover a distributed attempt against ONE
+# account, which is the shape an attack on a known clinician's email takes.
+MAX_FAILED_LOGINS = 8
+LOCKOUT_MINUTES = 15
+
+
 async def authenticate(db: AsyncSession, email: str, password: str, ip_address: str | None) -> User:
     result = await db.execute(
         select(User)
@@ -26,12 +33,39 @@ async def authenticate(db: AsyncSession, email: str, password: str, ip_address: 
         .where(User.email == email.lower(), User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+
+    if user is not None and user.locked_until is not None and user.locked_until > now:
+        remaining = int((user.locked_until - now).total_seconds() // 60) + 1
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"Cuenta bloqueada por intentos fallidos. Vuelva a intentarlo en "
+                f"{remaining} minuto(s)."
+            ),
+        )
+
     if user is None or not verify_password(password, user.hashed_password):
+        if user is not None:
+            user.failed_login_count += 1
+            if user.failed_login_count >= MAX_FAILED_LOGINS:
+                user.locked_until = now + timedelta(minutes=LOCKOUT_MINUTES)
+                user.failed_login_count = 0
+                await record_audit(
+                    db, clinic_id=user.clinic_id, user_id=user.id, action="lockout",
+                    entity_type="user", entity_id=str(user.id), ip_address=ip_address,
+                    after={"minutes": LOCKOUT_MINUTES},
+                )
+            await db.commit()
+        # The same answer either way: saying "that account exists but the
+        # password was wrong" tells an attacker which emails are real.
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales inválidas")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario inactivo")
 
-    user.last_login_at = datetime.now(timezone.utc)
+    user.failed_login_count = 0
+    user.locked_until = None
+    user.last_login_at = now
     await record_audit(
         db,
         clinic_id=user.clinic_id,

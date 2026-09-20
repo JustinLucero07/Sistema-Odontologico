@@ -9,6 +9,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'portal/:token',
+    loadComponent: () =>
+      import('./features/portal/portal-page.component').then((m) => m.PortalPageComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell.component').then((m) => m.ShellComponent),
@@ -82,6 +87,34 @@ export const routes: Routes = [
         data: { permission: 'budgets:read' },
         loadComponent: () =>
           import('./features/budgets/budgets-page.component').then((m) => m.BudgetsPageComponent),
+      },
+      {
+        path: 'cash',
+        canActivate: [permissionGuard],
+        data: { permission: 'payments:read' },
+        loadComponent: () =>
+          import('./features/finance/cash-page.component').then((m) => m.CashPageComponent),
+      },
+      {
+        path: 'inventory',
+        canActivate: [permissionGuard],
+        data: { permission: 'inventory:read' },
+        loadComponent: () =>
+          import('./features/inventory/inventory-page.component').then((m) => m.InventoryPageComponent),
+      },
+      {
+        path: 'laboratory',
+        canActivate: [permissionGuard],
+        data: { permission: 'laboratory:read' },
+        loadComponent: () =>
+          import('./features/laboratory/laboratory-page.component').then((m) => m.LaboratoryPageComponent),
+      },
+      {
+        path: 'reports',
+        canActivate: [permissionGuard],
+        data: { permission: 'reports:read' },
+        loadComponent: () =>
+          import('./features/reports/reports-page.component').then((m) => m.ReportsPageComponent),
       },
       {
         path: 'settings/treatments',
