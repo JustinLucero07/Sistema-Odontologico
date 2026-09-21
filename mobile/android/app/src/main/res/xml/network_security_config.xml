@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Versión de PRODUCCIÓN: nada de HTTP sin cifrar. La clínica real se sirve por
+  HTTPS, y si alguien apunta la app a un servidor sin TLS, Android la corta.
+
+  La compilación de depuración reemplaza este archivo por el de
+  src/debug/res/xml/, que sí permite HTTP para probar contra un portátil de la
+  red local. No se puede hacer aquí con una lista de IPs: Android no admite
+  rangos en <domain>, y «192.168.1.0» cubriría solo esa dirección literal.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

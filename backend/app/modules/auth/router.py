@@ -6,10 +6,26 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user
 from app.core.rate_limit import limiter
 from app.modules.auth import service
-from app.modules.auth.schemas import AccessTokenResponse, LoginRequest, MeResponse
+from app.modules.auth.schemas import (
+    AccessTokenResponse,
+    LoginRequest,
+    MeResponse,
+    RefreshRequest,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 settings = get_settings()
+
+
+# Una app móvil no tiene almacén de cookies y guarda el token en el llavero
+# del sistema. Lo pide con esta cabecera; un navegador nunca la envía, así que
+# su token sigue viviendo solo en una cookie httpOnly fuera del alcance de
+# JavaScript — que es la razón de que esté ahí.
+TOKEN_IN_BODY_HEADER = "x-token-delivery"
+
+
+def _wants_token_in_body(request: Request) -> bool:
+    return request.headers.get(TOKEN_IN_BODY_HEADER, "").lower() == "body"
 
 
 def _set_refresh_cookie(response: Response, raw_token: str) -> None:
@@ -34,12 +50,24 @@ async def login(payload: LoginRequest, request: Request, response: Response, db:
     await db.commit()
 
     _set_refresh_cookie(response, raw_refresh_token)
-    return AccessTokenResponse(access_token=access_token)
+    return AccessTokenResponse(
+        access_token=access_token,
+        refresh_token=raw_refresh_token if _wants_token_in_body(request) else None,
+    )
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
-async def refresh(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+async def refresh(
+    request: Request,
+    response: Response,
+    payload: RefreshRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    # La cookie manda cuando existe: un navegador no debe poder sortearla
+    # mandando un token en el cuerpo.
     raw_token = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if not raw_token and payload is not None:
+        raw_token = payload.refresh_token
     if not raw_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No hay sesión activa")
 
@@ -51,12 +79,22 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
     await db.commit()
 
     _set_refresh_cookie(response, new_raw_token)
-    return AccessTokenResponse(access_token=access_token)
+    return AccessTokenResponse(
+        access_token=access_token,
+        refresh_token=new_raw_token if _wants_token_in_body(request) else None,
+    )
 
 
 @router.post("/logout", status_code=204)
-async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+async def logout(
+    request: Request,
+    response: Response,
+    payload: RefreshRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     raw_token = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if not raw_token and payload is not None:
+        raw_token = payload.refresh_token
     if raw_token:
         await service.revoke_refresh_token(db, raw_token)
         await db.commit()

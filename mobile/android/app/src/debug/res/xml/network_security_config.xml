@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Solo DEPURACIÓN. Gradle usa este archivo en lugar del de src/main cuando se
+  compila en modo debug, así que este permiso nunca llega a un APK de release.
+  Permite HTTP para probar contra el backend de un portátil (10.0.2.2 desde el
+  emulador, o la IP de la red local desde un teléfono físico).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

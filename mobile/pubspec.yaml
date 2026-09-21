@@ -1,0 +1,41 @@
+name: odonto_movil
+description: Sistema Odontológico — aplicación para el equipo de la clínica.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Estado. Riverpod en lugar de un singleton global: cada pantalla declara de
+  # qué depende, y eso hace que se pueda probar sin levantar la app entera.
+  flutter_riverpod: ^2.6.1
+
+  # Red. Dio por sus interceptores: el refresco del token vive en uno solo, no
+  # repartido por cada llamada.
+  dio: ^5.7.0
+
+  # El token de refresco va al llavero de Android / Keychain de iOS, nunca a
+  # SharedPreferences: un móvil con root leería SharedPreferences en claro.
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+
+  go_router: ^14.6.2
+  intl: ^0.20.1
+
+  # Cámara para radiografías y fotos intraorales, que es lo que el móvil aporta
+  # y el escritorio no puede.
+  image_picker: ^1.1.2
+
+  cached_network_image: ^3.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

@@ -11,6 +11,17 @@ class LoginRequest(BaseModel):
 class AccessTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # Solo se rellena para clientes que no son un navegador; ver el router.
+    refresh_token: str | None = None
+
+
+class RefreshRequest(BaseModel):
+    """Cuerpo alternativo para clientes sin cookies.
+
+    Un navegador no lo envía nunca: su token vive en una cookie httpOnly que
+    JavaScript no puede leer, y así debe seguir."""
+
+    refresh_token: str | None = None
 
 
 class MeResponse(BaseModel):
