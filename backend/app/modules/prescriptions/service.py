@@ -1,11 +1,13 @@
 import uuid
 from datetime import datetime, timezone
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
+from app.shared.voiding import apply_void
 from app.modules.patients.service import get_patient_or_404
 from app.modules.prescriptions.models import Prescription, PrescriptionItem
 from app.modules.prescriptions.schemas import PrescriptionCreate
@@ -44,3 +46,25 @@ async def create_prescription(
         after={"patient_id": str(patient_id), "medications": [i.medication for i in payload.items]},
     )
     return prescription
+
+
+async def void_prescription(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID,
+    record_id: uuid.UUID, reason: str,
+) -> Prescription:
+    record = (
+        await db.execute(
+            select(Prescription)
+        .options(selectinload(Prescription.items))
+            .where(Prescription.id == record_id, Prescription.clinic_id == clinic_id, Prescription.patient_id == patient_id)
+        )
+    ).scalar_one_or_none()
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La receta no existe")
+    apply_void(record, actor_id, reason, "La receta")
+    await db.flush()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="void", entity_type="prescription",
+        entity_id=str(record_id), after={"reason": record.void_reason},
+    )
+    return record

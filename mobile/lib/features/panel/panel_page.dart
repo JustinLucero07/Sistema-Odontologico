@@ -111,9 +111,13 @@ class _Tarjetas extends StatelessWidget {
             ),
             _Kpi(
               etiqueta: 'Presupuestos aceptados',
-              valor: dinero(
-                double.tryParse('${datos['budget_accepted_total'] ?? 0}') ?? 0,
-              ),
+              // Sin permiso de presupuestos el servidor manda null, no cero:
+              // "$0,00" diría que no hay nada aceptado, y eso no se sabe.
+              valor: datos['budget_accepted_total'] == null
+                  ? '—'
+                  : dinero(
+                      double.tryParse('${datos['budget_accepted_total']}') ?? 0,
+                    ),
               icono: Icons.request_quote,
               compacto: true,
             ),

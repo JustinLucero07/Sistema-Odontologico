@@ -111,6 +111,7 @@
   --mdc-list-list-item-hover-label-text-color: #fff;
   --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.1);
   --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.1);
+  --mdc-list-list-item-focus-label-text-color: #fff;
 }
 
 .shell-sidenav a[mat-list-item] {
@@ -298,10 +299,14 @@
 }
 
 .user-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   color: var(--color-ink);
+
+  // El avatar y el nombre van en línea dentro de la etiqueta del botón.
+  ::ng-deep .mdc-button__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 .user-avatar {
@@ -327,6 +332,22 @@
   color: var(--color-ink-soft);
 }
 
+// Sin esto el contenido crea su propio contexto de apilamiento y las ventanas
+// emergentes propias de cada página (velo incluido) quedan por debajo del menú.
+mat-sidenav-content {
+  z-index: auto;
+}
+
+// Por lo mismo, el menú y su velo deben quedar por encima de la barra superior
+// (z-index 10) cuando el menú flota en móvil. Las ventanas de página usan 1000.
+.shell-sidenav {
+  z-index: 30;
+}
+
+.shell-container ::ng-deep .mat-drawer-backdrop {
+  z-index: 25;
+}
+
 // ---- Content -----------------------------------------------------------
 
 .shell-content {
@@ -342,4 +363,47 @@
   .user-name {
     display: none;
   }
+
+  .shell-toolbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .global-search {
+    width: auto;
+    max-width: none;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  // El buscador ya ocupa el hueco; el separador sobra.
+  .shell-spacer {
+    display: none;
+  }
+
+  .shell-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  // Solo el "+" en el botón de crear para que quepa el buscador.
+  .create-button {
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 0;
+
+    mat-icon {
+      margin: 0;
+      font-size: 20px;
+    }
+  }
+}
+
+// Crear es lo más frecuente en recepción, así que tiene su propio botón en la
+// barra, visible desde cualquier pantalla.
+.create-button {
+  height: 38px;
+  border-radius: 999px;
+  padding: 0 16px 0 12px;
 }

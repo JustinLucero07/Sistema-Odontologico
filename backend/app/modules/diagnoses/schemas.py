@@ -20,5 +20,7 @@ class DiagnosisOut(BaseModel):
     fdi_number: str | None
     description: str
     notes: str | None
+    voided_at: datetime | None = None
+    void_reason: str | None = None
 
     model_config = {"from_attributes": True}

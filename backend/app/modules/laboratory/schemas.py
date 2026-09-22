@@ -55,6 +55,36 @@ class LabOrderCreate(BaseModel):
         return value
 
 
+class LabOrderUpdate(BaseModel):
+    """Datos del trabajo que se pueden corregir mientras siga abierto. El
+    paciente y el estado no: el estado solo avanza por su propio camino."""
+
+    laboratory_id: uuid.UUID
+    work_type: str
+    description: str = Field(min_length=1, max_length=400)
+    fdi_numbers: list[str] = Field(default_factory=list)
+    shade: str | None = Field(default=None, max_length=40)
+    material: str | None = Field(default=None, max_length=120)
+    due_on: date | None = None
+    cost: Decimal | None = Field(default=None, ge=0)
+    notes: str | None = None
+
+    @field_validator("work_type")
+    @classmethod
+    def validate_work_type(cls, value: str) -> str:
+        if value not in LAB_WORK_TYPE_CODES:
+            raise ValueError(f"Tipo de trabajo inválido: {value}")
+        return value
+
+    @field_validator("fdi_numbers")
+    @classmethod
+    def validate_fdi(cls, value: list[str]) -> list[str]:
+        invalid = [n for n in value if n not in VALID_FDI_NUMBERS]
+        if invalid:
+            raise ValueError(f"Números FDI inválidos: {', '.join(invalid)}")
+        return value
+
+
 class LabOrderStatusUpdate(BaseModel):
     status: str
     note: str | None = None

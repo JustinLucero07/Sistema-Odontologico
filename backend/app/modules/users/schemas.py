@@ -47,6 +47,8 @@ class UserUpdate(BaseModel):
     last_name: str | None = None
     is_active: bool | None = None
     role_ids: list[uuid.UUID] | None = None
+    # Restablecer contraseña: el administrador pone una temporal nueva.
+    password: str | None = Field(default=None, min_length=8)
 
 
 class UserOut(BaseModel):

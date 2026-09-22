@@ -1,63 +1,113 @@
 <div class="page">
-  <h1>Roles y permisos</h1>
+  <header class="page-header">
+    <div>
+      <h1>Roles y permisos</h1>
+      <p class="page-sub">Un rol agrupa lo que un usuario puede ver y hacer</p>
+    </div>
+    <button mat-flat-button (click)="openNewRole()">
+      <mat-icon>add</mat-icon>
+      Nuevo rol
+    </button>
+  </header>
 
   <div class="roles-layout">
     <mat-card class="roles-list-card">
-      <h2>Roles</h2>
       <ul class="roles-list">
         @for (role of roles(); track role.id) {
-          <li
-            [class.selected]="selectedRole()?.id === role.id"
-            (click)="selectRole(role)"
-          >
-            <span>{{ role.name }}</span>
-            @if (role.is_system) {
-              <mat-icon class="lock-icon">lock</mat-icon>
-            }
+          <li>
+            <button
+              type="button"
+              class="role-item"
+              [class.selected]="selectedRole()?.id === role.id"
+              (click)="selectRole(role)"
+            >
+              <span class="role-name">{{ role.name }}</span>
+              <span class="role-meta">
+                {{ role.permissions.length }} permiso(s)
+                @if (role.is_system) {
+                  · base
+                }
+              </span>
+              @if (role.is_system) {
+                <mat-icon class="lock-icon">lock</mat-icon>
+              }
+            </button>
           </li>
         }
       </ul>
-
-      <form [formGroup]="newRoleForm" (ngSubmit)="createRole()" class="new-role-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Nuevo rol</mat-label>
-          <input matInput formControlName="name" placeholder="Ej. Higienista" />
-        </mat-form-field>
-        <button mat-stroked-button type="submit" [disabled]="newRoleForm.invalid || saving()">
-          <mat-icon>add</mat-icon>
-          Crear rol
-        </button>
-      </form>
     </mat-card>
 
     <mat-card class="permissions-card">
       @if (selectedRole(); as role) {
         <div class="permissions-header">
-          <h2>{{ role.name }}</h2>
-          @if (role.is_system) {
-            <span class="hint">Rol base: cree un rol nuevo para personalizar sus permisos</span>
+          <div>
+            <h2>{{ role.name }}</h2>
+            @if (role.description) {
+              <p class="page-sub">{{ role.description }}</p>
+            }
+          </div>
+          <div class="role-actions">
+            @if (role.is_system) {
+              <button mat-stroked-button (click)="openNewRole(role)">
+                <mat-icon>content_copy</mat-icon>
+                Duplicar para personalizar
+              </button>
+            } @else {
+              <button mat-icon-button (click)="openNewRole(role)" aria-label="Duplicar" title="Duplicar">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+              <button mat-stroked-button (click)="openEditRole(role)">
+                <mat-icon>edit</mat-icon>
+                Editar
+              </button>
+              <button mat-button color="warn" (click)="deleteRole(role)">
+                <mat-icon>delete</mat-icon>
+                Eliminar
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (role.is_system) {
+          <p class="system-note">
+            <mat-icon>lock</mat-icon>
+            Rol base del sistema: sus permisos no se modifican. Duplíquelo para crear una versión propia.
+          </p>
+        }
+
+        <div class="permission-groups">
+          @for (group of permissionGroups(); track group.module) {
+            <section class="permission-group">
+              <mat-checkbox
+                class="group-toggle"
+                [checked]="groupState(group) === 'all'"
+                [indeterminate]="groupState(group) === 'some'"
+                [disabled]="role.is_system"
+                (change)="toggleGroup(group)"
+              >
+                {{ group.label }}
+              </mat-checkbox>
+              @for (permission of group.permissions; track permission.id) {
+                <mat-checkbox
+                  [checked]="selectedCodes().has(permission.code)"
+                  [disabled]="role.is_system"
+                  (change)="togglePermission(permission.code)"
+                >
+                  {{ permission.description }}
+                </mat-checkbox>
+              }
+            </section>
           }
         </div>
 
-        @for (group of permissionGroups(); track group.module) {
-          <div class="permission-group">
-            <h3>{{ group.module }}</h3>
-            @for (permission of group.permissions; track permission.id) {
-              <mat-checkbox
-                [checked]="selectedCodes().has(permission.code)"
-                [disabled]="role.is_system"
-                (change)="togglePermission(permission.code)"
-              >
-                {{ permission.description }}
-              </mat-checkbox>
-            }
-          </div>
-        }
-
         @if (!role.is_system) {
-          <button mat-flat-button color="primary" (click)="savePermissions()" [disabled]="saving()">
-            Guardar permisos
-          </button>
+          <div class="save-bar" [class.visible]="dirty()">
+            <span>{{ dirty() ? 'Hay cambios sin guardar' : 'Sin cambios' }}</span>
+            <button mat-button (click)="discardChanges()" [disabled]="saving()">Descartar</button>
+            <button mat-flat-button (click)="savePermissions()" [disabled]="saving() || !dirty()">
+              {{ saving() ? 'Guardando…' : 'Guardar permisos' }}
+            </button>
+          </div>
         }
       } @else {
         <p class="empty-hint">Seleccione un rol para ver y editar sus permisos.</p>
@@ -65,3 +115,47 @@
     </mat-card>
   </div>
 </div>
+
+<ng-template #formDialog>
+  <h2 mat-dialog-title>{{ editingRole() ? 'Editar rol' : 'Nuevo rol' }}</h2>
+  <form [formGroup]="newRoleForm" (ngSubmit)="createRole()">
+    <mat-dialog-content>
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" placeholder="Ej. Higienista" />
+          <mat-error>Escriba un nombre</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Descripción (opcional)</mat-label>
+          <input matInput formControlName="description" />
+        </mat-form-field>
+
+        @if (!editingRole()) {
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Empezar con los permisos de</mat-label>
+          <mat-select formControlName="copy_from">
+            <mat-option value="">Ninguno (empezar vacío)</mat-option>
+            @for (role of roles(); track role.id) {
+              <mat-option [value]="role.id">{{ role.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Luego puede ajustar cada permiso</mat-hint>
+        </mat-form-field>
+        }
+      </div>
+
+      @if (error(); as message) {
+        <p class="dialog-error">{{ message }}</p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : editingRole() ? 'Guardar cambios' : 'Crear rol' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</ng-template>

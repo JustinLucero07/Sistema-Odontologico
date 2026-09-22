@@ -1,5 +1,10 @@
 @if (patient(); as p) {
   <div class="page">
+    <a routerLink="/patients" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      Pacientes
+    </a>
+
     <mat-card class="quick-card">
       <div class="quick-card-main">
         <div class="avatar">{{ p.first_name.charAt(0) }}{{ p.last_name.charAt(0) }}</div>
@@ -14,6 +19,27 @@
               · Cédula {{ p.national_id }}
             }
           </p>
+        </div>
+
+        <!-- Lo que se hace nada más abrir una ficha, a un clic. -->
+        <div class="quick-actions">
+          @if (p.whatsapp || p.phone; as number) {
+            <a mat-stroked-button [href]="whatsappLink(number)" target="_blank" rel="noopener"
+               matTooltip="Abre WhatsApp con este número">
+              <mat-icon>chat</mat-icon>
+              WhatsApp
+            </a>
+          }
+          @if (p.phone) {
+            <a mat-icon-button [href]="'tel:' + p.phone" matTooltip="Llamar" aria-label="Llamar">
+              <mat-icon>call</mat-icon>
+            </a>
+          }
+          <a mat-flat-button *appHasPermission="'appointments:write'"
+             routerLink="/agenda" [queryParams]="{ nueva: 1, paciente: p.id }">
+            <mat-icon>event</mat-icon>
+            Agendar cita
+          </a>
         </div>
       </div>
 

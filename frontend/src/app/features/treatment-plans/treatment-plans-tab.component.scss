@@ -188,3 +188,82 @@ mat-chip.status-rechazado {
   --mdc-chip-elevated-container-color: var(--color-danger-soft);
   --mdc-chip-label-text-color: var(--color-danger);
 }
+
+.diagnosis-row {
+  .diagnosis-text {
+    flex: 1;
+    display: grid;
+  }
+
+  .row-action {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  &:hover .row-action,
+  .row-action:focus-visible {
+    opacity: 1;
+  }
+
+  &.voided .diagnosis-text {
+    color: var(--color-ink-faint);
+    text-decoration: line-through;
+  }
+
+  &.voided .fdi-badge {
+    opacity: 0.5;
+  }
+}
+
+.void-note {
+  display: block;
+  font-size: 0.74rem;
+  text-decoration: none;
+  color: var(--color-danger);
+}
+
+.show-voided {
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.plan-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.inline-edit {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  opacity: 0.55;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.item-note {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--color-ink-faint);
+}
+
+.row-actions {
+  width: 48px;
+  text-align: right;
+}
+
+@media (hover: none) {
+  .diagnosis-row .row-action {
+    opacity: 1;
+  }
+}

@@ -78,4 +78,8 @@ export class InventoryService {
   getAlerts(): Observable<StockAlerts> {
     return this.http.get<StockAlerts>(`${this.base}/alerts`);
   }
+
+  updateSupplier(supplierId: string, body: Partial<Supplier>): Observable<Supplier> {
+    return this.http.put<Supplier>(`${this.base}/suppliers/${supplierId}`, body);
+  }
 }

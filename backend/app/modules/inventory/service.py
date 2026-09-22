@@ -40,6 +40,23 @@ async def create_supplier(
     return supplier
 
 
+async def update_supplier(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, supplier_id: uuid.UUID, payload: SupplierIn
+) -> Supplier:
+    supplier = (
+        await db.execute(select(Supplier).where(Supplier.id == supplier_id, Supplier.clinic_id == clinic_id))
+    ).scalar_one_or_none()
+    if supplier is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")
+    for field, value in payload.model_dump().items():
+        setattr(supplier, field, value)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="supplier",
+        entity_id=str(supplier_id), after=payload.model_dump(mode="json"),
+    )
+    return supplier
+
+
 # ---- Items --------------------------------------------------------------
 
 

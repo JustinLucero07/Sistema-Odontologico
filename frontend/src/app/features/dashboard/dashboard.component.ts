@@ -1,6 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -9,15 +12,9 @@ import {
   APPOINTMENT_STATUS_LABELS,
   AppointmentStatus,
 } from '../../core/models/appointment.models';
-import { DashboardService, DashboardSummary } from '../../core/services/dashboard.service';
-
-interface QuickLink {
-  label: string;
-  description: string;
-  icon: string;
-  route: string;
-  permission: string;
-}
+import { AgendaEntry, DashboardService, DashboardSummary } from '../../core/services/dashboard.service';
+import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
+import { openPatientCreateDialog } from '../../shared/patient-dialog/patient-create-dialog.component';
 
 interface DonutSegment {
   status: AppointmentStatus;
@@ -39,6 +36,11 @@ interface AreaPoint {
   isToday: boolean;
 }
 
+/** "1 cita" / "3 citas": los "(s)" se leen como un formulario, no como una frase. */
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
 const DONUT_RADIUS = 62;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
@@ -51,14 +53,15 @@ const PLOT_H = CHART.h - CHART.top - CHART.bottom;
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RouterLink, ToothMarkComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   readonly summary = signal<DashboardSummary | null>(null);
   readonly loading = signal(true);
@@ -71,55 +74,6 @@ export class DashboardComponent implements OnInit {
   /** Status hovered in the donut or its legend — drives the centre readout. */
   readonly hoverStatus = signal<AppointmentStatus | null>(null);
 
-  readonly quickLinks: QuickLink[] = [
-    {
-      label: 'Agenda',
-      description: 'Citas del día y la semana',
-      icon: 'event',
-      route: '/agenda',
-      permission: 'appointments:read',
-    },
-    {
-      label: 'Pacientes',
-      description: 'Buscar y registrar',
-      icon: 'groups',
-      route: '/patients',
-      permission: 'patients:read',
-    },
-    {
-      label: 'Odontograma',
-      description: 'Abrir la boca de un paciente',
-      icon: 'dentistry',
-      route: '/odontogram',
-      permission: 'odontogram:read',
-    },
-    {
-      label: 'Presupuestos',
-      description: 'Seguimiento y aceptación',
-      icon: 'request_quote',
-      route: '/budgets',
-      permission: 'budgets:read',
-    },
-    {
-      label: 'Tratamientos',
-      description: 'Planes en curso',
-      icon: 'assignment',
-      route: '/treatment-plans',
-      permission: 'treatment_plans:read',
-    },
-    {
-      label: 'Reportes',
-      description: 'Auditoría y actividad',
-      icon: 'insights',
-      route: '/audit',
-      permission: 'audit:read',
-    },
-  ];
-
-  get visibleQuickLinks(): QuickLink[] {
-    return this.quickLinks.filter((link) => this.auth.hasPermission(link.permission));
-  }
-
   /** "Buenos días" etc. — a greeting that is wrong at 3am reads as careless. */
   readonly greeting = computed(() => {
     const hour = new Date().getHours();
@@ -131,6 +85,135 @@ export class DashboardComponent implements OnInit {
   readonly today = computed(() =>
     new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }),
   );
+
+  /** Reloj del panel: avanza cada minuto para que "ahora" y "la próxima cita"
+   *  sigan siendo ciertos si la pantalla se queda abierta toda la mañana. */
+  readonly now = signal(Date.now());
+  private clock: ReturnType<typeof setInterval> | null = null;
+
+  readonly statusLabels = APPOINTMENT_STATUS_LABELS;
+  readonly statusColors = APPOINTMENT_STATUS_COLORS;
+
+  // ---- Agenda de hoy -----------------------------------------------------
+
+  readonly agenda = computed<AgendaEntry[]>(() => this.summary()?.today_agenda ?? []);
+
+  /** La siguiente cita que todavía no empezó (o está en curso) y no se cerró. */
+  readonly nextAppointment = computed<AgendaEntry | null>(() => {
+    const now = this.now();
+    return (
+      this.agenda().find(
+        (a) => new Date(a.ends_at).getTime() > now && !['atendida', 'no_asistio'].includes(a.status),
+      ) ?? null
+    );
+  });
+
+  readonly doneCount = computed(() => this.agenda().filter((a) => a.status === 'atendida').length);
+
+  /** Anillo del día: la parte de la agenda ya atendida. */
+  readonly dayProgress = computed(() => {
+    const total = this.agenda().length;
+    const done = this.doneCount();
+    const circumference = 2 * Math.PI * 34;
+    const fraction = total ? done / total : 0;
+    return { total, done, dash: `${fraction * circumference} ${circumference}` };
+  });
+
+  /** Una frase que resume el día, en vez de obligar a leer los números. */
+  readonly narrative = computed(() => {
+    const data = this.summary();
+    if (!data) return '';
+    const count = data.appointments_today;
+    const next = this.nextAppointment();
+    if (count === 0) return 'No hay citas para hoy. Buen momento para confirmar las de mañana.';
+    const head = count === 1 ? 'Hoy hay 1 cita' : `Hoy hay ${count} citas`;
+    if (!next) return `${head} y ya se atendieron todas.`;
+    return `${head}. La próxima es ${next.patient_name} a las ${this.time(next.starts_at)}.`;
+  });
+
+  isPast(entry: AgendaEntry): boolean {
+    return new Date(entry.ends_at).getTime() <= this.now();
+  }
+
+  isNow(entry: AgendaEntry): boolean {
+    const now = this.now();
+    return new Date(entry.starts_at).getTime() <= now && new Date(entry.ends_at).getTime() > now;
+  }
+
+  time(iso: string): string {
+    return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  minutesUntil(entry: AgendaEntry): string {
+    const minutes = Math.round((new Date(entry.starts_at).getTime() - this.now()) / 60000);
+    if (minutes <= 0) return 'en curso';
+    if (minutes < 60) return `en ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest ? `en ${hours} h ${rest} min` : `en ${hours} h`;
+  }
+
+  initials(name: string): string {
+    const parts = name.split(' ').filter(Boolean);
+    return `${parts[0]?.charAt(0) ?? ''}${parts[1]?.charAt(0) ?? ''}`.toUpperCase();
+  }
+
+  // ---- Dinero ------------------------------------------------------------
+
+  readonly canSeeMoney = computed(() => this.summary()?.income_month != null);
+
+  /** Mes en curso frente al mismo tramo del mes pasado. */
+  readonly incomeTrend = computed<{ percent: number; up: boolean } | null>(() => {
+    const data = this.summary();
+    const current = Number(data?.income_month ?? 0);
+    const previous = Number(data?.income_previous_month_same_period ?? 0);
+    if (!data?.income_month || previous === 0) return null;
+    const change = ((current - previous) / previous) * 100;
+    return { percent: Math.abs(Math.round(change)), up: change >= 0 };
+  });
+
+  // ---- Requiere atención -------------------------------------------------
+
+  readonly attention = computed(() => {
+    const a = this.summary()?.attention;
+    if (!a) return [];
+    const items: { icon: string; tone: string; title: string; detail: string; route: string }[] = [];
+    if (a.lab_overdue) {
+      items.push({
+        icon: 'precision_manufacturing',
+        tone: 'danger',
+        title: plural(a.lab_overdue, 'trabajo de laboratorio atrasado', 'trabajos de laboratorio atrasados'),
+        detail: 'Ya pasó su fecha de entrega',
+        route: '/laboratory',
+      });
+    }
+    if (a.stock_alerts) {
+      items.push({
+        icon: 'inventory_2',
+        tone: 'warning',
+        title: plural(a.stock_alerts, 'artículo con alerta de stock', 'artículos con alerta de stock'),
+        detail: 'Bajo el mínimo o por vencer',
+        route: '/inventory',
+      });
+    }
+    if (a.budgets_awaiting) {
+      items.push({
+        icon: 'request_quote',
+        tone: 'accent',
+        title: plural(a.budgets_awaiting, 'presupuesto sin respuesta', 'presupuestos sin respuesta'),
+        detail: 'Un buen día para llamar al paciente',
+        route: '/reports',
+      });
+    }
+    return items;
+  });
+
+  readonly birthdays = computed(() => this.summary()?.attention.birthdays ?? []);
+
+  whatsappLink(number: string, name: string): string {
+    const text = encodeURIComponent(`¡Feliz cumpleaños, ${name.split(' ')[0]}! Le desea todo el equipo de la clínica.`);
+    return `https://wa.me/${number.replace(/[^\d]/g, '')}?text=${text}`;
+  }
 
   // ---- Donut -------------------------------------------------------------
 
@@ -289,14 +372,16 @@ export class DashboardComponent implements OnInit {
    *  story, and the absolute amounts are printed beside it. */
   readonly budgetSplit = computed(() => {
     const data = this.summary();
-    if (!data) return null;
-    const total = data.budget_accepted_total + data.budget_awaiting_total;
+    if (!data || data.budget_accepted_total === null || data.budget_awaiting_total === null) return null;
+    const accepted = data.budget_accepted_total;
+    const awaiting = data.budget_awaiting_total;
+    const total = accepted + awaiting;
     if (total === 0) return null;
     return {
-      acceptedPercent: (data.budget_accepted_total / total) * 100,
-      awaitingPercent: (data.budget_awaiting_total / total) * 100,
-      accepted: data.budget_accepted_total,
-      awaiting: data.budget_awaiting_total,
+      acceptedPercent: (accepted / total) * 100,
+      awaitingPercent: (awaiting / total) * 100,
+      accepted,
+      awaiting,
     };
   });
 
@@ -309,6 +394,7 @@ export class DashboardComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this.clock = setInterval(() => this.now.set(Date.now()), 60_000);
     try {
       this.summary.set(await firstValueFrom(this.dashboardService.getSummary()));
     } finally {
@@ -316,7 +402,24 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  goTo(route: string): void {
+  ngOnDestroy(): void {
+    if (this.clock) clearInterval(this.clock);
+  }
+
+  async newPatient(): Promise<void> {
+    await this.goTo('#nuevo-paciente');
+  }
+
+  newAppointment(): void {
+    this.router.navigate(['/agenda'], { queryParams: { nueva: 1 } });
+  }
+
+  async goTo(route: string): Promise<void> {
+    if (route === '#nuevo-paciente') {
+      const created = await openPatientCreateDialog(this.dialog);
+      if (created) this.router.navigate(['/patients', created.id]);
+      return;
+    }
     this.router.navigate([route]);
   }
 }

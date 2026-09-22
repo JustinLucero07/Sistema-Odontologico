@@ -13,6 +13,7 @@ from app.modules.laboratory.schemas import (
     LabOrderCreate,
     LabOrderOut,
     LabOrderStatusUpdate,
+    LabOrderUpdate,
     LaboratoryIn,
 )
 from app.modules.patients.models import Patient
@@ -39,6 +40,28 @@ async def create_laboratory(
         db, clinic_id=clinic_id, user_id=actor_id, action="create", entity_type="laboratory",
         entity_id=str(lab.id), after={"name": lab.name},
     )
+    return lab
+
+
+async def update_laboratory(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, laboratory_id: uuid.UUID, payload: LaboratoryIn
+) -> Laboratory:
+    lab = await _get_laboratory_or_404(db, clinic_id, laboratory_id)
+    for field, value in payload.model_dump().items():
+        setattr(lab, field, value)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="laboratory",
+        entity_id=str(laboratory_id), after=payload.model_dump(mode="json"),
+    )
+    return lab
+
+
+async def _get_laboratory_or_404(db: AsyncSession, clinic_id: uuid.UUID, laboratory_id: uuid.UUID) -> Laboratory:
+    lab = (
+        await db.execute(select(Laboratory).where(Laboratory.id == laboratory_id, Laboratory.clinic_id == clinic_id))
+    ).scalar_one_or_none()
+    if lab is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Laboratorio no encontrado")
     return lab
 
 
@@ -227,3 +250,33 @@ async def update_status(
         entity_id=str(order_id), before={"status": before}, after={"status": payload.status},
     )
     return to_order_out(order, patient_name)
+
+
+async def update_order(
+    db: AsyncSession,
+    clinic_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    order_id: uuid.UUID,
+    payload: LabOrderUpdate,
+) -> LabOrderOut:
+    order, patient_name = await get_order_or_404(db, clinic_id, order_id)
+    if order.status in TERMINAL_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"El trabajo ya está «{order.status}»: sus datos quedan como se cerraron",
+        )
+    if payload.laboratory_id != order.laboratory_id:
+        await _get_laboratory_or_404(db, clinic_id, payload.laboratory_id)
+
+    before = {"description": order.description, "due_on": str(order.due_on), "cost": str(order.cost)}
+    for field, value in payload.model_dump().items():
+        setattr(order, field, value)
+    await db.flush()
+    # La relación cargada sigue apuntando al laboratorio anterior hasta recargarla.
+    await db.refresh(order, attribute_names=["laboratory"])
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="lab_order",
+        entity_id=str(order_id), before=before, after=payload.model_dump(mode="json"),
+    )
+    updated, patient_name = await get_order_or_404(db, clinic_id, order_id)
+    return to_order_out(updated, patient_name)

@@ -1,41 +1,73 @@
 .page {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
-  h1 {
-    margin: 0;
-    font-size: 1.4rem;
-  }
 }
 
-.form-card,
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.search-field {
+  flex: 1 1 280px;
+  max-width: 460px;
+}
+
 .table-card {
-  padding: 20px 24px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-}
-
-h2 {
-  font-size: 1rem;
-  margin: 0 0 12px;
-}
-
-.treatment-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 16px;
-
-  .full-width {
-    grid-column: 1 / -1;
-  }
-
-  button {
-    grid-column: 1 / -1;
-    justify-self: start;
-    margin-top: 4px;
-  }
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
+}
+
+.name {
+  display: block;
+  font-weight: 600;
+}
+
+.description {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-ink-faint);
+}
+
+.actions {
+  text-align: right;
+  white-space: nowrap;
+
+  button {
+    vertical-align: middle;
+  }
+}
+
+tr.inactive .name {
+  color: var(--color-ink-faint);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--color-ink-soft);
+
+  > mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: var(--color-ink-faint);
+  }
+
+  p {
+    margin: 0;
+    max-width: 420px;
+  }
 }

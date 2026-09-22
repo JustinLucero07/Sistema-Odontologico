@@ -49,6 +49,18 @@ async def post_supplier(
     return supplier
 
 
+@router.put("/suppliers/{supplier_id}", response_model=SupplierOut)
+async def put_supplier(
+    supplier_id: uuid.UUID,
+    payload: SupplierIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("inventory:write")),
+):
+    supplier = await service.update_supplier(db, current_user.clinic_id, current_user.id, supplier_id, payload)
+    await db.commit()
+    return supplier
+
+
 @router.get("/items", response_model=list[ItemOut])
 async def get_items(
     include_inactive: bool = Query(False),

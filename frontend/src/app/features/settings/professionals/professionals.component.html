@@ -1,82 +1,183 @@
 <div class="page">
-  <h1>Profesionales</h1>
-
-  <mat-card class="form-card">
-    <h2>Especialidades</h2>
-    <div class="specialty-row">
-      <mat-form-field appearance="outline">
-        <mat-label>Nueva especialidad</mat-label>
-        <input
-          matInput
-          [ngModel]="newSpecialtyName()"
-          (ngModelChange)="newSpecialtyName.set($event)"
-          name="newSpecialty"
-        />
-      </mat-form-field>
-      <button mat-stroked-button (click)="addSpecialty()">
-        <mat-icon>add</mat-icon>
-        Agregar
-      </button>
+  <header class="page-header">
+    <div>
+      <h1>Profesionales</h1>
+      <p class="page-sub">Quienes atienden: aparecen al agendar citas y al registrar tratamientos</p>
     </div>
-
-    <h2>Nuevo profesional</h2>
-    <form [formGroup]="form" (ngSubmit)="submit()" class="professional-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Nombres</mat-label>
-        <input matInput formControlName="first_name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Apellidos</mat-label>
-        <input matInput formControlName="last_name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Especialidad</mat-label>
-        <mat-select formControlName="specialty_id">
-          <mat-option value="">Sin especialidad</mat-option>
-          @for (specialty of specialties(); track specialty.id) {
-            <mat-option [value]="specialty.id">{{ specialty.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>N.° de licencia</mat-label>
-        <input matInput formControlName="license_number" />
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving()">
-        <mat-icon>person_add</mat-icon>
-        Crear profesional
-      </button>
-    </form>
-  </mat-card>
+    <button mat-flat-button (click)="open()">
+      <mat-icon>person_add</mat-icon>
+      Nuevo profesional
+    </button>
+  </header>
 
   <mat-card class="table-card">
-    <table mat-table [dataSource]="professionals()">
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Nombre</th>
-        <td mat-cell *matCellDef="let p">{{ p.first_name }} {{ p.last_name }}</td>
-      </ng-container>
+    @if (professionals().length === 0) {
+      <div class="empty">
+        <mat-icon>medical_information</mat-icon>
+        <p>Registre a los odontólogos de la clínica para poder asignarles citas.</p>
+        <button mat-stroked-button (click)="open()">
+          <mat-icon>add</mat-icon>
+          Agregar el primero
+        </button>
+      </div>
+    } @else {
+      <table mat-table [dataSource]="professionals()">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let p">
+            <span class="person" [class.off]="!p.is_active">
+              <span class="avatar" [style.background]="p.color_hex">{{ initials(p) }}</span>
+              {{ p.first_name }} {{ p.last_name }}
+            </span>
+          </td>
+        </ng-container>
 
-      <ng-container matColumnDef="specialty">
-        <th mat-header-cell *matHeaderCellDef>Especialidad</th>
-        <td mat-cell *matCellDef="let p">{{ specialtyName(p.specialty_id) }}</td>
-      </ng-container>
+        <ng-container matColumnDef="specialty">
+          <th mat-header-cell *matHeaderCellDef>Especialidad</th>
+          <td mat-cell *matCellDef="let p">{{ specialtyName(p.specialty_id) }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="license">
-        <th mat-header-cell *matHeaderCellDef>Licencia</th>
-        <td mat-cell *matCellDef="let p">{{ p.license_number || '—' }}</td>
-      </ng-container>
+        <ng-container matColumnDef="license">
+          <th mat-header-cell *matHeaderCellDef>Licencia</th>
+          <td mat-cell *matCellDef="let p">{{ p.license_number || '—' }}</td>
+        </ng-container>
 
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Estado</th>
-        <td mat-cell *matCellDef="let p">{{ p.is_active ? 'Activo' : 'Inactivo' }}</td>
-      </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let p">
+            <span class="status-pill" [class.off]="!p.is_active">{{ p.is_active ? 'Activo' : 'Inactivo' }}</span>
+          </td>
+        </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let p" class="actions">
+            <button mat-icon-button (click)="open(p)" matTooltip="Editar" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-button [color]="p.is_active ? 'warn' : 'primary'" (click)="toggleActive(p)">
+              {{ p.is_active ? 'Desactivar' : 'Reactivar' }}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    }
+  </mat-card>
+
+  <mat-card class="specialties-card">
+    <div class="specialties-head">
+      <div>
+        <h2>Especialidades</h2>
+        <p class="page-sub">Para clasificar a los profesionales</p>
+      </div>
+      <form class="specialty-add" (ngSubmit)="addSpecialty()">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Nueva especialidad</mat-label>
+          <input
+            matInput
+            [ngModel]="newSpecialtyName()"
+            (ngModelChange)="newSpecialtyName.set($event)"
+            name="newSpecialty"
+            placeholder="Ej. Ortodoncia"
+          />
+        </mat-form-field>
+        <button mat-stroked-button type="submit" [disabled]="!newSpecialtyName().trim()">
+          <mat-icon>add</mat-icon>
+          Agregar
+        </button>
+      </form>
+    </div>
+    <mat-chip-set>
+      @for (specialty of specialties(); track specialty.id) {
+        <mat-chip [matMenuTriggerFor]="specialtyMenu" class="specialty-chip">
+          {{ specialty.name }}
+          <span class="uses">{{ specialtyUses(specialty.id) }}</span>
+        </mat-chip>
+        <mat-menu #specialtyMenu="matMenu">
+          <button mat-menu-item (click)="renameSpecialty(specialty)">
+            <mat-icon>edit</mat-icon>
+            Renombrar
+          </button>
+          <button mat-menu-item (click)="deleteSpecialty(specialty)">
+            <mat-icon>delete</mat-icon>
+            Eliminar
+          </button>
+        </mat-menu>
+      } @empty {
+        <span class="muted">Todavía no hay especialidades.</span>
+      }
+    </mat-chip-set>
   </mat-card>
 </div>
+
+<ng-template #formDialog>
+  <h2 mat-dialog-title>{{ editing() ? 'Editar profesional' : 'Nuevo profesional' }}</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-dialog-content>
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombres</mat-label>
+          <input matInput formControlName="first_name" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Apellidos</mat-label>
+          <input matInput formControlName="last_name" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Especialidad</mat-label>
+          <mat-select formControlName="specialty_id">
+            <mat-option value="">Sin especialidad</mat-option>
+            @for (specialty of specialties(); track specialty.id) {
+              <mat-option [value]="specialty.id">{{ specialty.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>N.° de licencia (opcional)</mat-label>
+          <input matInput formControlName="license_number" />
+        </mat-form-field>
+
+        <div class="full color-row">
+          <span class="color-label">Color en la agenda</span>
+          <div class="swatches" role="radiogroup" aria-label="Color en la agenda">
+            @for (color of colors(); track color) {
+              <button
+                type="button"
+                class="swatch"
+                role="radio"
+                [style.background]="color"
+                [class.selected]="form.controls.color_hex.value.toUpperCase() === color"
+                [attr.aria-checked]="form.controls.color_hex.value.toUpperCase() === color"
+                [attr.aria-label]="color"
+                (click)="form.controls.color_hex.setValue(color)"
+              >
+                @if (form.controls.color_hex.value.toUpperCase() === color) {
+                  <mat-icon>check</mat-icon>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      @if (error(); as message) {
+        <p class="dialog-error">{{ message }}</p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : editing() ? 'Guardar cambios' : 'Crear profesional' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</ng-template>

@@ -2,6 +2,7 @@ import uuid
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.modules.appointments.models import Appointment
 from app.modules.budgets.models import Budget
+from app.modules.clinics.models import Clinic
 from app.modules.diagnoses.models import Diagnosis
 from app.modules.patients.models import Patient
 from app.modules.payments.constants import PAYMENT_METHODS, money
@@ -49,12 +51,23 @@ AGING_BUCKETS = [(0, 30, "0–30 días"), (31, 60, "31–60 días"), (61, 90, "6
 AGING_OVERFLOW = "Más de 90 días"
 
 
-def _window(date_from: date, date_to: date) -> tuple[datetime, datetime]:
+async def _window(
+    db: AsyncSession, clinic_id: uuid.UUID, date_from: date, date_to: date
+) -> tuple[datetime, datetime]:
     """A day range as an inclusive instant range, so an appointment at 23:50 on
-    the last day is inside the report rather than just outside it."""
+    the last day is inside the report rather than just outside it.
+
+    Los días son los de la clínica, no los de UTC: en Ecuador (UTC−5) algo
+    registrado a las 20:00 ya es "mañana" en UTC, y sin esto caería en el
+    reporte del día siguiente."""
+    tz_name = await db.scalar(select(Clinic.timezone).where(Clinic.id == clinic_id))
+    try:
+        tz = ZoneInfo(tz_name or "UTC")
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
     return (
-        datetime.combine(date_from, time.min, tzinfo=timezone.utc),
-        datetime.combine(date_to, time.max, tzinfo=timezone.utc),
+        datetime.combine(date_from, time.min, tzinfo=tz),
+        datetime.combine(date_to, time.max, tzinfo=tz),
     )
 
 
@@ -259,12 +272,15 @@ async def clinical_report(
 
     names = await _professional_names(db, clinic_id)
 
+    dx_start, dx_end = await _window(db, clinic_id, date_from, date_to)
     diagnosis_rows = (
         await db.execute(
             select(Diagnosis.description).where(
                 Diagnosis.clinic_id == clinic_id,
-                Diagnosis.created_at >= _window(date_from, date_to)[0],
-                Diagnosis.created_at <= _window(date_from, date_to)[1],
+                # Un diagnóstico anulado fue un error, no un hallazgo.
+                Diagnosis.voided_at.is_(None),
+                Diagnosis.created_at >= dx_start,
+                Diagnosis.created_at <= dx_end,
             )
         )
     ).all()
@@ -316,7 +332,7 @@ async def clinical_report(
 async def _budget_conversion(
     db: AsyncSession, clinic_id: uuid.UUID, date_from: date, date_to: date
 ) -> BudgetConversion:
-    start, end = _window(date_from, date_to)
+    start, end = await _window(db, clinic_id, date_from, date_to)
     budgets = list(
         (
             await db.execute(
@@ -373,7 +389,7 @@ async def _budget_conversion(
 async def appointment_report(
     db: AsyncSession, clinic_id: uuid.UUID, date_from: date, date_to: date
 ) -> AppointmentReport:
-    start, end = _window(date_from, date_to)
+    start, end = await _window(db, clinic_id, date_from, date_to)
     appointments = list(
         (
             await db.execute(
@@ -444,7 +460,7 @@ SEX_LABELS = {"M": "Masculino", "F": "Femenino", "O": "Otro"}
 async def patient_report(
     db: AsyncSession, clinic_id: uuid.UUID, date_from: date, date_to: date
 ) -> PatientReport:
-    start, end = _window(date_from, date_to)
+    start, end = await _window(db, clinic_id, date_from, date_to)
     all_patients = list(
         (
             await db.execute(

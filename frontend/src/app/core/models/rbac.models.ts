@@ -36,3 +36,12 @@ export interface UserCreate {
   last_name: string;
   role_ids: string[];
 }
+
+export interface UserUpdate {
+  first_name?: string;
+  last_name?: string;
+  is_active?: boolean;
+  role_ids?: string[];
+  /** Contraseña temporal nueva; cierra todas sus sesiones abiertas. */
+  password?: string;
+}

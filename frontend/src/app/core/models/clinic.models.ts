@@ -35,3 +35,27 @@ export interface ProfessionalCreate {
   license_number?: string | null;
   color_hex?: string;
 }
+
+export interface ProfessionalUpdate {
+  first_name?: string;
+  last_name?: string;
+  specialty_id?: string | null;
+  license_number?: string | null;
+  color_hex?: string;
+  is_active?: boolean;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  is_main: boolean;
+}
+
+export interface Operatory {
+  id: string;
+  branch_id: string;
+  name: string;
+  is_active: boolean;
+}

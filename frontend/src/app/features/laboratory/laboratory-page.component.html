@@ -17,13 +17,13 @@
       }
       @if (canWrite) {
         <button mat-flat-button [disabled]="laboratories().length === 0"
-                (click)="showOrderForm.set(!showOrderForm()); showLabForm.set(false)">
-          <mat-icon>{{ showOrderForm() ? 'close' : 'add' }}</mat-icon>
-          {{ showOrderForm() ? 'Cancelar' : 'Nuevo trabajo' }}
+                (click)="openOrderForm()">
+          <mat-icon>add</mat-icon>
+          Nuevo trabajo
         </button>
-        <button mat-stroked-button (click)="showLabForm.set(!showLabForm()); showOrderForm.set(false)">
-          <mat-icon>domain_add</mat-icon>
-          Laboratorio
+        <button mat-stroked-button (click)="showLabs.set(true)">
+          <mat-icon>domain</mat-icon>
+          Laboratorios
         </button>
       }
     </div>
@@ -36,124 +36,7 @@
     </p>
   }
 
-  @if (showLabForm()) {
-    <form class="form-card" [formGroup]="labForm" (ngSubmit)="submitLab()">
-      <h3>Nuevo laboratorio</h3>
-      <div class="form-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="name" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Contacto</mat-label>
-          <input matInput formControlName="contact_name" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Teléfono</mat-label>
-          <input matInput formControlName="phone" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Correo</mat-label>
-          <input matInput formControlName="email" type="email" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Días de entrega habituales</mat-label>
-          <input matInput type="number" formControlName="default_turnaround_days" min="1" />
-          <mat-hint>Se usa para proponer la fecha de entrega</mat-hint>
-        </mat-form-field>
-      </div>
-      <button mat-flat-button type="submit" [disabled]="labForm.invalid || saving()">
-        Guardar laboratorio
-      </button>
-    </form>
-  }
 
-  @if (showOrderForm()) {
-    <form class="form-card" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
-      <h3>Nuevo trabajo</h3>
-
-      @if (chosenPatient(); as patient) {
-        <div class="chosen-patient">
-          <mat-icon>person</mat-icon>
-          <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
-          <button mat-button type="button" (click)="chosenPatient.set(null)">Cambiar</button>
-        </div>
-      } @else {
-        <mat-form-field appearance="outline" class="patient-search">
-          <mat-label>Paciente</mat-label>
-          <mat-icon matPrefix>search</mat-icon>
-          <input matInput (input)="searchPatient($any($event.target).value)" />
-        </mat-form-field>
-        @if (patientResults().length > 0) {
-          <ul class="patient-results">
-            @for (patient of patientResults(); track patient.id) {
-              <li>
-                <button type="button" (click)="pickPatient(patient)">
-                  {{ patient.first_name }} {{ patient.last_name }}
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      }
-
-      <div class="form-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Laboratorio</mat-label>
-          <mat-select formControlName="laboratory_id">
-            @for (laboratory of laboratories(); track laboratory.id) {
-              <mat-option [value]="laboratory.id">{{ laboratory.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Tipo de trabajo</mat-label>
-          <mat-select formControlName="work_type">
-            @for (type of catalog().work_types; track type.code) {
-              <mat-option [value]="type.code">{{ type.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="wide">
-          <mat-label>Descripción</mat-label>
-          <input matInput formControlName="description" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Piezas (FDI)</mat-label>
-          <input matInput formControlName="fdi_numbers" placeholder="16, 17" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Color</mat-label>
-          <input matInput formControlName="shade" placeholder="A2" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Material</mat-label>
-          <input matInput formControlName="material" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Fecha de entrega</mat-label>
-          <input matInput type="date" formControlName="due_on" />
-          <mat-hint>Si se deja vacía se calcula con los días del laboratorio</mat-hint>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Costo</mat-label>
-          <span matTextPrefix>$&nbsp;</span>
-          <input matInput formControlName="cost" inputmode="decimal" />
-        </mat-form-field>
-      </div>
-
-      <button mat-flat-button type="submit" [disabled]="orderForm.invalid || !chosenPatient() || saving()">
-        Guardar trabajo
-      </button>
-    </form>
-  }
 
   <div class="toolbar">
     <button mat-stroked-button [class.filter-on]="openOnly()" (click)="toggleOpenOnly()">
@@ -224,6 +107,11 @@
               <mat-icon>history</mat-icon>
               Historial ({{ order.events.length }})
             </button>
+            @if (canWrite && isOpen(order)) {
+              <button mat-icon-button (click)="openOrderForm(order)" matTooltip="Editar datos" aria-label="Editar trabajo">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
             @if (canWrite && availableStatuses(order).length > 0) {
               <button mat-flat-button (click)="openAdvance(order)">Cambiar estado</button>
             }
@@ -290,6 +178,191 @@
 
       <div class="panel-actions">
         <button mat-stroked-button (click)="detail.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showLabForm()) {
+  <div class="overlay" (click)="showLabForm.set(false)">
+  <form class="panel" (click)="$event.stopPropagation()" [formGroup]="labForm" (ngSubmit)="submitLab()">
+        <h3>{{ editingLab() ? 'Editar laboratorio' : 'Nuevo laboratorio' }}</h3>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Contacto</mat-label>
+            <input matInput formControlName="contact_name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="phone" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Correo</mat-label>
+            <input matInput formControlName="email" type="email" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Días de entrega habituales</mat-label>
+            <input matInput type="number" formControlName="default_turnaround_days" min="1" />
+            <mat-hint>Se usa para proponer la fecha de entrega</mat-hint>
+          </mat-form-field>
+        </div>
+        <div class="panel-actions">
+          <button mat-flat-button type="submit" [disabled]="labForm.invalid || saving()">
+            {{ editingLab() ? 'Guardar cambios' : 'Guardar laboratorio' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="showLabForm.set(false)">Cancelar</button>
+        </div>
+      </form>
+  </div>
+}
+
+@if (showOrderForm()) {
+  <div class="overlay" (click)="showOrderForm.set(false)">
+  <form class="panel wide-panel" (click)="$event.stopPropagation()" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
+        <h3>{{ editingOrder() ? 'Editar trabajo' : 'Nuevo trabajo' }}</h3>
+        @if (editingOrder()) {
+          <p class="panel-hint">El paciente y el estado no se cambian aquí: el estado avanza con «Cambiar estado».</p>
+        }
+
+        @if (chosenPatient(); as patient) {
+          <div class="chosen-patient">
+            <mat-icon>person</mat-icon>
+            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+            @if (!editingOrder()) {
+              <button mat-button type="button" (click)="chosenPatient.set(null)">Cambiar</button>
+            }
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="patient-search">
+            <mat-label>Paciente</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput (input)="searchPatient($any($event.target).value)" />
+          </mat-form-field>
+          @if (patientResults().length > 0) {
+            <ul class="patient-results">
+              @for (patient of patientResults(); track patient.id) {
+                <li>
+                  <button type="button" (click)="pickPatient(patient)">
+                    {{ patient.first_name }} {{ patient.last_name }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        }
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Laboratorio</mat-label>
+            <mat-select formControlName="laboratory_id">
+              @for (laboratory of laboratories(); track laboratory.id) {
+                @if (laboratory.is_active || laboratory.id === orderForm.controls.laboratory_id.value) {
+                  <mat-option [value]="laboratory.id">{{ laboratory.name }}</mat-option>
+                }
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo de trabajo</mat-label>
+            <mat-select formControlName="work_type">
+              @for (type of catalog().work_types; track type.code) {
+                <mat-option [value]="type.code">{{ type.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Descripción</mat-label>
+            <input matInput formControlName="description" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Piezas (FDI)</mat-label>
+            <input matInput formControlName="fdi_numbers" placeholder="16, 17" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Color</mat-label>
+            <input matInput formControlName="shade" placeholder="A2" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Material</mat-label>
+            <input matInput formControlName="material" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha de entrega</mat-label>
+            <input matInput type="date" formControlName="due_on" />
+            <mat-hint>Si se deja vacía se calcula con los días del laboratorio</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Costo</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput formControlName="cost" inputmode="decimal" />
+          </mat-form-field>
+        </div>
+
+        <div class="panel-actions">
+          <button mat-flat-button type="submit" [disabled]="orderForm.invalid || !chosenPatient() || saving()">
+            {{ editingOrder() ? 'Guardar cambios' : 'Guardar trabajo' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="showOrderForm.set(false)">Cancelar</button>
+        </div>
+      </form>
+  </div>
+}
+
+<!-- Laboratorios -->
+@if (showLabs() && !showLabForm()) {
+  <div class="overlay" (click)="showLabs.set(false)">
+    <div class="panel wide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-head">
+        <h3>Laboratorios</h3>
+        @if (canWrite) {
+          <button mat-stroked-button (click)="openLabForm()">
+            <mat-icon>domain_add</mat-icon>
+            Nuevo laboratorio
+          </button>
+        }
+      </div>
+      @if (laboratories().length === 0) {
+        <p class="lab-empty">Aún no hay laboratorios registrados.</p>
+      } @else {
+        <ul class="lab-list">
+          @for (laboratory of laboratories(); track laboratory.id) {
+            <li [class.inactive]="!laboratory.is_active">
+              <div>
+                <strong>{{ laboratory.name }}</strong>
+                <span class="muted">
+                  {{ laboratory.contact_name || 'Sin contacto' }}
+                  @if (laboratory.phone) { · {{ laboratory.phone }} }
+                  @if (laboratory.default_turnaround_days) { · entrega en {{ laboratory.default_turnaround_days }} días }
+                </span>
+              </div>
+              @if (!laboratory.is_active) {
+                <span class="status-pill off">Inactivo</span>
+              }
+              @if (canWrite) {
+                <button mat-icon-button (click)="openLabForm(laboratory)" aria-label="Editar laboratorio">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-button [color]="laboratory.is_active ? 'warn' : 'primary'" (click)="toggleLab(laboratory)">
+                  {{ laboratory.is_active ? 'Desactivar' : 'Reactivar' }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <div class="panel-actions">
+        <button mat-stroked-button (click)="showLabs.set(false)">Cerrar</button>
       </div>
     </div>
   </div>

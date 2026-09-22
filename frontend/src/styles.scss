@@ -345,3 +345,130 @@ mat-card.mat-mdc-card {
     transition: none !important;
   }
 }
+
+/* ============================================================
+   Diálogos
+   Un solo material para todas las ventanas emergentes: el mismo
+   vidrio que las tarjetas, y un velo que oscurece lo de detrás
+   para que quede claro que la tarea activa es el diálogo.
+   ============================================================ */
+:root {
+  --mdc-dialog-container-color: var(--glass-overlay-bg);
+  --mdc-dialog-container-shape: var(--radius-lg);
+  --mdc-dialog-subhead-color: var(--color-ink);
+  --mdc-dialog-supporting-text-color: var(--color-ink);
+}
+
+.app-dialog .mat-mdc-dialog-surface {
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-dialog .mat-mdc-dialog-content {
+  max-height: min(70vh, 640px);
+}
+
+.cdk-overlay-dark-backdrop {
+  background: var(--glass-scrim);
+  backdrop-filter: blur(3px);
+}
+
+/* ============================================================
+   Encabezado de página
+   Título a la izquierda, acción principal a la derecha: el mismo
+   sitio en todas las pantallas para "crear" algo.
+   ============================================================ */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+}
+
+.page-sub {
+  margin: 2px 0 0;
+  min-height: 1.2em;
+  font-size: 0.8rem;
+  color: var(--color-ink-faint);
+}
+
+/* Formularios dentro de un diálogo: dos columnas que caen a una en móvil. */
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding-top: 6px;
+
+  .full {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estado activo/inactivo como píldora en vez de texto plano. */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &.off {
+    background: var(--color-surface-muted);
+    color: var(--color-ink-faint);
+  }
+}
+
+.dialog-note {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-faint);
+}
+
+.dialog-error {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.84rem;
+}
+
+/* Acción destructiva dentro de un menú: en rojo para que no se pulse por inercia. */
+.mat-mdc-menu-item.danger-item,
+.mat-mdc-menu-item.danger-item .mat-icon {
+  color: var(--color-danger);
+}
+
+/* color="warn" en botones de texto y contorno: el tema solo pinta el primario,
+   así que lo destructivo se veía igual que lo normal. */
+.mat-mdc-button.mat-warn,
+.mat-mdc-outlined-button.mat-warn {
+  --mdc-text-button-label-text-color: var(--color-danger);
+  --mdc-outlined-button-label-text-color: var(--color-danger);
+  --mat-text-button-state-layer-color: var(--color-danger);
+  --mat-text-button-ripple-color: var(--color-danger-soft);
+}

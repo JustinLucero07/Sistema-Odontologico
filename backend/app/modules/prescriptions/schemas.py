@@ -32,5 +32,7 @@ class PrescriptionOut(BaseModel):
     created_at: datetime
     notes: str | None
     items: list[PrescriptionItemOut]
+    voided_at: datetime | None = None
+    void_reason: str | None = None
 
     model_config = {"from_attributes": True}

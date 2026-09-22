@@ -1,8 +1,14 @@
 <mat-sidenav-container class="shell-container">
-  <mat-sidenav mode="side" opened class="shell-sidenav" [class.collapsed]="collapsed()">
+  <mat-sidenav
+    #sidenav
+    [mode]="compact() ? 'over' : 'side'"
+    [opened]="!compact()"
+    class="shell-sidenav"
+    [class.collapsed]="collapsed() && !compact()"
+  >
     <div class="shell-brand">
       <span class="brand-mark"><app-tooth-mark [size]="20" [filled]="true" /></span>
-      @if (!collapsed()) {
+      @if (!collapsed() || compact()) {
         <span class="brand-name">
           Sistema Odontológico
           <small>Gestión clínica</small>
@@ -13,7 +19,7 @@
     @for (section of sections; track section.title) {
       @if (visibleItems(section).length > 0) {
         <div class="nav-section">
-          @if (!collapsed()) {
+          @if (!collapsed() || compact()) {
             <span class="nav-section-title">{{ section.title }}</span>
           } @else {
             <span class="nav-section-rule"></span>
@@ -25,11 +31,12 @@
                 mat-list-item
                 [routerLink]="item.route"
                 routerLinkActive="active-link"
-                [matTooltip]="collapsed() ? item.label : ''"
+                [matTooltip]="collapsed() && !compact() ? item.label : ''"
                 matTooltipPosition="right"
+                (click)="compact() && sidenav.close()"
               >
                 <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                @if (!collapsed()) {
+                @if (!collapsed() || compact()) {
                   <span matListItemTitle>{{ item.label }}</span>
                 }
               </a>
@@ -39,16 +46,23 @@
       }
     }
 
+    @if (!compact()) {
     <button type="button" class="collapse-toggle" (click)="toggleCollapsed()">
       <mat-icon>{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-      @if (!collapsed()) {
+      @if (!collapsed() || compact()) {
         <span>Contraer menú</span>
       }
     </button>
+    }
   </mat-sidenav>
 
   <mat-sidenav-content>
     <mat-toolbar class="shell-toolbar">
+      @if (compact()) {
+        <button mat-icon-button (click)="sidenav.open()" aria-label="Abrir menú">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
       <div class="global-search" *appHasPermission="'patients:read'">
         <mat-icon>search</mat-icon>
         <input
@@ -80,6 +94,27 @@
 
       <span class="shell-spacer"></span>
 
+      @if (auth.hasPermission('patients:write') || auth.hasPermission('appointments:write')) {
+        <button mat-flat-button class="create-button" [matMenuTriggerFor]="createMenu">
+          <mat-icon>add</mat-icon>
+          Nuevo
+        </button>
+        <mat-menu #createMenu="matMenu" xPosition="before">
+          @if (auth.hasPermission('patients:write')) {
+            <button mat-menu-item (click)="newPatient()">
+              <mat-icon>person_add</mat-icon>
+              Paciente
+            </button>
+          }
+          @if (auth.hasPermission('appointments:write')) {
+            <button mat-menu-item (click)="newAppointment()">
+              <mat-icon>event</mat-icon>
+              Cita
+            </button>
+          }
+        </mat-menu>
+      }
+
       <button
         mat-icon-button
         class="theme-toggle"
@@ -94,7 +129,7 @@
         <button mat-button [matMenuTriggerFor]="userMenu" class="user-button">
           <span class="user-avatar">{{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}</span>
           <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
-          <mat-icon>expand_more</mat-icon>
+          <mat-icon iconPositionEnd>expand_more</mat-icon>
         </button>
         <mat-menu #userMenu="matMenu">
           <div class="user-menu-roles">{{ user.roles.join(', ') || 'Sin roles' }}</div>

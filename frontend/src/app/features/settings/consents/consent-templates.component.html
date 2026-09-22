@@ -1,0 +1,94 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Plantillas de consentimiento</h1>
+      <p class="page-sub">El texto base que se copia al emitir un consentimiento a un paciente</p>
+    </div>
+    <button mat-flat-button (click)="open()">
+      <mat-icon>add</mat-icon>
+      Nueva plantilla
+    </button>
+  </header>
+
+  @if (retiredCount() > 0) {
+    <mat-slide-toggle [checked]="showRetired()" (change)="showRetired.set($event.checked)">
+      Mostrar retiradas ({{ retiredCount() }})
+    </mat-slide-toggle>
+  }
+
+  @if (!loading() && visible().length === 0) {
+    <mat-card class="empty">
+      <mat-icon>description</mat-icon>
+      <p>No hay plantillas. Cree una por cada procedimiento que requiera consentimiento firmado.</p>
+      <button mat-stroked-button (click)="open()">
+        <mat-icon>add</mat-icon>
+        Crear la primera
+      </button>
+    </mat-card>
+  }
+
+  <div class="grid">
+    @for (template of visible(); track template.id) {
+      <mat-card class="template" [class.retired]="!template.is_active">
+        <div class="template-head">
+          <div>
+            <h2>{{ template.name }}</h2>
+            <span class="muted">{{ template.procedure_type || 'Procedimiento general' }}</span>
+          </div>
+          @if (!template.is_active) {
+            <span class="status-pill off">Retirada</span>
+          }
+        </div>
+        <p class="body">{{ preview(template.body) }}</p>
+        <div class="template-actions">
+          <button mat-button (click)="open(template)">
+            <mat-icon>edit</mat-icon>
+            Editar
+          </button>
+          <button mat-button [color]="template.is_active ? 'warn' : 'primary'" (click)="toggleActive(template)">
+            <mat-icon>{{ template.is_active ? 'archive' : 'unarchive' }}</mat-icon>
+            {{ template.is_active ? 'Retirar' : 'Restaurar' }}
+          </button>
+        </div>
+      </mat-card>
+    }
+  </div>
+</div>
+
+<ng-template #formDialog>
+  <h2 mat-dialog-title>{{ editing() ? 'Editar plantilla' : 'Nueva plantilla' }}</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-dialog-content>
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="name" placeholder="Ej. Exodoncia simple" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Procedimiento (opcional)</mat-label>
+          <input matInput formControlName="procedure_type" placeholder="Ej. Cirugía" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Texto del consentimiento</mat-label>
+          <textarea matInput formControlName="body" rows="12"></textarea>
+          <mat-error>Escriba el texto que leerá el paciente</mat-error>
+        </mat-form-field>
+      </div>
+      @if (editing()) {
+        <p class="dialog-note">
+          Los consentimientos ya emitidos no cambian: cada uno guardó el texto exacto que el paciente leyó.
+        </p>
+      }
+      @if (error(); as message) {
+        <p class="dialog-error">{{ message }}</p>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : editing() ? 'Guardar cambios' : 'Crear plantilla' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</ng-template>

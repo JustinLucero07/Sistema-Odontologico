@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Permission, Role, RoleCreate, User, UserCreate } from '../models/rbac.models';
+import { Permission, Role, RoleCreate, User, UserCreate, UserUpdate } from '../models/rbac.models';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -40,5 +40,9 @@ export class UsersService {
 
   listPermissions(): Observable<Permission[]> {
     return this.http.get<Permission[]>(`${this.base}/permissions`);
+  }
+
+  updateUser(userId: string, payload: UserUpdate): Observable<User> {
+    return this.http.put<User>(`${this.base}/users/${userId}`, payload);
   }
 }

@@ -83,6 +83,11 @@ class TreatmentPlanCreate(BaseModel):
     items: list[TreatmentPlanItemCreate] = Field(default_factory=list)
 
 
+class TreatmentPlanUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    notes: str | None = None
+
+
 class TreatmentPlanOut(BaseModel):
     id: uuid.UUID
     patient_id: uuid.UUID

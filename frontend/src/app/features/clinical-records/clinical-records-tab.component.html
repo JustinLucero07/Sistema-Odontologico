@@ -19,7 +19,7 @@
     <div class="section-head">
       <p class="section-hint">Lo que se hizo en cada visita. Un registro clínico no se elimina; las correcciones quedan auditadas.</p>
       @if (canWriteEvolutions()) {
-        <button mat-flat-button color="primary" (click)="toggleForm('evoluciones')">
+        <button mat-flat-button color="primary" (click)="startEvolution()">
           <mat-icon>add</mat-icon> Nueva evolución
         </button>
       }
@@ -27,6 +27,12 @@
 
     @if (openForm() === 'evoluciones') {
       <mat-card class="form-card">
+        @if (editingEvolution(); as editing) {
+          <p class="editing-note">
+            <mat-icon>history_edu</mat-icon>
+            Corrigiendo la evolución del {{ editing.created_at | date: 'd MMM y' }}. El texto anterior queda guardado en la auditoría.
+          </p>
+        }
         <form [formGroup]="evolutionForm" (ngSubmit)="saveEvolution()" class="record-form">
           <mat-form-field appearance="outline" class="full">
             <mat-label>Procedimiento realizado</mat-label>
@@ -62,9 +68,9 @@
           </mat-form-field>
           <div class="form-actions full">
             <button mat-flat-button color="primary" type="submit" [disabled]="evolutionForm.invalid || saving()">
-              Guardar evolución
+              {{ editingEvolution() ? 'Guardar corrección' : 'Guardar evolución' }}
             </button>
-            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
+            <button mat-button type="button" (click)="openForm.set(null); editingEvolution.set(null)">Cancelar</button>
           </div>
         </form>
       </mat-card>
@@ -79,6 +85,11 @@
         <div class="record-head">
           <strong>{{ item.procedure }}</strong>
           <span class="record-date">{{ item.created_at | date: 'd MMM y, HH:mm' }}</span>
+          @if (canWriteEvolutions()) {
+            <button mat-button class="print-btn" (click)="correctEvolution(item)">
+              <mat-icon>edit_note</mat-icon> Corregir
+            </button>
+          }
         </div>
         <dl class="record-grid">
           @if (item.fdi_numbers) { <div><dt>Piezas</dt><dd>{{ item.fdi_numbers }}</dd></div> }
@@ -156,12 +167,26 @@
     }
 
     @for (prescription of prescriptions(); track prescription.id) {
-      <mat-card class="record-card">
+      <mat-card class="record-card" [class.voided]="prescription.voided_at">
         <div class="record-head">
           <strong>Receta</strong>
           <span class="record-date">{{ prescription.created_at | date: 'd MMM y' }}</span>
-          <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+          @if (prescription.voided_at) {
+            <span class="void-badge">Anulada</span>
+          } @else {
+            <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+            @if (canWritePrescriptions()) {
+              <button mat-button color="warn" (click)="voidPrescription(prescription)">
+                <mat-icon>block</mat-icon> Anular
+              </button>
+            }
+          }
         </div>
+        @if (prescription.voided_at) {
+          <p class="void-reason">
+            Anulada el {{ prescription.voided_at | date: 'd MMM y' }}: {{ prescription.void_reason }}
+          </p>
+        }
         <ul class="medication-list">
           @for (item of prescription.items; track item.id) {
             <li>

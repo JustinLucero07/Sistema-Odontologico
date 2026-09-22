@@ -28,16 +28,38 @@
       <p class="empty-hint">Sin diagnósticos registrados.</p>
     } @else {
       <div class="diagnosis-list">
-        @for (d of diagnoses(); track d.id) {
-          <div class="diagnosis-row">
+        @for (d of visibleDiagnoses(); track d.id) {
+          <div class="diagnosis-row" [class.voided]="d.voided_at">
             @if (d.fdi_number) {
               <span class="fdi-badge">{{ d.fdi_number }}</span>
             }
-            <span>{{ d.description }}</span>
+            <span class="diagnosis-text">
+              {{ d.description }}
+              @if (d.voided_at) {
+                <span class="void-note">Anulado el {{ d.voided_at | date: 'shortDate' }}: {{ d.void_reason }}</span>
+              }
+            </span>
             <span class="diagnosis-date">{{ d.created_at | date: 'shortDate' }}</span>
+            @if (!d.voided_at) {
+              <button
+                mat-icon-button
+                *appHasPermission="'diagnoses:write'"
+                class="row-action"
+                (click)="voidDiagnosis(d)"
+                matTooltip="Anular (con motivo)"
+                aria-label="Anular diagnóstico"
+              >
+                <mat-icon>block</mat-icon>
+              </button>
+            }
           </div>
         }
       </div>
+      @if (voidedCount() > 0) {
+        <button mat-button class="show-voided" (click)="showVoided.set(!showVoided())">
+          {{ showVoided() ? 'Ocultar anulados' : 'Ver anulados (' + voidedCount() + ')' }}
+        </button>
+      }
     }
   </section>
 
@@ -69,7 +91,14 @@
     @for (plan of plans(); track plan.id) {
       <mat-card class="plan-card">
         <div class="plan-header">
-          <h3>{{ plan.title }}</h3>
+          <h3>
+            {{ plan.title }}
+            @if (canEditItems()) {
+              <button mat-icon-button class="inline-edit" (click)="renamePlan(plan)" matTooltip="Renombrar plan" aria-label="Renombrar plan">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </h3>
           <span class="plan-total">$ {{ plan.total_price | number: '1.2-2' }}</span>
         </div>
 
@@ -86,14 +115,25 @@
                 <th>Pieza</th>
                 <th>Precio</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               @for (item of plan.items; track item.id) {
                 <tr>
-                  <td>{{ item.treatment_name }}</td>
+                  <td>
+                    {{ item.treatment_name }}
+                    @if (item.notes) {
+                      <span class="item-note">{{ item.notes }}</span>
+                    }
+                  </td>
                   <td>{{ item.fdi_number || '—' }}</td>
-                  <td>$ {{ item.net_price | number: '1.2-2' }}</td>
+                  <td>
+                    $ {{ item.net_price | number: '1.2-2' }}
+                    @if (+item.discount > 0) {
+                      <span class="item-note">−$ {{ item.discount | number: '1.2-2' }} desc.</span>
+                    }
+                  </td>
                   <td>
                     @if (canEditItems()) {
                       <mat-form-field appearance="outline" class="status-select" subscriptSizing="dynamic">
@@ -108,6 +148,13 @@
                       </mat-form-field>
                     } @else {
                       <span class="status-readonly">{{ statusLabels[item.status] }}</span>
+                    }
+                  </td>
+                  <td class="row-actions">
+                    @if (canEditItems() && item.status !== 'completado') {
+                      <button mat-icon-button (click)="editItem(plan.id, item)" matTooltip="Editar precio, pieza o notas" aria-label="Editar tratamiento">
+                        <mat-icon>edit</mat-icon>
+                      </button>
                     }
                   </td>
                 </tr>
@@ -166,6 +213,10 @@
                   <span>{{ budget.created_at | date: 'shortDate' }}</span>
                   <strong>$ {{ budget.total | number: '1.2-2' }}</strong>
                 </div>
+                <button mat-icon-button (click)="printBudget(budget, plan.title)"
+                        aria-label="Imprimir presupuesto" title="Imprimir presupuesto">
+                  <mat-icon>print</mat-icon>
+                </button>
                 <div class="budget-actions" *appHasPermission="'budgets:write'">
                   @if (budgetNextStatus[budget.status]; as next) {
                     <button mat-button (click)="advanceBudgetStatus(budget)">{{ next.label }}</button>
@@ -182,3 +233,44 @@
     }
   </section>
 </div>
+
+<ng-template #itemDialog>
+  <h2 mat-dialog-title>Editar {{ editingItem()?.item?.treatment_name }}</h2>
+  <form [formGroup]="editItemForm" (ngSubmit)="saveItem()">
+    <mat-dialog-content>
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Precio</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput type="number" formControlName="price" min="0" step="0.01" />
+          <mat-error>No puede ser negativo</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Descuento</mat-label>
+          <span matTextPrefix>$&nbsp;</span>
+          <input matInput type="number" formControlName="discount" min="0" step="0.01" />
+          <mat-error>No puede superar el precio</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Pieza (FDI)</mat-label>
+          <input matInput formControlName="fdi_number" placeholder="Ej. 36" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Superficie</mat-label>
+          <input matInput formControlName="surface" placeholder="Ej. O, MO" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Notas</mat-label>
+          <textarea matInput formControlName="notes" rows="2"></textarea>
+        </mat-form-field>
+      </div>
+      <p class="dialog-note">
+        Los presupuestos ya emitidos no cambian: guardan el precio con el que se entregaron al paciente.
+      </p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">Guardar cambios</button>
+    </mat-dialog-actions>
+  </form>
+</ng-template>

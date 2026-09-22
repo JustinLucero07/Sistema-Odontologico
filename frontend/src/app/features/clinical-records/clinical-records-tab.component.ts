@@ -3,6 +3,7 @@ import { Component, Input, OnChanges, computed, inject, signal } from '@angular/
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
 import {
   ClinicalEvolution,
   Consent,
@@ -47,6 +49,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   readonly documentTypeLabels = DOCUMENT_TYPE_LABELS;
   readonly documentTypes = Object.keys(DOCUMENT_TYPE_LABELS);
@@ -67,6 +70,9 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   readonly canWritePrescriptions = computed(() => this.auth.hasPermission('prescriptions:write'));
   readonly canWriteConsents = computed(() => this.auth.hasPermission('consents:write'));
   readonly canWriteDocuments = computed(() => this.auth.hasPermission('documents:write'));
+
+  /** Evolución que se corrige; null cuando el formulario registra una nueva. */
+  readonly editingEvolution = signal<ClinicalEvolution | null>(null);
 
   readonly evolutionForm = this.fb.nonNullable.group({
     procedure: ['', Validators.required],
@@ -100,6 +106,18 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     if (this.patientId) await this.reload();
   }
 
+  async voidPrescription(prescription: Prescription): Promise<void> {
+    const reason = await promptVoidReason(this.dialog, 'receta');
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.service.voidPrescription(this.patientId, prescription.id, reason));
+      this.snackBar.open('Receta anulada', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch {
+      this.snackBar.open('No se pudo anular la receta', 'Cerrar', { duration: 3500 });
+    }
+  }
+
   async reload(): Promise<void> {
     const results = await Promise.allSettled([
       firstValueFrom(this.service.listEvolutions(this.patientId)),
@@ -123,14 +141,43 @@ export class ClinicalRecordsTabComponent implements OnChanges {
 
   // ---- Evolutions ------------------------------------------------------
 
+  startEvolution(): void {
+    this.editingEvolution.set(null);
+    this.evolutionForm.reset();
+    this.toggleForm('evoluciones');
+  }
+
+  correctEvolution(item: ClinicalEvolution): void {
+    this.editingEvolution.set(item);
+    this.evolutionForm.reset({
+      procedure: item.procedure,
+      fdi_numbers: item.fdi_numbers ?? '',
+      anesthesia: item.anesthesia ?? '',
+      materials: item.materials ?? '',
+      diagnosis: item.diagnosis ?? '',
+      evolution: item.evolution ?? '',
+      instructions: item.instructions ?? '',
+      next_appointment_notes: item.next_appointment_notes ?? '',
+    });
+    this.openForm.set('evoluciones');
+  }
+
   async saveEvolution(): Promise<void> {
     if (this.evolutionForm.invalid || this.saving()) return;
     this.saving.set(true);
+    const editing = this.editingEvolution();
     try {
-      await firstValueFrom(this.service.createEvolution(this.patientId, this.evolutionForm.getRawValue()));
+      if (editing) {
+        await firstValueFrom(this.service.updateEvolution(editing.id, this.evolutionForm.getRawValue()));
+      } else {
+        await firstValueFrom(this.service.createEvolution(this.patientId, this.evolutionForm.getRawValue()));
+      }
       this.evolutionForm.reset();
+      this.editingEvolution.set(null);
       this.openForm.set(null);
-      this.snackBar.open('Evolución registrada', 'Cerrar', { duration: 3000 });
+      this.snackBar.open(editing ? 'Corrección guardada (queda en la auditoría)' : 'Evolución registrada', 'Cerrar', {
+        duration: 3000,
+      });
       await this.reload();
     } finally {
       this.saving.set(false);

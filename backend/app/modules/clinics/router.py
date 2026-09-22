@@ -13,6 +13,7 @@ from app.modules.clinics.schemas import (
     ClinicOut,
     ClinicUpdate,
     OperatoryCreate,
+    OperatoryUpdate,
     OperatoryOut,
 )
 
@@ -94,6 +95,18 @@ async def post_operatory(
     current_user: CurrentUser = Depends(require_permission("settings:manage")),
 ):
     operatory = await service.create_operatory(db, current_user.clinic_id, current_user.id, payload)
+    await db.commit()
+    return operatory
+
+
+@router.put("/operatories/{operatory_id}", response_model=OperatoryOut)
+async def put_operatory(
+    operatory_id: uuid.UUID,
+    payload: OperatoryUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    operatory = await service.update_operatory(db, current_user.clinic_id, current_user.id, operatory_id, payload)
     await db.commit()
     return operatory
 

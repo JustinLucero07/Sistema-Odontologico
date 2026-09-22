@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -22,6 +23,7 @@ import { PatientListItem } from '../../core/models/patient.models';
 import { Professional } from '../../core/models/clinic.models';
 import { Treatment } from '../../core/models/treatment.models';
 import { AppointmentsService } from '../../core/services/appointments.service';
+import { PatientsService } from '../../core/services/patients.service';
 import { ClinicService } from '../../core/services/clinic.service';
 import { TreatmentsService } from '../../core/services/treatments.service';
 import { PatientPickerComponent } from '../../shared/patient-picker/patient-picker.component';
@@ -60,6 +62,7 @@ interface DayColumn {
     MatInputModule,
     MatSelectModule,
     PatientPickerComponent,
+    RouterLink,
   ],
   templateUrl: './agenda.component.html',
   styleUrl: './agenda.component.scss',
@@ -71,6 +74,9 @@ export class AgendaComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly patientsService = inject(PatientsService);
 
   readonly statusLabels = APPOINTMENT_STATUS_LABELS;
   readonly statusOptions = Object.keys(APPOINTMENT_STATUS_LABELS) as AppointmentStatus[];
@@ -92,6 +98,8 @@ export class AgendaComponent implements OnInit {
   readonly formPatient = signal<PatientListItem | null>(null);
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
+  /** Cita que se reprograma; null cuando el formulario agenda una nueva. */
+  readonly editingAppointment = signal<Appointment | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     professional_id: ['', Validators.required],
@@ -159,6 +167,53 @@ export class AgendaComponent implements OnInit {
     this.professionals.set(professionals);
     this.treatments.set(treatments);
     await this.reload();
+
+    // `?nueva=1` abre el formulario directamente, y `&paciente=<id>` lo trae
+    // ya elegido: así «Agendar cita» desde la ficha o desde la barra superior
+    // no obliga a buscar otra vez a quien se acaba de tener delante.
+    const params = this.route.snapshot.queryParamMap;
+    if (params.get('nueva')) {
+      const patientId = params.get('paciente');
+      let patient: PatientListItem | null = null;
+      if (patientId) {
+        try {
+          const p = await firstValueFrom(this.patientsService.getPatient(patientId));
+          patient = {
+            id: p.id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            national_id: p.national_id ?? null,
+            age: null,
+            phone: p.phone ?? null,
+            whatsapp: p.whatsapp ?? null,
+          };
+        } catch {
+          // Paciente inexistente o sin permiso: se abre el formulario vacío.
+        }
+      }
+      this.newAppointment(patient);
+      // Se limpia la URL para que recargar la página no vuelva a abrirlo.
+      this.router.navigate([], { queryParams: {}, replaceUrl: true });
+    }
+  }
+
+  /** Abre el formulario en el próximo hueco razonable: la siguiente media hora
+   *  de hoy, o mañana a las 9:00 si la jornada ya terminó. Antes la única vía
+   *  era tocar un hueco del calendario, y nada en la pantalla lo decía. */
+  newAppointment(patient: PatientListItem | null = null): void {
+    const now = new Date();
+    const next = new Date(now);
+    next.setSeconds(0, 0);
+    next.setMinutes(now.getMinutes() < 30 ? 30 : 60);
+    if (next.getHours() >= 20 || next.getHours() < 7) {
+      next.setDate(next.getDate() + (next.getHours() >= 20 ? 1 : 0));
+      next.setHours(9, 0, 0, 0);
+    }
+    this.openSlot(next, next.getHours());
+    this.form.patchValue({
+      time: `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`,
+    });
+    if (patient) this.formPatient.set(patient);
   }
 
   async reload(): Promise<void> {
@@ -202,6 +257,7 @@ export class AgendaComponent implements OnInit {
 
   openSlot(date: Date, hour: number): void {
     if (!this.canEdit()) return;
+    this.editingAppointment.set(null);
     this.formError.set(null);
     this.formPatient.set(null);
     this.form.reset({
@@ -214,6 +270,32 @@ export class AgendaComponent implements OnInit {
       remind_whatsapp: true,
       remind_email: false,
     });
+    this.formOpen.set(true);
+  }
+
+  /** Una cita atendida o cancelada ya es historia: no se mueve. */
+  canReschedule(appointment: Appointment): boolean {
+    return this.canEdit() && !['atendida', 'cancelada', 'no_asistio'].includes(appointment.status);
+  }
+
+  editAppointment(appointment: Appointment): void {
+    const start = new Date(appointment.starts_at);
+    const [first, ...rest] = appointment.patient_name.split(' ');
+    this.editingAppointment.set(appointment);
+    this.formError.set(null);
+    // Solo para mostrar el nombre: el paciente de una cita no se cambia.
+    this.formPatient.set({ id: appointment.patient_id, first_name: first, last_name: rest.join(' ') } as PatientListItem);
+    this.form.reset({
+      professional_id: appointment.professional_id,
+      treatment_id: appointment.treatment_id ?? '',
+      date: toDateInput(start),
+      time: `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
+      duration: appointment.duration_minutes,
+      notes: appointment.notes ?? '',
+      remind_whatsapp: false,
+      remind_email: false,
+    });
+    this.selected.set(null);
     this.formOpen.set(true);
   }
 
@@ -243,6 +325,25 @@ export class AgendaComponent implements OnInit {
       if (value.remind_whatsapp) channels.push('whatsapp');
       if (value.remind_email) channels.push('email');
 
+      const editing = this.editingAppointment();
+      if (editing) {
+        await firstValueFrom(
+          this.appointmentsService.update(editing.id, {
+            professional_id: value.professional_id,
+            treatment_id: value.treatment_id || null,
+            starts_at: start.toISOString(),
+            ends_at: end.toISOString(),
+            notes: value.notes || null,
+          }),
+        );
+        this.formOpen.set(false);
+        this.editingAppointment.set(null);
+        this.snackBar.open('Cita actualizada. Los recordatorios se movieron a la nueva hora.', 'Cerrar', {
+          duration: 3500,
+        });
+        await this.reload();
+        return;
+      }
       await firstValueFrom(
         this.appointmentsService.create({
           patient_id: patient.id,

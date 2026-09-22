@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,6 +17,7 @@ import {
   LabOrder,
   LabOrderStatus,
   Laboratory,
+  LAB_TERMINAL,
   nextStatuses,
 } from '../../core/models/laboratory.models';
 import { LaboratoryService } from '../../core/services/laboratory.service';
@@ -55,6 +56,10 @@ export class LaboratoryPageComponent implements OnInit {
 
   readonly showOrderForm = signal(false);
   readonly showLabForm = signal(false);
+  readonly showLabs = signal(false);
+  /** Laboratorio o trabajo que se edita; null cuando el panel crea uno nuevo. */
+  readonly editingLab = signal<Laboratory | null>(null);
+  readonly editingOrder = signal<LabOrder | null>(null);
   readonly advancing = signal<LabOrder | null>(null);
   readonly detail = signal<LabOrder | null>(null);
   chosenStatus: LabOrderStatus | '' = '';
@@ -90,6 +95,20 @@ export class LaboratoryPageComponent implements OnInit {
   readonly overdueCount = computed(
     () => this.orders().filter((o) => o.days_overdue !== null).length,
   );
+
+  /** Esc cierra cualquier ventana abierta, como en un diálogo normal. */
+  @HostListener('document:keydown.escape')
+  closePanels(): void {
+    this.showOrderForm.set(false);
+    // El formulario de laboratorio se abre desde la lista: Esc vuelve a ella.
+    if (this.showLabForm()) {
+      this.showLabForm.set(false);
+      return;
+    }
+    this.showLabs.set(false);
+    this.advancing.set(null);
+    this.detail.set(null);
+  }
 
   async ngOnInit(): Promise<void> {
     this.catalog.set(await firstValueFrom(this.lab.getCatalog()));
@@ -136,38 +155,116 @@ export class LaboratoryPageComponent implements OnInit {
     this.patientResults.set([]);
   }
 
+  openLabForm(laboratory: Laboratory | null = null): void {
+    this.editingLab.set(laboratory);
+    this.labForm.reset({
+      name: laboratory?.name ?? '',
+      contact_name: laboratory?.contact_name ?? '',
+      phone: laboratory?.phone ?? '',
+      email: laboratory?.email ?? '',
+      default_turnaround_days: laboratory?.default_turnaround_days ?? 7,
+    });
+    this.showLabForm.set(true);
+  }
+
   async submitLab(): Promise<void> {
     if (this.labForm.invalid || this.saving()) return;
     this.saving.set(true);
+    const editing = this.editingLab();
     try {
       const raw = this.labForm.getRawValue();
-      await firstValueFrom(
-        this.lab.createLaboratory({
-          name: raw.name,
-          contact_name: raw.contact_name || null,
-          phone: raw.phone || null,
-          email: raw.email || null,
-          default_turnaround_days: raw.default_turnaround_days || null,
-          is_active: true,
-        }),
-      );
-      this.labForm.reset({ default_turnaround_days: 7 });
+      const body = {
+        name: raw.name,
+        contact_name: raw.contact_name || null,
+        phone: raw.phone || null,
+        email: raw.email || null,
+        default_turnaround_days: raw.default_turnaround_days || null,
+        address: editing?.address ?? null,
+        notes: editing?.notes ?? null,
+        is_active: editing?.is_active ?? true,
+      };
+      if (editing) {
+        await firstValueFrom(this.lab.updateLaboratory(editing.id, body));
+      } else {
+        await firstValueFrom(this.lab.createLaboratory(body));
+      }
       this.showLabForm.set(false);
       await this.reload();
-      this.snackBar.open('Laboratorio registrado', 'Cerrar', { duration: 3000 });
+      this.snackBar.open(editing ? 'Laboratorio actualizado' : 'Laboratorio registrado', 'Cerrar', {
+        duration: 3000,
+      });
     } catch (error) {
-      this.report(error, 'No se pudo registrar el laboratorio');
+      this.report(error, 'No se pudo guardar el laboratorio');
     } finally {
       this.saving.set(false);
     }
+  }
+
+  async toggleLab(laboratory: Laboratory): Promise<void> {
+    await firstValueFrom(
+      this.lab.updateLaboratory(laboratory.id, { ...laboratory, is_active: !laboratory.is_active }),
+    );
+    await this.reload();
+  }
+
+  openOrderForm(order: LabOrder | null = null): void {
+    this.editingOrder.set(order);
+    if (order) {
+      const [first, ...rest] = (order.patient_name ?? '').split(' ');
+      // Solo para mostrar el nombre: el paciente de un trabajo no cambia.
+      this.chosenPatient.set({ id: order.patient_id, first_name: first, last_name: rest.join(' ') } as PatientListItem);
+      this.orderForm.reset({
+        laboratory_id: order.laboratory_id,
+        work_type: order.work_type,
+        description: order.description,
+        fdi_numbers: (order.fdi_numbers ?? []).join(', '),
+        shade: order.shade ?? '',
+        material: order.material ?? '',
+        due_on: order.due_on ?? '',
+        cost: order.cost ?? '',
+        notes: order.notes ?? '',
+      });
+    } else {
+      this.chosenPatient.set(null);
+      this.orderForm.reset({ work_type: 'corona' });
+    }
+    this.showOrderForm.set(true);
+  }
+
+  isOpen(order: LabOrder): boolean {
+    return !LAB_TERMINAL.includes(order.status);
   }
 
   async submitOrder(): Promise<void> {
     const patient = this.chosenPatient();
     if (!patient || this.orderForm.invalid || this.saving()) return;
     this.saving.set(true);
+    const editing = this.editingOrder();
     try {
       const raw = this.orderForm.getRawValue();
+      const details = {
+        laboratory_id: raw.laboratory_id,
+        work_type: raw.work_type,
+        description: raw.description,
+        fdi_numbers: raw.fdi_numbers
+          .split(',')
+          .map((n) => n.trim())
+          .filter(Boolean),
+        shade: raw.shade || null,
+        material: raw.material || null,
+        due_on: raw.due_on || null,
+        cost: raw.cost ? String(raw.cost).replace(',', '.') : null,
+        notes: raw.notes || null,
+      };
+      if (editing) {
+        await firstValueFrom(this.lab.updateOrder(editing.id, details));
+        this.showOrderForm.set(false);
+        this.editingOrder.set(null);
+        this.chosenPatient.set(null);
+        await this.reload();
+        this.snackBar.open('Trabajo actualizado', 'Cerrar', { duration: 3000 });
+        return;
+      }
       await firstValueFrom(
         this.lab.createOrder({
           patient_id: patient.id,
@@ -192,7 +289,7 @@ export class LaboratoryPageComponent implements OnInit {
       await this.reload();
       this.snackBar.open('Trabajo registrado', 'Cerrar', { duration: 3000 });
     } catch (error) {
-      this.report(error, 'No se pudo registrar el trabajo');
+      this.report(error, editing ? 'No se pudo guardar el trabajo' : 'No se pudo registrar el trabajo');
     } finally {
       this.saving.set(false);
     }

@@ -1,49 +1,165 @@
 <div class="page">
-  <h1>Datos de la clínica</h1>
+  <header class="page-header">
+    <div>
+      <h1>Datos de la clínica</h1>
+      <p class="page-sub">Aparecen en presupuestos, recetas y en lo que se imprime</p>
+    </div>
+  </header>
 
   <mat-card class="form-card">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="clinic-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Nombre comercial</mat-label>
-        <input matInput formControlName="name" />
-      </mat-form-field>
+    <h2>Identidad y contacto</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre comercial</mat-label>
+          <input matInput formControlName="name" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Razón social</mat-label>
-        <input matInput formControlName="legal_name" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Razón social</mat-label>
+          <input matInput formControlName="legal_name" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>RUC / identificación fiscal</mat-label>
-        <input matInput formControlName="tax_id" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>RUC / identificación fiscal</mat-label>
+          <input matInput formControlName="tax_id" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Teléfono</mat-label>
-        <input matInput formControlName="phone" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Teléfono</mat-label>
+          <mat-icon matPrefix>call</mat-icon>
+          <input matInput formControlName="phone" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Correo</mat-label>
-        <input matInput formControlName="email" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Correo</mat-label>
+          <mat-icon matPrefix>mail</mat-icon>
+          <input matInput formControlName="email" />
+          <mat-error>Correo no válido</mat-error>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Dirección</mat-label>
-        <input matInput formControlName="address" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Dirección</mat-label>
+          <mat-icon matPrefix>place</mat-icon>
+          <input matInput formControlName="address" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Zona horaria</mat-label>
-        <input matInput formControlName="timezone" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Zona horaria</mat-label>
+          <mat-select formControlName="timezone">
+            @for (tz of timezones(); track tz.value) {
+              <mat-option [value]="tz.value">{{ tz.label }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Define qué es "hoy" en agenda y reportes</mat-hint>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Moneda</mat-label>
-        <input matInput formControlName="currency" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Moneda</mat-label>
+          <mat-select formControlName="currency">
+            @for (c of currencies; track c.value) {
+              <mat-option [value]="c.value">{{ c.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
 
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Guardar</button>
+      <div class="form-actions">
+        @if (form.dirty) {
+          <span class="unsaved">Cambios sin guardar</span>
+        }
+        <button mat-flat-button type="submit" [disabled]="saving() || !form.dirty">
+          {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
+        </button>
+      </div>
     </form>
+  </mat-card>
+
+  <mat-card class="form-card">
+    <div class="section-head">
+      <div>
+        <h2>Sedes y consultorios</h2>
+        <p class="page-sub">Cada sillón o sala donde se atiende</p>
+      </div>
+      <button mat-stroked-button (click)="addBranch()">
+        <mat-icon>add_business</mat-icon>
+        Nueva sede
+      </button>
+    </div>
+
+    @for (branch of branches(); track branch.id) {
+      <section class="branch">
+        <div class="branch-head">
+          <mat-icon class="branch-icon">storefront</mat-icon>
+          <div class="branch-info">
+            <strong>
+              {{ branch.name }}
+              @if (branch.is_main) {
+                <span class="status-pill">Principal</span>
+              }
+            </strong>
+            <span class="muted">{{ branch.address || 'Sin dirección' }}</span>
+          </div>
+          <button mat-button (click)="addRoom(branch)">
+            <mat-icon>add</mat-icon>
+            Consultorio
+          </button>
+          <button mat-icon-button [matMenuTriggerFor]="branchMenu" aria-label="Acciones de la sede">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #branchMenu="matMenu" xPosition="before">
+            <button mat-menu-item (click)="renameBranch(branch)">
+              <mat-icon>edit</mat-icon>
+              Renombrar
+            </button>
+            <button mat-menu-item (click)="editBranchAddress(branch)">
+              <mat-icon>place</mat-icon>
+              Cambiar dirección
+            </button>
+            @if (!branch.is_main) {
+              <button mat-menu-item (click)="makeMain(branch)">
+                <mat-icon>star</mat-icon>
+                Marcar como principal
+              </button>
+            }
+            <button mat-menu-item class="danger-item" (click)="deleteBranch(branch)">
+              <mat-icon>delete</mat-icon>
+              Eliminar sede
+            </button>
+          </mat-menu>
+        </div>
+
+        <ul class="rooms">
+          @for (room of roomsByBranch().get(branch.id) ?? []; track room.id) {
+            <li [class.off]="!room.is_active">
+              <mat-icon>chair</mat-icon>
+              <span class="room-name">{{ room.name }}</span>
+              @if (!room.is_active) {
+                <span class="status-pill off">Inactivo</span>
+              }
+              <button mat-icon-button (click)="renameRoom(room)" matTooltip="Renombrar" aria-label="Renombrar">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="toggleRoom(room)"
+                      [matTooltip]="room.is_active ? 'Desactivar' : 'Reactivar'"
+                      [attr.aria-label]="room.is_active ? 'Desactivar' : 'Reactivar'">
+                <mat-icon>{{ room.is_active ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              </button>
+              <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Eliminar" aria-label="Eliminar">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </li>
+          } @empty {
+            <li class="empty-room">Sin consultorios todavía.</li>
+          }
+        </ul>
+      </section>
+    } @empty {
+      <div class="empty">
+        <mat-icon>storefront</mat-icon>
+        <p>Agregue la sede de la clínica y sus consultorios.</p>
+      </div>
+    }
   </mat-card>
 </div>

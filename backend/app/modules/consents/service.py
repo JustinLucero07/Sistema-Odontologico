@@ -7,17 +7,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import record_audit
 from app.modules.consents.models import Consent, ConsentTemplate
-from app.modules.consents.schemas import ConsentCreate, ConsentSign, ConsentTemplateCreate
+from app.modules.consents.schemas import ConsentCreate, ConsentSign, ConsentTemplateCreate, ConsentTemplateUpdate
 from app.modules.patients.service import get_patient_or_404
 
 
-async def list_templates(db: AsyncSession, clinic_id: uuid.UUID) -> list[ConsentTemplate]:
-    result = await db.execute(
-        select(ConsentTemplate)
-        .where(ConsentTemplate.clinic_id == clinic_id, ConsentTemplate.is_active.is_(True))
-        .order_by(ConsentTemplate.name)
-    )
+async def list_templates(
+    db: AsyncSession, clinic_id: uuid.UUID, include_inactive: bool = False
+) -> list[ConsentTemplate]:
+    query = select(ConsentTemplate).where(ConsentTemplate.clinic_id == clinic_id)
+    if not include_inactive:
+        query = query.where(ConsentTemplate.is_active.is_(True))
+    result = await db.execute(query.order_by(ConsentTemplate.name))
     return list(result.scalars().all())
+
+
+async def update_template(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, template_id: uuid.UUID,
+    payload: ConsentTemplateUpdate,
+) -> ConsentTemplate:
+    """Cambiar una plantilla no toca los consentimientos ya emitidos: cada uno
+    guardó su propia copia del texto que el paciente leyó."""
+    template = (
+        await db.execute(
+            select(ConsentTemplate).where(ConsentTemplate.id == template_id, ConsentTemplate.clinic_id == clinic_id)
+        )
+    ).scalar_one_or_none()
+    if template is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plantilla no encontrada")
+    before = {"name": template.name, "is_active": template.is_active}
+    for field, value in payload.model_dump().items():
+        setattr(template, field, value)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="consent_template",
+        entity_id=str(template_id), before=before, after={"name": template.name, "is_active": template.is_active},
+    )
+    return template
 
 
 async def create_template(

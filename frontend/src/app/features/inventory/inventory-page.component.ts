@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -32,6 +33,7 @@ import { InventoryService } from '../../core/services/inventory.service';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     MatSelectModule,
     MatTooltipModule,
   ],
@@ -53,6 +55,11 @@ export class InventoryPageComponent implements OnInit {
   readonly saving = signal(false);
 
   readonly showItemForm = signal(false);
+  /** Artículo que se edita; null cuando el panel crea uno nuevo. */
+  readonly editingItem = signal<InventoryItem | null>(null);
+  readonly showInactive = signal(false);
+  readonly showSuppliers = signal(false);
+  readonly editingSupplier = signal<Supplier | 'new' | null>(null);
   readonly movingItem = signal<InventoryItem | null>(null);
   readonly historyItem = signal<InventoryItem | null>(null);
   readonly search = signal('');
@@ -70,6 +77,16 @@ export class InventoryPageComponent implements OnInit {
     unit_cost: [''],
     notes: [''],
   });
+
+  readonly supplierForm = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    contact_name: [''],
+    phone: [''],
+    email: ['', Validators.email],
+    notes: [''],
+  });
+
+  readonly activeSuppliers = computed(() => this.suppliers().filter((s) => s.is_active));
 
   readonly movementForm = this.fb.nonNullable.group({
     reason: ['compra', Validators.required],
@@ -118,6 +135,15 @@ export class InventoryPageComponent implements OnInit {
     return this.catalog().reasons.find((r) => r.code === code)?.sign ?? 1;
   });
 
+  /** Esc cierra cualquier ventana abierta, como en un diálogo normal. */
+  @HostListener('document:keydown.escape')
+  closePanels(): void {
+    this.showItemForm.set(false);
+    this.movingItem.set(null);
+    this.historyItem.set(null);
+    this.showSuppliers.set(false);
+  }
+
   async ngOnInit(): Promise<void> {
     this.catalog.set(await firstValueFrom(this.inventory.getCatalog()));
     await this.reload();
@@ -127,7 +153,7 @@ export class InventoryPageComponent implements OnInit {
     this.loading.set(true);
     try {
       const [items, suppliers, alerts] = await Promise.all([
-        firstValueFrom(this.inventory.listItems()),
+        firstValueFrom(this.inventory.listItems(this.showInactive())),
         firstValueFrom(this.inventory.listSuppliers()),
         firstValueFrom(this.inventory.getAlerts()),
       ]);
@@ -151,33 +177,134 @@ export class InventoryPageComponent implements OnInit {
     return raw.replace(',', '.');
   }
 
+  async toggleInactive(): Promise<void> {
+    this.showInactive.set(!this.showInactive());
+    await this.reload();
+  }
+
+  openItemForm(item: InventoryItem | null = null): void {
+    this.editingItem.set(item);
+    this.itemForm.reset({
+      name: item?.name ?? '',
+      sku: item?.sku ?? '',
+      category: item?.category ?? '',
+      unit: item?.unit ?? 'unidad',
+      supplier_id: item?.supplier_id ?? '',
+      minimum_stock: item ? formatQuantity(item.minimum_stock) : '0',
+      unit_cost: item?.unit_cost ?? '',
+      notes: item?.notes ?? '',
+    });
+    this.showItemForm.set(true);
+  }
+
+  private itemPayload(isActive: boolean) {
+    const raw = this.itemForm.getRawValue();
+    return {
+      name: raw.name,
+      sku: raw.sku || null,
+      category: raw.category || null,
+      unit: raw.unit,
+      supplier_id: raw.supplier_id || null,
+      minimum_stock: this.normalize(raw.minimum_stock || '0'),
+      unit_cost: raw.unit_cost ? this.normalize(raw.unit_cost) : null,
+      notes: raw.notes || null,
+      is_active: isActive,
+    };
+  }
+
   async submitItem(): Promise<void> {
     if (this.itemForm.invalid || this.saving()) return;
     this.saving.set(true);
+    const editing = this.editingItem();
     try {
-      const raw = this.itemForm.getRawValue();
-      await firstValueFrom(
-        this.inventory.createItem({
-          name: raw.name,
-          sku: raw.sku || null,
-          category: raw.category || null,
-          unit: raw.unit,
-          supplier_id: raw.supplier_id || null,
-          minimum_stock: this.normalize(raw.minimum_stock || '0'),
-          unit_cost: raw.unit_cost ? this.normalize(raw.unit_cost) : null,
-          notes: raw.notes || null,
-          is_active: true,
-        }),
-      );
-      this.itemForm.reset({ unit: 'unidad', minimum_stock: '0' });
+      if (editing) {
+        await firstValueFrom(this.inventory.updateItem(editing.id, this.itemPayload(editing.is_active)));
+      } else {
+        await firstValueFrom(this.inventory.createItem(this.itemPayload(true)));
+      }
       this.showItemForm.set(false);
       await this.reload();
-      this.snackBar.open('Artículo creado', 'Cerrar', { duration: 3000 });
+      this.snackBar.open(editing ? 'Artículo actualizado' : 'Artículo creado', 'Cerrar', { duration: 3000 });
     } catch (error) {
-      this.report(error, 'No se pudo crear el artículo');
+      this.report(error, 'No se pudo guardar el artículo');
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** Desactivar lo saca de la lista y de las alertas; su historial se queda. */
+  async toggleItemActive(item: InventoryItem): Promise<void> {
+    this.editingItem.set(item);
+    this.itemForm.reset({
+      name: item.name,
+      sku: item.sku ?? '',
+      category: item.category ?? '',
+      unit: item.unit,
+      supplier_id: item.supplier_id ?? '',
+      minimum_stock: formatQuantity(item.minimum_stock),
+      unit_cost: item.unit_cost ?? '',
+      notes: item.notes ?? '',
+    });
+    try {
+      await firstValueFrom(this.inventory.updateItem(item.id, this.itemPayload(!item.is_active)));
+      this.snackBar.open(item.is_active ? `${item.name} desactivado` : `${item.name} reactivado`, 'Cerrar', {
+        duration: 3000,
+      });
+      await this.reload();
+    } catch (error) {
+      this.report(error, 'No se pudo cambiar el artículo');
+    }
+  }
+
+  // ---- Proveedores -------------------------------------------------------
+
+  editSupplier(supplier: Supplier | 'new'): void {
+    const s = supplier === 'new' ? null : supplier;
+    this.supplierForm.reset({
+      name: s?.name ?? '',
+      contact_name: s?.contact_name ?? '',
+      phone: s?.phone ?? '',
+      email: s?.email ?? '',
+      notes: s?.notes ?? '',
+    });
+    this.editingSupplier.set(supplier);
+  }
+
+  async saveSupplier(): Promise<void> {
+    const target = this.editingSupplier();
+    if (!target || this.supplierForm.invalid || this.saving()) {
+      this.supplierForm.markAllAsTouched();
+      return;
+    }
+    this.saving.set(true);
+    const raw = this.supplierForm.getRawValue();
+    const body = {
+      name: raw.name.trim(),
+      contact_name: raw.contact_name || null,
+      phone: raw.phone || null,
+      email: raw.email || null,
+      notes: raw.notes || null,
+    };
+    try {
+      if (target === 'new') {
+        await firstValueFrom(this.inventory.createSupplier({ ...body, is_active: true }));
+      } else {
+        await firstValueFrom(this.inventory.updateSupplier(target.id, { ...body, is_active: target.is_active }));
+      }
+      this.editingSupplier.set(null);
+      await this.reload();
+    } catch (error) {
+      this.report(error, 'No se pudo guardar el proveedor');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async toggleSupplier(supplier: Supplier): Promise<void> {
+    await firstValueFrom(
+      this.inventory.updateSupplier(supplier.id, { ...supplier, is_active: !supplier.is_active }),
+    );
+    await this.reload();
   }
 
   openMovement(item: InventoryItem): void {

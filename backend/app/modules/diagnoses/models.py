@@ -7,9 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.shared.mixins import TenantMixin, UUIDPKMixin
+from app.shared.voiding import VoidableMixin
 
 
-class Diagnosis(UUIDPKMixin, TenantMixin, Base):
+class Diagnosis(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
     __tablename__ = "diagnoses"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)

@@ -8,12 +8,18 @@
       </p>
     </div>
 
-    @if (canWrite) {
-      <button mat-flat-button (click)="showItemForm.set(!showItemForm())">
-        <mat-icon>{{ showItemForm() ? 'close' : 'add' }}</mat-icon>
-        {{ showItemForm() ? 'Cancelar' : 'Nuevo artículo' }}
+    <div class="head-actions">
+      <button mat-stroked-button (click)="showSuppliers.set(true); editingSupplier.set(null)">
+        <mat-icon>local_shipping</mat-icon>
+        Proveedores
       </button>
-    }
+      @if (canWrite) {
+        <button mat-flat-button (click)="openItemForm()">
+          <mat-icon>add</mat-icon>
+          Nuevo artículo
+        </button>
+      }
+    </div>
   </header>
 
   @if (alerts(); as a) {
@@ -50,55 +56,6 @@
     }
   }
 
-  @if (showItemForm()) {
-    <form class="form-card" [formGroup]="itemForm" (ngSubmit)="submitItem()">
-      <h3>Nuevo artículo</h3>
-      <div class="form-grid">
-        <mat-form-field appearance="outline" class="wide">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="name" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Código / SKU</mat-label>
-          <input matInput formControlName="sku" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Categoría</mat-label>
-          <input matInput formControlName="category" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Unidad</mat-label>
-          <mat-select formControlName="unit">
-            @for (unit of catalog().units; track unit.code) {
-              <mat-option [value]="unit.code">{{ unit.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Stock mínimo</mat-label>
-          <input matInput formControlName="minimum_stock" inputmode="decimal" />
-          <mat-hint>Por debajo de esto aparece en alertas</mat-hint>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Costo unitario</mat-label>
-          <span matTextPrefix>$&nbsp;</span>
-          <input matInput formControlName="unit_cost" inputmode="decimal" />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Proveedor</mat-label>
-          <mat-select formControlName="supplier_id">
-            <mat-option value="">Sin proveedor</mat-option>
-            @for (supplier of suppliers(); track supplier.id) {
-              <mat-option [value]="supplier.id">{{ supplier.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      </div>
-      <button mat-flat-button type="submit" [disabled]="itemForm.invalid || saving()">
-        Guardar artículo
-      </button>
-    </form>
-  }
 
   <div class="toolbar">
     <mat-form-field appearance="outline" class="search-field">
@@ -113,6 +70,10 @@
     >
       <mat-icon>filter_alt</mat-icon>
       Solo con alerta
+    </button>
+    <button mat-stroked-button [class.filter-on]="showInactive()" (click)="toggleInactive()">
+      <mat-icon>{{ showInactive() ? 'visibility' : 'visibility_off' }}</mat-icon>
+      {{ showInactive() ? 'Mostrando inactivos' : 'Ver inactivos' }}
     </button>
   </div>
 
@@ -138,10 +99,11 @@
       </thead>
       <tbody>
         @for (item of visibleItems(); track item.id) {
-          <tr [class.is-low]="item.below_minimum">
+          <tr [class.is-low]="item.below_minimum && item.is_active" [class.inactive]="!item.is_active">
             <td>
               <strong>{{ item.name }}</strong>
               @if (item.sku) { <span class="sku">{{ item.sku }}</span> }
+              @if (!item.is_active) { <span class="status-pill off">Inactivo</span> }
             </td>
             <td class="muted">{{ item.category ?? '—' }}</td>
             <td class="right">
@@ -182,9 +144,23 @@
                   matTooltip="Registrar movimiento"
                   aria-label="Registrar movimiento"
                   (click)="openMovement(item)"
+                  [disabled]="!item.is_active"
                 >
                   <mat-icon>swap_vert</mat-icon>
                 </button>
+                <button mat-icon-button [matMenuTriggerFor]="itemMenu" aria-label="Más acciones">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #itemMenu="matMenu" xPosition="before">
+                  <button mat-menu-item (click)="openItemForm(item)">
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  <button mat-menu-item [class.danger-item]="item.is_active" (click)="toggleItemActive(item)">
+                    <mat-icon>{{ item.is_active ? 'block' : 'restart_alt' }}</mat-icon>
+                    {{ item.is_active ? 'Desactivar' : 'Reactivar' }}
+                  </button>
+                </mat-menu>
               }
             </td>
           </tr>
@@ -291,6 +267,140 @@
 
       <div class="panel-actions">
         <button mat-stroked-button (click)="historyItem.set(null)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showItemForm()) {
+  <div class="overlay" (click)="showItemForm.set(false)">
+  <form class="panel" (click)="$event.stopPropagation()" [formGroup]="itemForm" (ngSubmit)="submitItem()">
+        <h3>{{ editingItem() ? 'Editar artículo' : 'Nuevo artículo' }}</h3>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Código / SKU</mat-label>
+            <input matInput formControlName="sku" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Categoría</mat-label>
+            <input matInput formControlName="category" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Unidad</mat-label>
+            <mat-select formControlName="unit">
+              @for (unit of catalog().units; track unit.code) {
+                <mat-option [value]="unit.code">{{ unit.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Stock mínimo</mat-label>
+            <input matInput formControlName="minimum_stock" inputmode="decimal" />
+            <mat-hint>Por debajo de esto aparece en alertas</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Costo unitario</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput formControlName="unit_cost" inputmode="decimal" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Proveedor</mat-label>
+            <mat-select formControlName="supplier_id">
+              <mat-option value="">Sin proveedor</mat-option>
+              @for (supplier of suppliers(); track supplier.id) {
+                <mat-option [value]="supplier.id">{{ supplier.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div class="panel-actions">
+          <button mat-flat-button type="submit" [disabled]="itemForm.invalid || saving()">
+            {{ editingItem() ? 'Guardar cambios' : 'Guardar artículo' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="showItemForm.set(false)">Cancelar</button>
+        </div>
+      </form>
+  </div>
+}
+
+<!-- Proveedores -->
+@if (showSuppliers()) {
+  <div class="overlay" (click)="showSuppliers.set(false)">
+    <div class="panel wide-panel" (click)="$event.stopPropagation()">
+      <div class="panel-head">
+        <h3>Proveedores</h3>
+        @if (canWrite && editingSupplier() === null) {
+          <button mat-stroked-button (click)="editSupplier('new')">
+            <mat-icon>add</mat-icon>
+            Nuevo proveedor
+          </button>
+        }
+      </div>
+
+      @if (editingSupplier(); as target) {
+        <form class="supplier-form" [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
+          <p class="panel-hint">{{ target === 'new' ? 'Nuevo proveedor' : 'Editar proveedor' }}</p>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Contacto</mat-label>
+              <input matInput formControlName="contact_name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono</mat-label>
+              <input matInput formControlName="phone" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Correo</mat-label>
+              <input matInput type="email" formControlName="email" />
+            </mat-form-field>
+          </div>
+          <div class="panel-actions">
+            <button mat-flat-button type="submit" [disabled]="saving()">Guardar proveedor</button>
+            <button mat-stroked-button type="button" (click)="editingSupplier.set(null)">Cancelar</button>
+          </div>
+        </form>
+      }
+
+      @if (suppliers().length === 0) {
+        <p class="inv-empty">Aún no hay proveedores registrados.</p>
+      } @else {
+        <ul class="supplier-list">
+          @for (supplier of suppliers(); track supplier.id) {
+            <li [class.inactive]="!supplier.is_active">
+              <div>
+                <strong>{{ supplier.name }}</strong>
+                <span class="muted">
+                  {{ supplier.contact_name || 'Sin contacto' }}
+                  @if (supplier.phone) { · {{ supplier.phone }} }
+                  @if (supplier.email) { · {{ supplier.email }} }
+                </span>
+              </div>
+              @if (!supplier.is_active) {
+                <span class="status-pill off">Inactivo</span>
+              }
+              @if (canWrite) {
+                <button mat-icon-button (click)="editSupplier(supplier)" aria-label="Editar proveedor">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-button [color]="supplier.is_active ? 'warn' : 'primary'" (click)="toggleSupplier(supplier)">
+                  {{ supplier.is_active ? 'Desactivar' : 'Reactivar' }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="panel-actions">
+        <button mat-stroked-button (click)="showSuppliers.set(false)">Cerrar</button>
       </div>
     </div>
   </div>

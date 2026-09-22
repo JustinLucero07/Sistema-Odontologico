@@ -84,4 +84,31 @@ export class ClinicalRecordsService {
   downloadDocument(documentId: string): Observable<Blob> {
     return this.http.get(`${this.api}/documents/${documentId}/download`, { responseType: 'blob' });
   }
+
+  /** Una receta no se borra: queda anulada, con su motivo, en la historia. */
+  voidPrescription(patientId: string, prescriptionId: string, reason: string): Observable<Prescription> {
+    return this.http.post<Prescription>(
+      `${this.api}/patients/${patientId}/prescriptions/${prescriptionId}/void`,
+      { reason },
+    );
+  }
+
+  listAllConsentTemplates(): Observable<ConsentTemplate[]> {
+    return this.http.get<ConsentTemplate[]>(`${this.api}/consents/templates`, {
+      params: { include_inactive: true },
+    });
+  }
+
+  createConsentTemplate(payload: Omit<ConsentTemplate, 'id' | 'is_active'>): Observable<ConsentTemplate> {
+    return this.http.post<ConsentTemplate>(`${this.api}/consents/templates`, payload);
+  }
+
+  updateConsentTemplate(id: string, payload: Omit<ConsentTemplate, 'id'>): Observable<ConsentTemplate> {
+    return this.http.put<ConsentTemplate>(`${this.api}/consents/templates/${id}`, payload);
+  }
+
+  /** Corrige una evolución; el servidor guarda el valor anterior en la auditoría. */
+  updateEvolution(evolutionId: string, payload: Partial<ClinicalEvolution>): Observable<ClinicalEvolution> {
+    return this.http.put<ClinicalEvolution>(`${this.api}/evolutions/${evolutionId}`, payload);
+  }
 }

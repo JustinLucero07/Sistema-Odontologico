@@ -1,6 +1,7 @@
 import uuid
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ClinicOut(BaseModel):
@@ -31,7 +32,20 @@ class ClinicUpdate(BaseModel):
     primary_color: str | None = None
     secondary_color: str | None = None
     timezone: str | None = None
-    currency: str | None = None
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str | None) -> str | None:
+        # Los reportes cuentan los días en esta zona: una mal escrita los
+        # desplazaría sin avisar, así que se rechaza al guardarla.
+        if value is None:
+            return value
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(f"Zona horaria desconocida: {value}")
+        return value
 
 
 class BranchCreate(BaseModel):
@@ -61,6 +75,12 @@ class BranchOut(BaseModel):
 class OperatoryCreate(BaseModel):
     branch_id: uuid.UUID
     name: str = Field(min_length=1, max_length=100)
+
+
+class OperatoryUpdate(BaseModel):
+    branch_id: uuid.UUID | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    is_active: bool | None = None
 
 
 class OperatoryOut(BaseModel):

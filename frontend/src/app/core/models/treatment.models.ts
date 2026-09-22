@@ -21,6 +21,8 @@ export interface Diagnosis {
   fdi_number: string | null;
   description: string;
   notes: string | null;
+  voided_at?: string | null;
+  void_reason?: string | null;
 }
 
 export interface DiagnosisCreate {
@@ -64,6 +66,16 @@ export interface TreatmentPlanItemCreate {
   discount?: number;
   status?: TreatmentPlanItemStatus;
   notes?: string | null;
+}
+
+export interface TreatmentPlanItemUpdate {
+  price?: number;
+  discount?: number;
+  fdi_number?: string | null;
+  surface?: string | null;
+  estimated_date?: string | null;
+  notes?: string | null;
+  status?: TreatmentPlanItemStatus;
 }
 
 export interface TreatmentPlan {

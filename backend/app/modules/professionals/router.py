@@ -12,6 +12,7 @@ from app.modules.professionals.schemas import (
     ProfessionalUpdate,
     SpecialtyCreate,
     SpecialtyOut,
+    SpecialtyUpdate,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["professionals"])
@@ -34,6 +35,28 @@ async def post_specialty(
     specialty = await service.create_specialty(db, current_user.clinic_id, payload)
     await db.commit()
     return specialty
+
+
+@router.put("/specialties/{specialty_id}", response_model=SpecialtyOut)
+async def put_specialty(
+    specialty_id: uuid.UUID,
+    payload: SpecialtyUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    specialty = await service.update_specialty(db, current_user.clinic_id, specialty_id, payload)
+    await db.commit()
+    return specialty
+
+
+@router.delete("/specialties/{specialty_id}", status_code=204)
+async def delete_specialty(
+    specialty_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    await service.delete_specialty(db, current_user.clinic_id, specialty_id)
+    await db.commit()
 
 
 @router.get("/professionals", response_model=list[ProfessionalOut])

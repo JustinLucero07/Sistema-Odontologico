@@ -17,4 +17,7 @@ async def get_summary(
 ):
     """Available to any signed-in user: it only exposes counts for their own
     clinic, and the UI hides the cards a role has no business seeing."""
-    return await service.build_summary(db, current_user.clinic_id, days)
+    def can(permission: str) -> bool:
+        return current_user.is_superadmin or permission in current_user.permissions
+
+    return await service.build_summary(db, current_user.clinic_id, days, can)

@@ -1,12 +1,12 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import record_audit
 from app.modules.clinics.models import Branch, Clinic, Operatory
-from app.modules.clinics.schemas import BranchCreate, BranchUpdate, ClinicUpdate, OperatoryCreate
+from app.modules.clinics.schemas import BranchCreate, BranchUpdate, ClinicUpdate, OperatoryCreate, OperatoryUpdate
 
 
 async def get_clinic_or_404(db: AsyncSession, clinic_id: uuid.UUID) -> Clinic:
@@ -68,6 +68,12 @@ async def update_branch(
 
 async def delete_branch(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, branch_id: uuid.UUID) -> None:
     branch = await get_branch_or_404(db, clinic_id, branch_id)
+    rooms = await db.scalar(select(func.count()).select_from(Operatory).where(Operatory.branch_id == branch_id))
+    if rooms:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"La sede tiene {rooms} consultorio(s). Elimínelos o desactívelos primero.",
+        )
     await db.delete(branch)
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="delete", entity_type="branch", entity_id=str(branch_id),
@@ -100,8 +106,40 @@ async def delete_operatory(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uui
     operatory = result.scalar_one_or_none()
     if operatory is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consultorio no encontrado")
+    # Importado aquí para no crear un ciclo entre módulos al cargar.
+    from app.modules.appointments.models import Appointment
+
+    used = await db.scalar(
+        select(func.count()).select_from(Appointment).where(Appointment.operatory_id == operatory_id)
+    )
+    if used:
+        # Las citas pasadas lo nombran; se retira en vez de borrarlo.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Tiene {used} cita(s) registradas. Desactívelo en lugar de eliminarlo.",
+        )
     await db.delete(operatory)
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="delete", entity_type="operatory",
         entity_id=str(operatory_id),
     )
+
+
+async def update_operatory(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, operatory_id: uuid.UUID, payload: OperatoryUpdate
+) -> Operatory:
+    operatory = (
+        await db.execute(select(Operatory).where(Operatory.id == operatory_id, Operatory.clinic_id == clinic_id))
+    ).scalar_one_or_none()
+    if operatory is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consultorio no encontrado")
+    data = payload.model_dump(exclude_unset=True)
+    if "branch_id" in data:
+        await get_branch_or_404(db, clinic_id, data["branch_id"])
+    for field, value in data.items():
+        setattr(operatory, field, value)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="operatory",
+        entity_id=str(operatory_id), after=data,
+    )
+    return operatory

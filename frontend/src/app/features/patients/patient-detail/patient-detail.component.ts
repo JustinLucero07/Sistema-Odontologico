@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
 import { PatientsService } from '../../../core/services/patients.service';
@@ -44,6 +45,8 @@ import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plan
     MatInputModule,
     MatSelectModule,
     MatTabsModule,
+    MatTooltipModule,
+    RouterLink,
     HasPermissionDirective,
     OdontogramComponent,
     PeriodontogramTabComponent,
@@ -63,6 +66,13 @@ export class PatientDetailComponent implements OnInit {
   /** null until the account loads, or when the user cannot see money at all —
    *  the chip then stays absent rather than showing a misleading zero. */
   readonly balance = signal<number | null>(null);
+
+  /** wa.me solo abre la conversación en WhatsApp: no envía nada por sí mismo,
+   *  así que no necesita ninguna integración ni credenciales. Pide el número
+   *  en formato internacional sin '+' ni espacios. */
+  whatsappLink(number: string): string {
+    return `https://wa.me/${number.replace(/[^\d]/g, '')}`;
+  }
 
   balanceLabel(): string {
     return formatMoney(Math.abs(this.balance() ?? 0));

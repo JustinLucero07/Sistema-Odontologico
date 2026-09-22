@@ -1,24 +1,61 @@
 @if (auth.currentUser(); as user) {
   <div class="dashboard">
-    <header class="dash-head">
-      <div class="greet">
-        <p class="greet-date">{{ today() }}</p>
-        <h1>{{ greeting() }}, {{ user.first_name }} <span class="wave">👋</span></h1>
-        <p class="greet-sub">Esto es lo que ocurre hoy en tu clínica.</p>
+    <!-- Hero: el día contado en una frase, y lo que se hace primero a un clic. -->
+    <header class="hero">
+      <div class="hero-mark" aria-hidden="true">
+        <app-tooth-mark [size]="260" [filled]="true" />
       </div>
 
-      <div class="head-side">
-        <span class="period-chip">
-          <mat-icon>calendar_today</mat-icon>
-          Próximos 7 días
-        </span>
-        <span class="role-chip">
-          {{ user.is_superadmin ? 'Superadministrador' : (user.roles.join(' · ') || 'Sin rol') }}
-        </span>
+      <div class="hero-text">
+        <p class="hero-date">{{ today() }}</p>
+        <h1>{{ greeting() }}, {{ user.first_name }}</h1>
+        <p class="hero-sub">
+          @if (summary()) {
+            {{ narrative() }}
+          } @else {
+            Preparando el resumen del día…
+          }
+        </p>
+        <div class="hero-actions">
+          @if (auth.hasPermission('appointments:write')) {
+            <button mat-flat-button class="hero-primary" (click)="newAppointment()">
+              <mat-icon>event</mat-icon>
+              Nueva cita
+            </button>
+          }
+          @if (auth.hasPermission('patients:write')) {
+            <button mat-stroked-button class="hero-secondary" (click)="newPatient()">
+              <mat-icon>person_add</mat-icon>
+              Nuevo paciente
+            </button>
+          }
+          @if (auth.hasPermission('appointments:read')) {
+            <a mat-button class="hero-link" routerLink="/agenda">
+              Ver agenda
+              <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+            </a>
+          }
+        </div>
       </div>
+
+      @if (summary(); as data) {
+        <div class="hero-ring" [attr.aria-label]="dayProgress().done + ' de ' + dayProgress().total + ' citas atendidas'">
+          <svg viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" class="ring-track" />
+            @if (dayProgress().done > 0) {
+              <circle cx="40" cy="40" r="34" class="ring-fill" [attr.stroke-dasharray]="dayProgress().dash" />
+            }
+          </svg>
+          <div class="ring-center">
+            <strong class="numeric">{{ dayProgress().done }}<small>/{{ dayProgress().total }}</small></strong>
+            <span>atendidas hoy</span>
+          </div>
+        </div>
+      }
     </header>
 
     @if (summary(); as data) {
+      <!-- KPIs: con permiso de caja, el dinero; sin él, la actividad clínica. -->
       <section class="stat-row">
         <article class="glass-card stat-card">
           <div class="stat-body">
@@ -28,14 +65,62 @@
               <span class="stat-delta" [class.down]="!trend.up">
                 <mat-icon>{{ trend.up ? 'trending_up' : 'trending_down' }}</mat-icon>
                 {{ trend.percent }}%
-                <em>vs semana pasada</em>
+                <em>semana vs anterior</em>
               </span>
             } @else {
-              <span class="stat-delta muted"><em>Sin comparación previa</em></span>
+              <span class="stat-delta muted"><em>{{ data.appointments_this_week }} en los últimos 7 días</em></span>
             }
           </div>
           <span class="stat-icon tone-teal"><mat-icon>event_available</mat-icon></span>
         </article>
+
+        @if (canSeeMoney()) {
+          <article class="glass-card stat-card">
+            <div class="stat-body">
+              <span class="stat-label">Cobrado este mes</span>
+              <span class="stat-value numeric"><small>$</small>{{ money(+data.income_month!) }}</span>
+              @if (incomeTrend(); as trend) {
+                <span class="stat-delta" [class.down]="!trend.up">
+                  <mat-icon>{{ trend.up ? 'trending_up' : 'trending_down' }}</mat-icon>
+                  {{ trend.percent }}%
+                  <em>vs mes pasado a esta fecha</em>
+                </span>
+              } @else {
+                <span class="stat-delta muted"><em>Sin datos del mes pasado</em></span>
+              }
+            </div>
+            <span class="stat-icon tone-mint"><mat-icon>payments</mat-icon></span>
+          </article>
+
+          <article class="glass-card stat-card">
+            <div class="stat-body">
+              <span class="stat-label">Por cobrar</span>
+              <span class="stat-value numeric"><small>$</small>{{ money(+data.receivables_total!) }}</span>
+              <span class="stat-delta muted"><em>Saldo pendiente de pacientes</em></span>
+            </div>
+            <span class="stat-icon tone-gold"><mat-icon>account_balance_wallet</mat-icon></span>
+          </article>
+        } @else {
+          <article class="glass-card stat-card">
+            <div class="stat-body">
+              <span class="stat-label">Tratamientos pendientes</span>
+              <span class="stat-value numeric">{{ data.treatments_pending }}</span>
+              <span class="stat-delta muted"><em>En planes activos</em></span>
+            </div>
+            <span class="stat-icon tone-gold"><mat-icon>assignment</mat-icon></span>
+          </article>
+
+          @if (budgetSplit(); as split) {
+            <article class="glass-card stat-card">
+              <div class="stat-body">
+                <span class="stat-label">Presupuestos aceptados</span>
+                <span class="stat-value numeric"><small>$</small>{{ money(split.accepted) }}</span>
+                <span class="stat-delta muted"><em>$ {{ money(split.awaiting) }} sin respuesta</em></span>
+              </div>
+              <span class="stat-icon tone-ink"><mat-icon>request_quote</mat-icon></span>
+            </article>
+          }
+        }
 
         <article class="glass-card stat-card">
           <div class="stat-body">
@@ -43,7 +128,7 @@
             <span class="stat-value numeric">{{ data.total_patients }}</span>
             @if (data.new_patients_30d > 0) {
               <span class="stat-delta">
-                <mat-icon>trending_up</mat-icon>
+                <mat-icon>person_add</mat-icon>
                 {{ data.new_patients_30d }}
                 <em>nuevos en 30 días</em>
               </span>
@@ -51,29 +136,163 @@
               <span class="stat-delta muted"><em>Sin altas en 30 días</em></span>
             }
           </div>
-          <span class="stat-icon tone-mint"><mat-icon>groups</mat-icon></span>
+          <span class="stat-icon tone-ink"><mat-icon>groups</mat-icon></span>
         </article>
+      </section>
 
-        <article class="glass-card stat-card">
-          <div class="stat-body">
-            <span class="stat-label">Tratamientos pendientes</span>
-            <span class="stat-value numeric">{{ data.treatments_pending }}</span>
-            <span class="stat-delta muted"><em>En planes activos</em></span>
-          </div>
-          <span class="stat-icon tone-gold"><mat-icon>assignment</mat-icon></span>
-        </article>
+      <section class="main-row">
+        <!-- Agenda de hoy: lo primero que mira recepción al llegar. -->
+        @if (data.today_agenda !== null) {
+          <article class="glass-card agenda-card">
+            <header class="card-head">
+              <div>
+                <h2>Agenda de hoy</h2>
+                <p class="card-sub">
+                  @if (agenda().length > 0) {
+                    {{ agenda().length }} {{ agenda().length === 1 ? 'cita' : 'citas' }} ·
+                    {{ doneCount() }} {{ doneCount() === 1 ? 'atendida' : 'atendidas' }}
+                  } @else {
+                    Sin citas programadas
+                  }
+                </p>
+              </div>
+              <a mat-button routerLink="/agenda">
+                Abrir agenda
+                <mat-icon iconPositionEnd>chevron_right</mat-icon>
+              </a>
+            </header>
 
-        <article class="glass-card stat-card">
-          <div class="stat-body">
-            <span class="stat-label">Presupuestos aceptados</span>
-            <span class="stat-value numeric">
-              <small>$</small>{{ money(data.budget_accepted_total) }}
-            </span>
-            <span class="stat-delta muted">
-              <em>$ {{ money(data.budget_awaiting_total) }} sin respuesta</em>
-            </span>
-          </div>
-          <span class="stat-icon tone-ink"><mat-icon>request_quote</mat-icon></span>
+            @if (nextAppointment(); as next) {
+              <a class="next-up" [routerLink]="['/patients', next.patient_id]">
+                <span class="next-label">
+                  <span class="pulse" aria-hidden="true"></span>
+                  {{ isNow(next) ? 'En consulta ahora' : 'Siguiente' }}
+                </span>
+                <span class="next-main">
+                  <span class="next-avatar" [style.background]="next.professional_color || null">
+                    {{ initials(next.patient_name) }}
+                  </span>
+                  <span class="next-info">
+                    <strong>{{ next.patient_name }}</strong>
+                    <span>{{ next.treatment_name || 'Consulta' }} · {{ next.professional_name }}</span>
+                  </span>
+                  <span class="next-time">
+                    <strong class="numeric">{{ time(next.starts_at) }}</strong>
+                    <span>{{ minutesUntil(next) }}</span>
+                  </span>
+                </span>
+              </a>
+            }
+
+            @if (agenda().length === 0) {
+              <div class="agenda-empty">
+                <mat-icon>event_available</mat-icon>
+                <p>Un día libre en la agenda.</p>
+                @if (auth.hasPermission('appointments:write')) {
+                  <button mat-stroked-button (click)="newAppointment()">
+                    <mat-icon>add</mat-icon>
+                    Agendar una cita
+                  </button>
+                }
+              </div>
+            } @else {
+              <ol class="timeline">
+                @for (entry of agenda(); track entry.id) {
+                  <li
+                    [class.past]="isPast(entry)"
+                    [class.current]="isNow(entry)"
+                    [class.is-next]="nextAppointment()?.id === entry.id"
+                  >
+                    <a [routerLink]="['/patients', entry.patient_id]" class="slot">
+                      <span class="slot-time numeric">{{ time(entry.starts_at) }}</span>
+                      <span class="slot-bar" [style.background]="entry.professional_color || null"></span>
+                      <span class="slot-info">
+                        <strong>{{ entry.patient_name }}</strong>
+                        <span>{{ entry.treatment_name || 'Consulta' }} · {{ entry.professional_name }}</span>
+                      </span>
+                      <span class="slot-status" [style.--status-color]="statusColors[entry.status]">
+                        {{ statusLabels[entry.status] }}
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ol>
+            }
+          </article>
+        }
+
+        <!-- Requiere atención: solo lo que alguien tiene que resolver. -->
+        <article class="glass-card attention-card">
+          <header class="card-head">
+            <div>
+              <h2>Requiere atención</h2>
+              <p class="card-sub">Pendientes que no esperan</p>
+            </div>
+          </header>
+
+          @if (attention().length === 0 && birthdays().length === 0) {
+            <div class="all-good">
+              <span class="all-good-icon"><mat-icon>verified</mat-icon></span>
+              <strong>Todo en orden</strong>
+              <span>Sin atrasos, alertas de stock ni presupuestos esperando.</span>
+            </div>
+          }
+
+          <ul class="attention-list">
+            @for (item of attention(); track item.route) {
+              <li>
+                <a [routerLink]="item.route" class="attention-item">
+                  <span class="attention-icon" [attr.data-tone]="item.tone"><mat-icon>{{ item.icon }}</mat-icon></span>
+                  <span class="attention-text">
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.detail }}</span>
+                  </span>
+                  <mat-icon class="chevron">chevron_right</mat-icon>
+                </a>
+              </li>
+            }
+
+            @for (b of birthdays(); track b.patient_id) {
+              <li>
+                <div class="attention-item birthday">
+                  <span class="attention-icon" data-tone="celebrate"><mat-icon>cake</mat-icon></span>
+                  <a class="attention-text" [routerLink]="['/patients', b.patient_id]">
+                    <strong>{{ b.name }} cumple {{ b.turns }}</strong>
+                    <span>Hoy es su cumpleaños</span>
+                  </a>
+                  @if (b.whatsapp) {
+                    <a
+                      mat-icon-button
+                      [href]="whatsappLink(b.whatsapp, b.name)"
+                      target="_blank"
+                      rel="noopener"
+                      matTooltip="Felicitar por WhatsApp"
+                      aria-label="Felicitar por WhatsApp"
+                    >
+                      <mat-icon>chat</mat-icon>
+                    </a>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+
+          @if (budgetSplit(); as split) {
+            <div class="budget-mini">
+              <div class="budget-mini-head">
+                <span>Presupuestos</span>
+                <span class="numeric">$ {{ money(split.accepted) }} aceptados</span>
+              </div>
+              <div class="budget-track">
+                <div class="budget-fill accepted" [style.width.%]="split.acceptedPercent"></div>
+                <div class="budget-fill awaiting" [style.width.%]="split.awaitingPercent"></div>
+              </div>
+              <div class="budget-mini-legend">
+                <span><span class="legend-dot accepted"></span>Aceptados</span>
+                <span><span class="legend-dot awaiting"></span>Sin respuesta · $ {{ money(split.awaiting) }}</span>
+              </div>
+            </div>
+          }
         </article>
       </section>
 
@@ -82,8 +301,8 @@
         <article class="glass-card chart-card">
           <header class="card-head">
             <div>
-              <h2>Citas por día</h2>
-              <p class="card-sub">Agenda de los próximos 7 días</p>
+              <h2>Próximos 7 días</h2>
+              <p class="card-sub">Citas agendadas por día</p>
             </div>
             <span class="card-badge numeric">{{ donutTotal() }} en total</span>
           </header>
@@ -142,8 +361,8 @@
                     [attr.cy]="p.y"
                     r="4.5"
                   />
-                  <text class="axis-label" [attr.x]="p.x" [attr.y]="chart.h - 8">
-                    {{ p.weekday }} {{ p.day }}
+                  <text class="axis-label" [class.is-today]="p.isToday" [attr.x]="p.x" [attr.y]="chart.h - 8">
+                    {{ p.isToday ? 'Hoy' : p.weekday + ' ' + p.day }}
                   </text>
                 }
               </svg>
@@ -164,7 +383,7 @@
           <header class="card-head">
             <div>
               <h2>Estado de las citas</h2>
-              <p class="card-sub">Distribución de la semana</p>
+              <p class="card-sub">Próximos 7 días</p>
             </div>
           </header>
 
@@ -219,71 +438,15 @@
           }
         </article>
       </section>
-
-      <section class="lower-row">
-        <article class="glass-card panel-card">
-          <header class="card-head">
-            <div>
-              <h2>Presupuestos</h2>
-              <p class="card-sub">Aceptados frente a los que esperan respuesta</p>
-            </div>
-          </header>
-
-          @if (budgetSplit(); as split) {
-            <div class="budget-rows">
-              <div class="budget-row">
-                <span class="budget-label">
-                  <span class="legend-dot accepted"></span>
-                  Aceptados
-                </span>
-                <span class="budget-amount numeric">$ {{ money(split.accepted) }}</span>
-                <div class="budget-track">
-                  <div class="budget-fill accepted" [style.width.%]="split.acceptedPercent"></div>
-                </div>
-              </div>
-
-              <div class="budget-row">
-                <span class="budget-label">
-                  <span class="legend-dot awaiting"></span>
-                  Sin respuesta
-                </span>
-                <span class="budget-amount numeric">$ {{ money(split.awaiting) }}</span>
-                <div class="budget-track">
-                  <div class="budget-fill awaiting" [style.width.%]="split.awaitingPercent"></div>
-                </div>
-              </div>
-            </div>
-          } @else {
-            <p class="chart-empty">Todavía no hay presupuestos registrados.</p>
-          }
-        </article>
-
-        @if (visibleQuickLinks.length > 0) {
-          <article class="glass-card panel-card">
-            <header class="card-head">
-              <div>
-                <h2>Accesos rápidos</h2>
-                <p class="card-sub">Lo que abres todos los días</p>
-              </div>
-            </header>
-
-            <div class="quick-grid">
-              @for (link of visibleQuickLinks; track link.route) {
-                <button type="button" class="quick-tile" (click)="goTo(link.route)">
-                  <span class="quick-icon"><mat-icon>{{ link.icon }}</mat-icon></span>
-                  <strong>{{ link.label }}</strong>
-                  <span class="quick-sub">{{ link.description }}</span>
-                </button>
-              }
-            </div>
-          </article>
-        }
-      </section>
     } @else if (loading()) {
       <section class="stat-row">
         @for (skeleton of [1, 2, 3, 4]; track skeleton) {
           <div class="glass-card stat-card is-skeleton"></div>
         }
+      </section>
+      <section class="main-row">
+        <div class="glass-card is-skeleton skeleton-tall"></div>
+        <div class="glass-card is-skeleton skeleton-tall"></div>
       </section>
     }
   </div>

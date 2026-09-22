@@ -42,15 +42,9 @@ export const routes: Routes = [
             (m) => m.PatientDetailComponent,
           ),
       },
-      {
-        path: 'odontogram',
-        canActivate: [permissionGuard],
-        data: { permission: 'odontogram:read' },
-        loadComponent: () =>
-          import('./features/odontogram/odontogram-search/odontogram-search.component').then(
-            (m) => m.OdontogramSearchComponent,
-          ),
-      },
+      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
+      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
+      { path: 'odontogram', redirectTo: 'patients' },
       {
         path: 'settings/users',
         canActivate: [permissionGuard],
@@ -72,22 +66,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/agenda/agenda.component').then((m) => m.AgendaComponent),
       },
-      {
-        path: 'treatment-plans',
-        canActivate: [permissionGuard],
-        data: { permission: 'treatments:read' },
-        loadComponent: () =>
-          import('./features/treatment-plans/treatment-plans-page.component').then(
-            (m) => m.TreatmentPlansPageComponent,
-          ),
-      },
-      {
-        path: 'budgets',
-        canActivate: [permissionGuard],
-        data: { permission: 'budgets:read' },
-        loadComponent: () =>
-          import('./features/budgets/budgets-page.component').then((m) => m.BudgetsPageComponent),
-      },
+      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
+      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
+      { path: 'treatment-plans', redirectTo: 'patients' },
+      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
+      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
+      { path: 'budgets', redirectTo: 'patients' },
       {
         path: 'cash',
         canActivate: [permissionGuard],
@@ -138,6 +122,15 @@ export const routes: Routes = [
         data: { permission: 'settings:manage' },
         loadComponent: () =>
           import('./features/settings/clinic/clinic.component').then((m) => m.ClinicComponent),
+      },
+      {
+        path: 'settings/consents',
+        canActivate: [permissionGuard],
+        data: { permission: 'consents:write' },
+        loadComponent: () =>
+          import('./features/settings/consents/consent-templates.component').then(
+            (m) => m.ConsentTemplatesComponent,
+          ),
       },
     ],
   },

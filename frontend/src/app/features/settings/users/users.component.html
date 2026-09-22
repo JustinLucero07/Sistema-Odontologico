@@ -1,55 +1,35 @@
 <div class="page">
-  <h1>Usuarios</h1>
-
-  <mat-card class="form-card">
-    <h2>Nuevo usuario</h2>
-    <form [formGroup]="form" (ngSubmit)="submit()" class="user-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Nombres</mat-label>
-        <input matInput formControlName="first_name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Apellidos</mat-label>
-        <input matInput formControlName="last_name" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Correo</mat-label>
-        <input matInput type="email" formControlName="email" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Contraseña temporal</mat-label>
-        <input matInput type="password" formControlName="password" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Roles</mat-label>
-        <mat-select formControlName="role_ids" multiple>
-          @for (role of roles(); track role.id) {
-            <mat-option [value]="role.id">{{ role.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving()">
-        <mat-icon>person_add</mat-icon>
-        Crear usuario
-      </button>
-    </form>
-  </mat-card>
+  <header class="page-header">
+    <div>
+      <h1>Usuarios</h1>
+      <p class="page-sub">Quién puede entrar al sistema y con qué rol</p>
+    </div>
+    <button mat-flat-button (click)="open()">
+      <mat-icon>person_add</mat-icon>
+      Nuevo usuario
+    </button>
+  </header>
 
   <mat-card class="table-card">
     <table mat-table [dataSource]="users()">
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef>Nombre</th>
-        <td mat-cell *matCellDef="let user">{{ user.first_name }} {{ user.last_name }}</td>
+        <td mat-cell *matCellDef="let user">
+          <span class="person">
+            <span class="avatar" [class.off]="!user.is_active">{{ initials(user) }}</span>
+            <span>
+              {{ user.first_name }} {{ user.last_name }}
+              @if (user.id === auth.currentUser()?.id) {
+                <span class="you">Usted</span>
+              }
+            </span>
+          </span>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="email">
         <th mat-header-cell *matHeaderCellDef>Correo</th>
-        <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+        <td mat-cell *matCellDef="let user" class="email">{{ user.email }}</td>
       </ng-container>
 
       <ng-container matColumnDef="roles">
@@ -58,6 +38,8 @@
           <mat-chip-set>
             @for (role of user.roles; track role.id) {
               <mat-chip>{{ role.name }}</mat-chip>
+            } @empty {
+              <span class="muted">Sin rol</span>
             }
           </mat-chip-set>
         </td>
@@ -65,15 +47,40 @@
 
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
-        <td mat-cell *matCellDef="let user">{{ user.is_active ? 'Activo' : 'Inactivo' }}</td>
+        <td mat-cell *matCellDef="let user">
+          <span class="status-pill" [class.off]="!user.is_active">{{ user.is_active ? 'Activo' : 'Inactivo' }}</span>
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let user">
-          @if (user.is_active) {
-            <button mat-button color="warn" (click)="deactivate(user)">Desactivar</button>
-          }
+        <td mat-cell *matCellDef="let user" class="actions">
+          <button mat-icon-button (click)="open(user)" matTooltip="Editar" aria-label="Editar">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button [matMenuTriggerFor]="rowMenu" aria-label="Más acciones">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #rowMenu="matMenu" xPosition="before">
+            <button mat-menu-item (click)="resetPassword(user)">
+              <mat-icon>key</mat-icon>
+              Restablecer contraseña
+            </button>
+            <!-- Desactivarse a uno mismo dejaría la sesión colgando. -->
+            @if (user.id !== auth.currentUser()?.id) {
+              @if (user.is_active) {
+                <button mat-menu-item class="danger-item" (click)="deactivate(user)">
+                  <mat-icon>block</mat-icon>
+                  Desactivar
+                </button>
+              } @else {
+                <button mat-menu-item (click)="reactivate(user)">
+                  <mat-icon>restart_alt</mat-icon>
+                  Reactivar
+                </button>
+              }
+            }
+          </mat-menu>
         </td>
       </ng-container>
 
@@ -82,3 +89,77 @@
     </table>
   </mat-card>
 </div>
+
+<ng-template #formDialog>
+  <h2 mat-dialog-title>{{ editing() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-dialog-content>
+      <div class="dialog-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombres</mat-label>
+          <input matInput formControlName="first_name" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Apellidos</mat-label>
+          <input matInput formControlName="last_name" />
+          <mat-error>Obligatorio</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Correo (será su usuario)</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="off" />
+          @if (editing()) {
+            <mat-hint>El correo de acceso no se cambia</mat-hint>
+          }
+          <mat-error>Escriba un correo válido</mat-error>
+        </mat-form-field>
+
+        @if (!editing()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Contraseña temporal</mat-label>
+          <input
+            matInput
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          >
+            <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-hint>Mínimo 8 caracteres</mat-hint>
+          <mat-error>Mínimo 8 caracteres</mat-error>
+        </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" [class.full]="editing()">
+          <mat-label>Roles</mat-label>
+          <mat-select formControlName="role_ids" multiple>
+            @for (role of roles(); track role.id) {
+              <mat-option [value]="role.id">{{ role.name }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Definen qué puede ver y hacer</mat-hint>
+        </mat-form-field>
+      </div>
+
+      @if (error(); as message) {
+        <p class="dialog-error">{{ message }}</p>
+      }
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : editing() ? 'Guardar cambios' : 'Crear usuario' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</ng-template>

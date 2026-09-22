@@ -11,6 +11,7 @@ from app.modules.treatment_plans.schemas import (
     TreatmentPlanItemCreate,
     TreatmentPlanItemUpdate,
     TreatmentPlanOut,
+    TreatmentPlanUpdate,
 )
 
 patient_plans_router = APIRouter(prefix="/api/v1/patients/{patient_id}/treatment-plans", tags=["treatment-plans"])
@@ -46,6 +47,18 @@ async def get_plan(
     current_user: CurrentUser = Depends(require_permission("treatments:read")),
 ):
     plan = await service.get_plan_or_404(db, current_user.clinic_id, plan_id)
+    return TreatmentPlanOut.from_plan(plan)
+
+
+@plans_router.put("/{plan_id}", response_model=TreatmentPlanOut)
+async def put_plan(
+    plan_id: uuid.UUID,
+    payload: TreatmentPlanUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("treatments:write")),
+):
+    plan = await service.update_plan(db, current_user.clinic_id, current_user.id, plan_id, payload)
+    await db.commit()
     return TreatmentPlanOut.from_plan(plan)
 
 

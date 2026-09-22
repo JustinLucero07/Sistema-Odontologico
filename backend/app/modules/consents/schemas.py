@@ -10,6 +10,13 @@ class ConsentTemplateCreate(BaseModel):
     body: str = Field(min_length=1)
 
 
+class ConsentTemplateUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    procedure_type: str | None = None
+    body: str = Field(min_length=1)
+    is_active: bool = True
+
+
 class ConsentTemplateOut(BaseModel):
     id: uuid.UUID
     name: str

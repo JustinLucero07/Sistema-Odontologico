@@ -1,28 +1,137 @@
 .page {
   display: grid;
   gap: 16px;
-  max-width: 700px;
-
-  h1 {
-    margin: 0;
-    font-size: 1.4rem;
-  }
+  max-width: 920px;
 }
 
 .form-card {
   padding: 20px 24px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+  }
 }
 
-.clinic-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 16px;
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
 
-  button {
-    grid-column: 1 / -1;
-    justify-self: start;
-    margin-top: 4px;
+.unsaved {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-accent, var(--color-ink-soft));
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.branch {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.branch-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--color-surface-muted);
+}
+
+.branch-icon {
+  color: var(--color-primary);
+}
+
+.branch-info {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+
+  strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.muted {
+  font-size: 0.8rem;
+  color: var(--color-ink-faint);
+}
+
+.rooms {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px;
+    border-bottom: 1px solid var(--color-border);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    > mat-icon {
+      color: var(--color-ink-faint);
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.off .room-name {
+      color: var(--color-ink-faint);
+      text-decoration: line-through;
+    }
+  }
+}
+
+.room-name {
+  flex: 1;
+}
+
+.empty-room {
+  padding: 12px 4px !important;
+  font-size: 0.84rem;
+  color: var(--color-ink-faint);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 12px;
+  color: var(--color-ink-soft);
+
+  mat-icon {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: var(--color-ink-faint);
+  }
+
+  p {
+    margin: 0;
   }
 }

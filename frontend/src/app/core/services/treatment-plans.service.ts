@@ -13,6 +13,7 @@ import {
   TreatmentPlanCreate,
   TreatmentPlanItemCreate,
   TreatmentPlanItemStatus,
+  TreatmentPlanItemUpdate,
 } from '../models/treatment.models';
 
 @Injectable({ providedIn: 'root' })
@@ -58,5 +59,20 @@ export class TreatmentPlansService {
 
   updateBudgetStatus(budgetId: string, status: BudgetStatus): Observable<Budget> {
     return this.http.put<Budget>(`${this.api}/budgets/${budgetId}/status`, { status });
+  }
+
+  updatePlan(planId: string, payload: { title: string; notes: string | null }): Observable<TreatmentPlan> {
+    return this.http.put<TreatmentPlan>(`${this.api}/treatment-plans/${planId}`, payload);
+  }
+
+  updateItem(planId: string, itemId: string, payload: TreatmentPlanItemUpdate): Observable<TreatmentPlan> {
+    return this.http.put<TreatmentPlan>(`${this.api}/treatment-plans/${planId}/items/${itemId}`, payload);
+  }
+
+  /** Un diagnóstico no se borra: se anula con motivo y sigue a la vista. */
+  voidDiagnosis(patientId: string, diagnosisId: string, reason: string): Observable<Diagnosis> {
+    return this.http.post<Diagnosis>(`${this.api}/patients/${patientId}/diagnoses/${diagnosisId}/void`, {
+      reason,
+    });
   }
 }

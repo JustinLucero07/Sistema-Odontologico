@@ -13,6 +13,7 @@ from app.modules.treatment_plans.schemas import (
     TreatmentPlanCreate,
     TreatmentPlanItemCreate,
     TreatmentPlanItemUpdate,
+    TreatmentPlanUpdate,
 )
 from app.modules.treatments.service import get_treatment_or_404
 
@@ -76,6 +77,21 @@ async def add_item(
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="create", entity_type="treatment_plan_item",
         entity_id=str(item.id), after={"plan_id": str(plan_id)},
+    )
+    return await get_plan_or_404(db, clinic_id, plan_id)
+
+
+async def update_plan(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, plan_id: uuid.UUID,
+    payload: TreatmentPlanUpdate,
+) -> TreatmentPlan:
+    plan = await get_plan_or_404(db, clinic_id, plan_id)
+    before = {"title": plan.title, "notes": plan.notes}
+    plan.title = payload.title
+    plan.notes = payload.notes
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="treatment_plan",
+        entity_id=str(plan_id), before=before, after=payload.model_dump(),
     )
     return await get_plan_or_404(db, clinic_id, plan_id)
 

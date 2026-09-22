@@ -6,6 +6,12 @@
     </div>
 
     <div class="agenda-controls">
+      @if (canEdit()) {
+        <button mat-flat-button (click)="newAppointment()">
+          <mat-icon>add</mat-icon>
+          Nueva cita
+        </button>
+      }
       <button mat-stroked-button (click)="goToday()">Hoy</button>
       <button mat-icon-button (click)="move(-1)" aria-label="Anterior"><mat-icon>chevron_left</mat-icon></button>
       <button mat-icon-button (click)="move(1)" aria-label="Siguiente"><mat-icon>chevron_right</mat-icon></button>
@@ -122,6 +128,19 @@
         }
       </dl>
 
+      @if (canReschedule(appointment)) {
+        <div class="detail-actions">
+          <button mat-stroked-button (click)="editAppointment(appointment)">
+            <mat-icon>edit_calendar</mat-icon>
+            Editar / reprogramar
+          </button>
+          <a mat-button [routerLink]="['/patients', appointment.patient_id]">
+            <mat-icon>person</mat-icon>
+            Ver ficha
+          </a>
+        </div>
+      }
+
       @if (canEdit()) {
         <div class="status-actions">
           <span class="status-actions-label">Cambiar estado</span>
@@ -149,7 +168,7 @@
   <div class="overlay" (click)="closeForm()">
     <div class="panel" (click)="$event.stopPropagation()">
       <div class="panel-header">
-        <h2>Nueva cita</h2>
+        <h2>{{ editingAppointment() ? 'Reprogramar cita' : 'Nueva cita' }}</h2>
         <button mat-icon-button (click)="closeForm()" aria-label="Cerrar"><mat-icon>close</mat-icon></button>
       </div>
 
@@ -164,7 +183,9 @@
             {{ formPatient()!.first_name.charAt(0) }}{{ formPatient()!.last_name.charAt(0) }}
           </span>
           <strong>{{ formPatient()!.first_name }} {{ formPatient()!.last_name }}</strong>
-          <button mat-button (click)="formPatient.set(null)">Cambiar</button>
+          @if (!editingAppointment()) {
+            <button mat-button (click)="formPatient.set(null)">Cambiar</button>
+          }
         </div>
 
         <form [formGroup]="form" (ngSubmit)="submitAppointment()" class="appointment-form">
@@ -209,11 +230,13 @@
             <input matInput formControlName="notes" />
           </mat-form-field>
 
+          @if (!editingAppointment()) {
           <div class="reminder-options full-width">
             <span>Programar recordatorios (24 h y 2 h antes):</span>
             <label><input type="checkbox" formControlName="remind_whatsapp" /> WhatsApp</label>
             <label><input type="checkbox" formControlName="remind_email" /> Email</label>
           </div>
+          }
 
           @if (formError()) {
             <p class="form-error full-width">
@@ -224,7 +247,7 @@
 
           <div class="form-actions full-width">
             <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || saving()">
-              Agendar cita
+              {{ editingAppointment() ? 'Guardar cambios' : 'Agendar cita' }}
             </button>
             <button mat-button type="button" (click)="closeForm()">Cancelar</button>
           </div>

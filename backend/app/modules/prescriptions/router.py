@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.prescriptions import service
+from app.shared.voiding import VoidRequest
 from app.modules.prescriptions.schemas import PrescriptionCreate, PrescriptionOut
 
 router = APIRouter(prefix="/api/v1/patients/{patient_id}/prescriptions", tags=["prescriptions"])
@@ -32,3 +33,18 @@ async def post_prescription(
     )
     await db.commit()
     return prescription
+
+
+@router.post("/{record_id}/void", response_model=PrescriptionOut)
+async def void_prescription(
+    patient_id: uuid.UUID,
+    record_id: uuid.UUID,
+    payload: VoidRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("prescriptions:write")),
+):
+    record = await service.void_prescription(
+        db, current_user.clinic_id, current_user.id, patient_id, record_id, payload.reason
+    )
+    await db.commit()
+    return record

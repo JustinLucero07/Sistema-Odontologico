@@ -1,7 +1,10 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { Component, HostListener, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -10,7 +13,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { HasPermissionDirective } from '../../core/auth/has-permission.directive';
@@ -18,6 +21,7 @@ import { PatientListItem } from '../../core/models/patient.models';
 import { PatientsService } from '../../core/services/patients.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
+import { openPatientCreateDialog } from '../../shared/patient-dialog/patient-create-dialog.component';
 
 interface NavItem {
   label: string;
@@ -62,29 +66,35 @@ export class ShellComponent {
   private readonly patientsService = inject(PatientsService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   readonly collapsed = signal(this.readCollapsed());
 
+  /** Pantallas estrechas (tablet vertical, móvil): el menú flota sobre el
+   *  contenido y se abre con un botón, en vez de ocupar un tercio del ancho. */
+  readonly compact = toSignal(
+    inject(BreakpointObserver)
+      .observe('(max-width: 960px)')
+      .pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
+
+  // Tres grupos por lo que se hace en cada uno: atender, administrar,
+  // configurar. Odontograma, planes y presupuestos no están aquí porque son de
+  // UN paciente y viven como pestañas en su ficha; como entradas sueltas solo
+  // eran un buscador que llevaba allí.
   readonly sections: NavSection[] = [
     {
       title: 'Clínica',
       items: [
         { label: 'Panel principal', icon: 'space_dashboard', route: '/dashboard' },
-        { label: 'Pacientes', icon: 'groups', route: '/patients', permission: 'patients:read' },
-        { label: 'Odontograma', icon: 'healing', route: '/odontogram', permission: 'odontogram:read' },
         { label: 'Agenda', icon: 'event', route: '/agenda', permission: 'appointments:read' },
+        { label: 'Pacientes', icon: 'groups', route: '/patients', permission: 'patients:read' },
       ],
     },
     {
-      title: 'Gestión',
+      title: 'Administración',
       items: [
-        {
-          label: 'Planes de tratamiento',
-          icon: 'assignment',
-          route: '/treatment-plans',
-          permission: 'treatments:read',
-        },
-        { label: 'Presupuestos', icon: 'request_quote', route: '/budgets', permission: 'budgets:read' },
         { label: 'Caja', icon: 'point_of_sale', route: '/cash', permission: 'payments:read' },
         { label: 'Reportes', icon: 'insights', route: '/reports', permission: 'reports:read' },
         { label: 'Inventario', icon: 'inventory_2', route: '/inventory', permission: 'inventory:read' },
@@ -94,23 +104,22 @@ export class ShellComponent {
           route: '/laboratory',
           permission: 'laboratory:read',
         },
-        {
-          label: 'Catálogo de tratamientos',
-          icon: 'medical_services',
-          route: '/settings/treatments',
-          permission: 'treatments:write',
-        },
       ],
     },
     {
       title: 'Configuración',
       items: [
-        { label: 'Usuarios', icon: 'group', route: '/settings/users', permission: 'users:manage' },
         {
-          label: 'Roles y permisos',
-          icon: 'admin_panel_settings',
-          route: '/settings/roles',
-          permission: 'roles:manage',
+          label: 'Tratamientos',
+          icon: 'medical_services',
+          route: '/settings/treatments',
+          permission: 'treatments:write',
+        },
+        {
+          label: 'Consentimientos',
+          icon: 'draw',
+          route: '/settings/consents',
+          permission: 'consents:write',
         },
         {
           label: 'Profesionales',
@@ -118,7 +127,14 @@ export class ShellComponent {
           route: '/settings/professionals',
           permission: 'settings:manage',
         },
-        { label: 'Clínica', icon: 'storefront', route: '/settings/clinic', permission: 'settings:manage' },
+        { label: 'Usuarios', icon: 'group', route: '/settings/users', permission: 'users:manage' },
+        {
+          label: 'Roles y permisos',
+          icon: 'admin_panel_settings',
+          route: '/settings/roles',
+          permission: 'roles:manage',
+        },
+        { label: 'Datos de la clínica', icon: 'storefront', route: '/settings/clinic', permission: 'settings:manage' },
       ],
     },
   ];
@@ -208,6 +224,17 @@ export class ShellComponent {
       default:
         return 'Según el sistema';
     }
+  }
+
+  // ---- Crear desde cualquier pantalla ---------------------------------------
+
+  async newPatient(): Promise<void> {
+    const created = await openPatientCreateDialog(this.dialog);
+    if (created) this.router.navigate(['/patients', created.id]);
+  }
+
+  newAppointment(): void {
+    this.router.navigate(['/agenda'], { queryParams: { nueva: 1 } });
   }
 
   async logout(): Promise<void> {

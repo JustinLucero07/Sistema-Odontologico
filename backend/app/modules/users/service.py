@@ -1,13 +1,14 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
 from app.core.security import hash_password
-from app.modules.users.models import Permission, Role, User
+from app.modules.users.models import Permission, RefreshToken, Role, User, user_roles
 from app.modules.users.schemas import RoleCreate, RoleUpdate, UserCreate, UserUpdate
 
 
@@ -70,6 +71,17 @@ async def create_user(
     return user
 
 
+async def _revoke_sessions(db: AsyncSession, user_id: uuid.UUID) -> None:
+    """Cierra todas las sesiones abiertas del usuario (web y móvil). Se usa al
+    desactivarlo o cambiarle la contraseña: si no, seguiría dentro hasta que
+    caducara su token de renovación."""
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
+
+
 async def update_user(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, user_id: uuid.UUID, payload: UserUpdate
 ) -> User:
@@ -80,22 +92,37 @@ async def update_user(
         user.first_name = payload.first_name
     if payload.last_name is not None:
         user.last_name = payload.last_name
+    if payload.is_active is False and user.id == actor_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No puede desactivar su propio usuario")
     if payload.is_active is not None:
         user.is_active = payload.is_active
     if payload.role_ids is not None:
         user.roles = await _get_roles_by_ids(db, clinic_id, payload.role_ids)
+    if payload.password is not None:
+        user.hashed_password = hash_password(payload.password)
+    if payload.password is not None or payload.is_active is False:
+        await _revoke_sessions(db, user.id)
 
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="user", entity_id=str(user.id),
         before=before,
-        after={"first_name": user.first_name, "last_name": user.last_name, "is_active": user.is_active},
+        after={
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "is_active": user.is_active,
+            # Nunca la contraseña, solo que se cambió.
+            "password_reset": payload.password is not None,
+        },
     )
     return user
 
 
 async def deactivate_user(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, user_id: uuid.UUID) -> None:
     user = await get_user_or_404(db, clinic_id, user_id)
+    if user.id == actor_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No puede desactivar su propio usuario")
     user.is_active = False
+    await _revoke_sessions(db, user.id)
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="deactivate", entity_type="user", entity_id=str(user.id),
     )
@@ -172,6 +199,13 @@ async def delete_role(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUI
     role = await get_role_or_404(db, clinic_id, role_id)
     if role.is_system:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede eliminar un rol base")
+    assigned = await db.scalar(select(func.count()).select_from(user_roles).where(user_roles.c.role_id == role_id))
+    if assigned:
+        # Borrarlo dejaría a esos usuarios sin permisos sin que nadie lo note.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Lo tienen {assigned} usuario(s). Asígneles otro rol antes de eliminarlo.",
+        )
     await db.delete(role)
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="delete", entity_type="role", entity_id=str(role_id),

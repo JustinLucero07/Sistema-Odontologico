@@ -1,12 +1,12 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import record_audit
 from app.modules.professionals.models import Professional, Specialty
-from app.modules.professionals.schemas import ProfessionalCreate, ProfessionalUpdate, SpecialtyCreate
+from app.modules.professionals.schemas import ProfessionalCreate, ProfessionalUpdate, SpecialtyCreate, SpecialtyUpdate
 
 
 async def list_specialties(db: AsyncSession, clinic_id: uuid.UUID) -> list[Specialty]:
@@ -19,6 +19,38 @@ async def create_specialty(db: AsyncSession, clinic_id: uuid.UUID, payload: Spec
     db.add(specialty)
     await db.flush()
     return specialty
+
+
+async def get_specialty_or_404(db: AsyncSession, clinic_id: uuid.UUID, specialty_id: uuid.UUID) -> Specialty:
+    specialty = (
+        await db.execute(select(Specialty).where(Specialty.id == specialty_id, Specialty.clinic_id == clinic_id))
+    ).scalar_one_or_none()
+    if specialty is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Especialidad no encontrada")
+    return specialty
+
+
+async def update_specialty(
+    db: AsyncSession, clinic_id: uuid.UUID, specialty_id: uuid.UUID, payload: SpecialtyUpdate
+) -> Specialty:
+    specialty = await get_specialty_or_404(db, clinic_id, specialty_id)
+    specialty.name = payload.name
+    return specialty
+
+
+async def delete_specialty(db: AsyncSession, clinic_id: uuid.UUID, specialty_id: uuid.UUID) -> None:
+    """Una especialidad es solo una etiqueta, así que sí se borra, pero nunca
+    si algún profesional la tiene: se quedaría sin clasificar sin que nadie lo decida."""
+    specialty = await get_specialty_or_404(db, clinic_id, specialty_id)
+    in_use = await db.scalar(
+        select(func.count()).select_from(Professional).where(Professional.specialty_id == specialty_id)
+    )
+    if in_use:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"La usan {in_use} profesional(es). Cámbieles la especialidad antes de eliminarla.",
+        )
+    await db.delete(specialty)
 
 
 async def list_professionals(db: AsyncSession, clinic_id: uuid.UUID) -> list[Professional]:
@@ -61,6 +93,6 @@ async def update_professional(
         setattr(professional, field, value)
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="professional",
-        entity_id=str(professional_id), after=data,
+        entity_id=str(professional_id), after=payload.model_dump(mode="json", exclude_unset=True),
     )
     return professional

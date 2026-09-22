@@ -19,6 +19,9 @@ export interface LabOrderInput {
   notes?: string | null;
 }
 
+/** Lo que se puede corregir de un trabajo abierto: todo menos paciente y estado. */
+export type LabOrderEdit = Omit<LabOrderInput, 'patient_id' | 'professional_id'>;
+
 @Injectable({ providedIn: 'root' })
 export class LaboratoryService {
   private readonly http = inject(HttpClient);
@@ -54,5 +57,13 @@ export class LaboratoryService {
       status,
       note: note ?? null,
     });
+  }
+
+  updateLaboratory(laboratoryId: string, body: Partial<Laboratory>): Observable<Laboratory> {
+    return this.http.put<Laboratory>(`${this.base}/laboratories/${laboratoryId}`, body);
+  }
+
+  updateOrder(orderId: string, body: LabOrderEdit): Observable<LabOrder> {
+    return this.http.put<LabOrder>(`${this.base}/orders/${orderId}`, body);
   }
 }

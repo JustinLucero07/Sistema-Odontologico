@@ -43,6 +43,8 @@ export interface Prescription {
   created_at: string;
   notes: string | null;
   items: PrescriptionItem[];
+  voided_at?: string | null;
+  void_reason?: string | null;
 }
 
 export interface PrescriptionCreate {

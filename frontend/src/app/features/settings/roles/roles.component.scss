@@ -1,18 +1,18 @@
 .page {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
-  h1 {
-    margin: 0;
-    font-size: 1.4rem;
-  }
 }
 
 .roles-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .roles-list-card,
@@ -22,80 +22,166 @@
   box-shadow: var(--shadow-sm);
 }
 
+.roles-list-card {
+  padding: 8px;
+  position: sticky;
+  top: 84px;
+}
+
 .roles-list {
   list-style: none;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 0;
+  display: grid;
+  gap: 2px;
+}
 
-  li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
+.role-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
 
-    &:hover {
-      background: var(--color-primary-soft);
-    }
+  &:hover {
+    background: var(--color-surface-muted);
+  }
 
-    &.selected {
-      background: var(--color-primary-soft);
-      color: var(--color-primary-dark);
-      font-weight: 600;
+  &.selected {
+    background: var(--color-primary-soft);
+    box-shadow: inset 2px 0 0 var(--color-primary);
+
+    .role-name {
+      color: var(--color-primary);
     }
   }
 }
 
+.role-name {
+  font-weight: 600;
+}
+
+.role-meta {
+  grid-row: 2;
+  font-size: 0.74rem;
+  color: var(--color-ink-faint);
+}
+
 .lock-icon {
+  grid-row: 1 / span 2;
+  grid-column: 2;
   font-size: 18px;
   width: 18px;
   height: 18px;
   color: var(--color-ink-faint);
 }
 
-.new-role-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-
-  mat-form-field {
-    flex: 1;
-  }
-}
-
 .permissions-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 
   h2 {
     margin: 0;
-  }
-
-  .hint {
-    font-size: 0.8rem;
-    color: var(--color-ink-faint);
+    font-size: 1.15rem;
   }
 }
 
-.permission-group {
-  margin-bottom: 16px;
+.system-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  font-size: 0.84rem;
+  color: var(--color-ink-soft);
 
-  h3 {
-    text-transform: capitalize;
-    font-size: 0.9rem;
-    color: var(--color-ink-soft);
-    margin: 0 0 6px;
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
   }
+}
+
+// Los módulos se reparten en columnas: con veinte grupos, una sola columna
+// obligaba a desplazarse una pantalla entera.
+.permission-groups {
+  columns: 260px;
+  column-gap: 20px;
+}
+
+.permission-group {
+  break-inside: avoid;
+  margin-bottom: 14px;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 
   mat-checkbox {
     display: block;
-    margin-bottom: 2px;
+    margin-left: 18px;
+    font-size: 0.84rem;
+  }
+
+  .group-toggle {
+    margin-left: 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--glass-overlay-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+
+  span {
+    margin-right: auto;
+    font-size: 0.84rem;
+    color: var(--color-ink-faint);
+  }
+
+  &.visible {
+    box-shadow: var(--shadow-lg);
+
+    span {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
   }
 }
 
 .empty-hint {
   color: var(--color-ink-faint);
+}
+
+.role-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }

@@ -7,6 +7,10 @@ class SpecialtyCreate(BaseModel):
     name: str = Field(min_length=1, max_length=150)
 
 
+class SpecialtyUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=150)
+
+
 class SpecialtyOut(BaseModel):
     id: uuid.UUID
     name: str
