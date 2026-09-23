@@ -97,6 +97,11 @@
                 </button>
               </div>
             </mat-card>
+            <app-patient-privacy-card
+              [patientId]="p.id"
+              [patientName]="p.first_name + ' ' + p.last_name"
+              [patientAge]="p.age"
+            />
           } @else {
             <mat-card class="info-card">
               <form [formGroup]="demographicsForm" (ngSubmit)="saveDemographics()" class="edit-form">

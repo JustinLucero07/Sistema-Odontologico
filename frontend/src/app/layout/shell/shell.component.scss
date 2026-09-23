@@ -6,26 +6,35 @@
 // The sidebar is the heaviest material in the app: it separates a structural
 // region, so it gets the deepest blur and the darkest tint.
 .shell-sidenav {
-  width: 256px;
+  width: 268px;
   border-right: none;
-  background: var(--glass-sidebar-bg);
-  backdrop-filter: var(--glass-sidebar-blur);
-  -webkit-backdrop-filter: var(--glass-sidebar-blur);
-  box-shadow: 1px 0 0 var(--glass-sidebar-edge);
+  // El cajón de Material queda invisible: el panel de vidrio es su contenedor
+  // interior, separado 12 px de los bordes, para que flote sobre el fondo en
+  // vez de ser una losa pegada a la pantalla.
+  background: transparent;
+  box-shadow: none;
   color: #fff;
-  transition: width 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: width 0.26s var(--ease-spring);
 
   &.collapsed {
-    width: 68px;
+    width: 84px;
   }
 
-  // Material projects sidenav content into this inner container, so the column
-  // layout that pins the collapse button to the bottom has to live there.
   ::ng-deep .mat-drawer-inner-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    width: calc(100% - 12px);
+    height: calc(100% - 24px);
+    margin: 12px 0 12px 12px;
     overflow-x: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--glass-sidebar-bg);
+    backdrop-filter: var(--glass-sidebar-blur);
+    -webkit-backdrop-filter: var(--glass-sidebar-blur);
+    border: 1px solid var(--glass-sidebar-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 24px 50px -24px rgba(4, 30, 28, 0.7);
   }
 }
 
@@ -107,16 +116,22 @@
   gap: 2px;
 
   --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.82);
-  --mdc-list-list-item-leading-icon-icon-color: rgba(255, 255, 255, 0.62);
+  --mdc-list-list-item-leading-icon-color: rgba(255, 255, 255, 0.62);
   --mdc-list-list-item-hover-label-text-color: #fff;
+  --mdc-list-list-item-hover-leading-icon-color: #fff;
   --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.1);
   --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.1);
   --mdc-list-list-item-focus-label-text-color: #fff;
 }
 
 .shell-sidenav a[mat-list-item] {
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   font-size: 0.86rem;
+  transition: background 0.2s ease, transform 0.16s var(--ease-spring);
+
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 .collapsed a[mat-list-item] {
@@ -125,15 +140,19 @@
 }
 
 .shell-sidenav a.active-link {
-  background: linear-gradient(90deg, rgba(52, 211, 192, 0.24), rgba(52, 211, 192, 0.08));
-  box-shadow: inset 2px 0 0 var(--color-mint);
+  // El elemento activo es una gota de vidrio claro dentro del panel oscuro.
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 6px 16px -8px rgba(0, 0, 0, 0.5);
   --mdc-list-list-item-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-icon-color: var(--color-mint);
+  --mdc-list-list-item-leading-icon-color: var(--color-mint);
   font-weight: 600;
 }
 
 .collapse-toggle {
   margin-top: auto;
+  border-radius: 14px !important;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -164,13 +183,19 @@
 
 .shell-toolbar {
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 10;
+  // Barra flotante: una cápsula de vidrio con aire alrededor, no una franja.
+  width: auto;
+  height: 60px;
+  margin: 12px 16px 0;
+  padding: 0 10px 0 12px;
+  border-radius: 20px;
   background: var(--glass-bar-bg);
   backdrop-filter: var(--glass-bar-blur);
   -webkit-backdrop-filter: var(--glass-bar-blur);
-  // A soft edge where content meets the floating bar, rather than a hard rule.
-  box-shadow: 0 1px 0 var(--color-border), 0 10px 20px -18px rgba(8, 28, 29, 0.5);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-md);
   gap: 12px;
 }
 
@@ -183,10 +208,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-surface-muted);
+  background: var(--glass-field-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  border-radius: 999px;
+  padding: 7px 14px;
   width: 340px;
   max-width: 44vw;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -351,8 +376,8 @@ mat-sidenav-content {
 // ---- Content -----------------------------------------------------------
 
 .shell-content {
-  padding: 28px 32px;
-  min-height: calc(100vh - 64px);
+  padding: 24px 28px 32px;
+  min-height: calc(100vh - 72px);
   box-sizing: border-box;
   max-width: var(--page-max);
   margin-inline: auto;
@@ -366,7 +391,9 @@ mat-sidenav-content {
 
   .shell-toolbar {
     gap: 6px;
-    padding: 0 8px;
+    margin: 8px 8px 0;
+    padding: 0 6px;
+    top: 8px;
   }
 
   .global-search {

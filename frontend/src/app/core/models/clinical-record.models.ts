@@ -48,6 +48,8 @@ export interface Prescription {
 }
 
 export interface PrescriptionCreate {
+  /** Obligatorio: quien firma la receta. */
+  professional_id: string;
   notes?: string | null;
   items: PrescriptionItem[];
 }

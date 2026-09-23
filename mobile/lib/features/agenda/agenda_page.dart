@@ -55,7 +55,7 @@ class AgendaPage extends ConsumerWidget {
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.paddingOf(context).bottom),
                   itemCount: lista.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) => _TarjetaCita(cita: lista[i]),

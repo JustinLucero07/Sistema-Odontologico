@@ -7,6 +7,7 @@ PERMISSION_CATALOG: list[tuple[str, str, str]] = [
     ("patients:read", "patients", "Ver pacientes"),
     ("patients:write", "patients", "Crear/editar pacientes"),
     ("patients:delete", "patients", "Eliminar (baja) pacientes"),
+    ("patients:export", "patients", "Exportar todos los datos de un paciente (derecho de acceso)"),
     ("medical_history:read", "medical_history", "Ver historia clínica"),
     ("medical_history:write", "medical_history", "Modificar historia clínica"),
     ("odontogram:read", "odontogram", "Ver odontograma"),

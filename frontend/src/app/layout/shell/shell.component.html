@@ -133,6 +133,10 @@
         </button>
         <mat-menu #userMenu="matMenu">
           <div class="user-menu-roles">{{ user.roles.join(', ') || 'Sin roles' }}</div>
+          <a mat-menu-item routerLink="/legal">
+            <mat-icon>policy</mat-icon>
+            <span>Privacidad y legal</span>
+          </a>
           <button mat-menu-item (click)="logout()">
             <mat-icon>logout</mat-icon>
             <span>Cerrar sesión</span>

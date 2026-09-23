@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 
 import { PatientsService } from '../../../core/services/patients.service';
@@ -30,6 +31,8 @@ import { ImagingTabComponent } from '../../imaging/imaging-tab.component';
 import { OdontogramComponent } from '../../odontogram/odontogram.component';
 import { PeriodontogramTabComponent } from '../../periodontogram/periodontogram-tab.component';
 import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plans-tab.component';
+import { PatientPrivacyCardComponent } from '../../../shared/legal/patient-privacy-card.component';
+import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-patient-detail',
@@ -56,6 +59,7 @@ import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plan
     TreatmentPlansTabComponent,
     PatientAppointmentsTabComponent,
     ClinicalRecordsTabComponent,
+    PatientPrivacyCardComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.scss',
@@ -261,9 +265,20 @@ export class PatientDetailComponent implements OnInit {
     }
   }
 
+  private readonly dialog = inject(MatDialog);
+
   async deactivatePatient(): Promise<void> {
     const patient = this.patient();
     if (!patient) return;
+    const ok = await confirmAction(this.dialog, {
+      title: `¿Dar de baja a ${patient.first_name} ${patient.last_name}?`,
+      message:
+        'Dejará de aparecer en la lista y en la agenda. Su historia clínica no se borra: se conserva ' +
+        'durante el plazo que exige la normativa sanitaria.',
+      confirmLabel: 'Dar de baja',
+      danger: true,
+    });
+    if (!ok) return;
     await firstValueFrom(this.patientsService.deactivatePatient(patient.id));
     await this.router.navigate(['/patients']);
   }

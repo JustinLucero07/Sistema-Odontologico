@@ -17,4 +17,6 @@ export interface CurrentUser {
   is_superadmin: boolean;
   roles: string[];
   permissions: string[];
+  /** Falta aceptar la versión vigente del acuerdo de confidencialidad. */
+  confidentiality_required?: boolean;
 }

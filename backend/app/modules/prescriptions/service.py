@@ -29,6 +29,11 @@ async def create_prescription(
     payload: PrescriptionCreate,
 ) -> Prescription:
     await get_patient_or_404(db, clinic_id, patient_id)
+    from app.modules.professionals.service import get_professional_or_404
+
+    professional = await get_professional_or_404(db, clinic_id, payload.professional_id)
+    if not professional.is_active:
+        raise HTTPException(status_code=400, detail="Ese profesional está desactivado y no puede prescribir")
     prescription = Prescription(
         clinic_id=clinic_id,
         patient_id=patient_id,

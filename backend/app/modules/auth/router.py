@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user
 from app.core.rate_limit import limiter
+from app.modules.privacy import service as privacy_service
 from app.modules.auth import service
 from app.modules.auth.schemas import (
     AccessTokenResponse,
@@ -113,4 +114,14 @@ async def me(current_user: CurrentUser = Depends(get_current_user)):
         is_superadmin=user.is_superadmin,
         roles=[role.name for role in user.roles],
         permissions=sorted(current_user.permissions),
+        confidentiality_required=privacy_service.confidentiality_required(user),
     )
+
+
+@router.post("/confidentiality", status_code=204)
+async def accept_confidentiality(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    await privacy_service.accept_confidentiality(db, current_user.user)
+    await db.commit()

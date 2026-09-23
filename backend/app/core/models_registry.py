@@ -21,6 +21,7 @@ from app.modules.ai_assist import models as ai_assist_models  # noqa: F401
 from app.modules.messaging import models as messaging_models  # noqa: F401
 from app.modules.patients import models as patients_models  # noqa: F401
 from app.modules.portal import models as portal_models  # noqa: F401
+from app.modules.privacy import models as privacy_models  # noqa: F401
 from app.modules.payments import models as payments_models  # noqa: F401
 from app.modules.professionals import models as professionals_models  # noqa: F401
 from app.modules.treatment_plans import models as treatment_plans_models  # noqa: F401

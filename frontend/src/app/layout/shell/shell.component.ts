@@ -1,5 +1,5 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -22,6 +22,7 @@ import { PatientsService } from '../../core/services/patients.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
 import { openPatientCreateDialog } from '../../shared/patient-dialog/patient-create-dialog.component';
+import { ConfidentialityDialogComponent } from '../../shared/legal/confidentiality-dialog.component';
 
 interface NavItem {
   label: string;
@@ -146,7 +147,27 @@ export class ShellComponent {
   readonly searchResults = signal<PatientListItem[]>([]);
   readonly searchOpen = signal(false);
 
+  private confidentialityOpen = false;
+
   constructor() {
+    // Nadie trabaja con datos de pacientes sin haber aceptado el acuerdo
+    // vigente: si falta, se pide antes de cualquier otra cosa.
+    effect(() => {
+      const user = this.auth.currentUser();
+      if (user?.confidentiality_required && !this.confidentialityOpen) {
+        this.confidentialityOpen = true;
+        this.dialog
+          .open(ConfidentialityDialogComponent, {
+            width: '680px',
+            maxWidth: '96vw',
+            disableClose: true,
+            panelClass: 'app-dialog',
+          })
+          .afterClosed()
+          .subscribe(() => (this.confidentialityOpen = false));
+      }
+    });
+
     this.search$.pipe(debounceTime(250), distinctUntilChanged()).subscribe((term) => this.runSearch(term));
     this.searchControl.valueChanges.subscribe((value) => this.search$.next(value));
   }

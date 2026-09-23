@@ -28,12 +28,14 @@ $frontend-theme: mat.define-theme((
   --color-ink-soft: rgba(15, 36, 39, 0.66);
   --color-ink-faint: rgba(15, 36, 39, 0.45);
 
-  // A faintly cool, slightly textured page so glass has something to refract.
-  --color-base: #e9eff0;
-  --color-base-gradient:
-    radial-gradient(1100px 620px at 12% -8%, rgba(45, 191, 174, 0.16), transparent 60%),
-    radial-gradient(900px 560px at 92% 4%, rgba(13, 127, 118, 0.13), transparent 62%),
-    linear-gradient(180deg, #eef3f4 0%, #e4ebec 100%);
+  // Un fondo con luz de color: el vidrio necesita algo detrás que refractar,
+  // o no se distingue de un panel blanco. Las luces son suaves y fijas.
+  --color-base: #e6eeee;
+  --color-base-gradient: linear-gradient(180deg, #edf3f3 0%, #e2eaea 100%);
+  --ambient-1: rgba(47, 191, 174, 0.34);
+  --ambient-2: rgba(13, 127, 118, 0.22);
+  --ambient-3: rgba(226, 177, 85, 0.24);
+  --ambient-4: rgba(96, 165, 250, 0.16);
 
   --color-surface: #ffffff;
   --color-surface-muted: #f4f7f7;
@@ -55,27 +57,43 @@ $frontend-theme: mat.define-theme((
   --color-success-soft: rgba(43, 122, 75, 0.11);
 
   // ---- Liquid Glass -------------------------------------------------
-  // Material weight encodes hierarchy: the sidebar is the heaviest
-  // structural layer, cards sit lighter above the page, chips lightest.
-  --glass-sidebar-bg: linear-gradient(170deg, rgba(10, 48, 46, 0.93), rgba(7, 33, 33, 0.95));
-  --glass-sidebar-blur: blur(26px) saturate(150%);
-  --glass-sidebar-edge: rgba(255, 255, 255, 0.12);
+  // El vidrio se lee como material por tres cosas a la vez: deja ver lo que
+  // hay detrás (desenfoque + saturación), tiene un canto iluminado (el borde
+  // claro y el brillo interior de arriba) y proyecta una sombra suave que lo
+  // separa del fondo. Sin las tres, parece solo un panel semitransparente.
+  //
+  // El peso del material marca la jerarquía: el menú es la capa estructural
+  // más densa; las tarjetas, más ligeras; los chips, casi transparentes.
+  --glass-sidebar-bg:
+    linear-gradient(165deg, rgba(14, 74, 69, 0.86) 0%, rgba(8, 42, 41, 0.9) 55%, rgba(6, 30, 30, 0.93) 100%);
+  --glass-sidebar-blur: blur(30px) saturate(170%);
+  --glass-sidebar-edge: rgba(255, 255, 255, 0.16);
 
-  --glass-bar-bg: rgba(255, 255, 255, 0.62);
-  --glass-bar-blur: blur(22px) saturate(180%);
+  --glass-bar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.56));
+  --glass-bar-blur: blur(26px) saturate(190%);
 
-  --glass-card-bg: rgba(255, 255, 255, 0.72);
-  --glass-card-blur: blur(18px) saturate(170%);
-  // The bright top edge is light catching the lip of the material.
-  --glass-card-edge: rgba(255, 255, 255, 0.75);
-  --glass-card-border: rgba(15, 36, 39, 0.08);
+  --glass-card-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.6) 100%);
+  --glass-card-blur: blur(24px) saturate(185%);
+  // El canto: la luz que atrapa el borde superior del material.
+  --glass-card-edge: rgba(255, 255, 255, 0.95);
+  --glass-card-border: rgba(255, 255, 255, 0.7);
+  --glass-rim: 0 0 0 1px rgba(15, 36, 39, 0.05);
+  --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 
-  --glass-overlay-bg: rgba(255, 255, 255, 0.86);
-  --glass-scrim: rgba(8, 28, 29, 0.42);
+  // Campos y superficies dentro de una tarjeta: un grado más transparentes.
+  --glass-field-bg: rgba(255, 255, 255, 0.55);
+  --glass-field-hover-bg: rgba(255, 255, 255, 0.75);
+  --glass-chip-bg: rgba(255, 255, 255, 0.5);
 
-  --shadow-sm: 0 1px 2px rgba(10, 35, 37, 0.06);
-  --shadow-md: 0 10px 28px rgba(10, 35, 37, 0.1);
-  --shadow-lg: 0 24px 60px rgba(8, 28, 29, 0.22);
+  --glass-overlay-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(246, 250, 250, 0.86));
+  // Mismo material como color liso, para los tokens de Material que no
+  // aceptan un degradado (un degradado ahí deja el fondo transparente).
+  --glass-overlay-color: rgba(250, 252, 252, 0.9);
+  --glass-scrim: rgba(8, 28, 29, 0.36);
+
+  --shadow-sm: 0 1px 2px rgba(10, 35, 37, 0.05), 0 2px 8px -4px rgba(10, 35, 37, 0.1);
+  --shadow-md: 0 1px 2px rgba(10, 35, 37, 0.04), 0 14px 34px -14px rgba(10, 35, 37, 0.22);
+  --shadow-lg: 0 2px 6px rgba(8, 28, 29, 0.06), 0 30px 70px -20px rgba(8, 28, 29, 0.35);
 
   // ---- Appointment states ---------------------------------------------
   // Validated as a set, not chosen by eye — see APPOINTMENT_STATUS_COLORS.
@@ -96,11 +114,12 @@ $frontend-theme: mat.define-theme((
   --color-ink-soft: rgba(231, 241, 241, 0.7);
   --color-ink-faint: rgba(231, 241, 241, 0.46);
 
-  --color-base: #081416;
-  --color-base-gradient:
-    radial-gradient(1100px 620px at 10% -8%, rgba(47, 191, 174, 0.16), transparent 60%),
-    radial-gradient(900px 540px at 94% 2%, rgba(13, 127, 118, 0.17), transparent 62%),
-    linear-gradient(180deg, #0b1b1d 0%, #071214 100%);
+  --color-base: #061113;
+  --color-base-gradient: linear-gradient(180deg, #0a191b 0%, #050e10 100%);
+  --ambient-1: rgba(47, 191, 174, 0.22);
+  --ambient-2: rgba(13, 127, 118, 0.26);
+  --ambient-3: rgba(226, 177, 85, 0.1);
+  --ambient-4: rgba(96, 165, 250, 0.1);
 
   --color-surface: #112124;
   --color-surface-muted: #16292c;
@@ -122,24 +141,32 @@ $frontend-theme: mat.define-theme((
   --color-success: #5fc98b;
   --color-success-soft: rgba(95, 201, 139, 0.14);
 
-  --glass-sidebar-bg: linear-gradient(170deg, rgba(10, 32, 34, 0.9), rgba(6, 20, 22, 0.94));
-  --glass-sidebar-blur: blur(26px) saturate(140%);
-  --glass-sidebar-edge: rgba(255, 255, 255, 0.08);
+  --glass-sidebar-bg:
+    linear-gradient(165deg, rgba(18, 56, 56, 0.72) 0%, rgba(9, 28, 30, 0.8) 60%, rgba(6, 20, 22, 0.86) 100%);
+  --glass-sidebar-blur: blur(30px) saturate(160%);
+  --glass-sidebar-edge: rgba(255, 255, 255, 0.1);
 
-  --glass-bar-bg: rgba(16, 33, 36, 0.62);
-  --glass-bar-blur: blur(22px) saturate(160%);
+  --glass-bar-bg: linear-gradient(180deg, rgba(24, 46, 50, 0.72), rgba(14, 30, 33, 0.6));
+  --glass-bar-blur: blur(26px) saturate(170%);
 
-  --glass-card-bg: rgba(22, 43, 46, 0.66);
-  --glass-card-blur: blur(20px) saturate(160%);
-  --glass-card-edge: rgba(255, 255, 255, 0.1);
-  --glass-card-border: rgba(231, 241, 241, 0.1);
+  --glass-card-bg: linear-gradient(150deg, rgba(34, 62, 66, 0.66) 0%, rgba(18, 38, 41, 0.52) 100%);
+  --glass-card-blur: blur(24px) saturate(170%);
+  --glass-card-edge: rgba(255, 255, 255, 0.18);
+  --glass-card-border: rgba(255, 255, 255, 0.09);
+  --glass-rim: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
 
-  --glass-overlay-bg: rgba(19, 37, 40, 0.88);
-  --glass-scrim: rgba(2, 10, 11, 0.62);
+  --glass-field-bg: rgba(255, 255, 255, 0.04);
+  --glass-field-hover-bg: rgba(255, 255, 255, 0.08);
+  --glass-chip-bg: rgba(255, 255, 255, 0.06);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.42);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --glass-overlay-bg: linear-gradient(160deg, rgba(30, 55, 59, 0.95), rgba(17, 35, 38, 0.92));
+  --glass-overlay-color: rgba(22, 42, 45, 0.94);
+  --glass-scrim: rgba(2, 10, 11, 0.58);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px -4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.25), 0 16px 38px -14px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3), 0 32px 70px -20px rgba(0, 0, 0, 0.75);
 
   // Three of the day steps fall under 3:1 on the night surface, so indigo, red
   // and purple are re-stepped lighter. The rest carry over unchanged — a status
@@ -158,9 +185,12 @@ $frontend-theme: mat.define-theme((
   // shell, and only a very wide monitor sees any margin at all.
   --page-max: 1720px;
 
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 26px;
+  // Curva de muelle críticamente amortiguada: responde rápido y se asienta
+  // sin rebote, para todo lo que aparece o se mueve en pantalla.
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 
   --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
   --font-body: 'Inter', 'Helvetica Neue', sans-serif;
@@ -207,6 +237,26 @@ $frontend-theme: mat.define-theme((
   --mdc-snackbar-container-color: var(--color-ink);
   --mdc-snackbar-supporting-text-color: var(--color-base);
 
+  // Forma: cápsulas para acciones, esquinas amplias para campos.
+  --mdc-filled-button-container-shape: 999px;
+  --mdc-outlined-button-container-shape: 999px;
+  --mdc-text-button-container-shape: 999px;
+  --mdc-protected-button-container-shape: 999px;
+  --mdc-filled-button-container-height: 42px;
+  --mdc-outlined-button-container-height: 42px;
+  --mdc-text-button-container-height: 40px;
+  --mdc-outlined-text-field-container-shape: 14px;
+  --mdc-outlined-text-field-outline-color: var(--color-border);
+  --mdc-outlined-text-field-hover-outline-color: var(--color-border-strong);
+  --mat-table-background-color: transparent;
+  --mat-paginator-container-background-color: transparent;
+  --mat-expansion-container-background-color: transparent;
+  --mdc-chip-container-shape-radius: 999px;
+  --mat-menu-container-shape: 18px;
+  --mat-select-container-elevation-shadow: var(--shadow-lg);
+  --mdc-plain-tooltip-container-shape: 10px;
+  --mdc-snackbar-container-shape: 16px;
+
   // Surfaces Material paints itself (menus, selects, dialogs, cards).
   --mat-menu-container-color: var(--color-surface);
   --mat-menu-item-label-text-color: var(--color-ink);
@@ -230,8 +280,25 @@ body {
   color: var(--color-ink);
   background: var(--color-base);
   background-image: var(--color-base-gradient);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+}
+
+// Luz ambiental: manchas de color grandes y muy desenfocadas en una capa fija
+// detrás de todo. Es lo que el vidrio refracta. Va en su propia capa (no como
+// background-attachment: fixed) para que el navegador no la repinte al hacer
+// scroll.
+body::before {
+  content: '';
+  position: fixed;
+  inset: -10vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 34vmax at 8% 6%, var(--ambient-1), transparent 70%),
+    radial-gradient(34vmax 30vmax at 92% 12%, var(--ambient-2), transparent 70%),
+    radial-gradient(40vmax 34vmax at 78% 92%, var(--ambient-3), transparent 70%),
+    radial-gradient(30vmax 28vmax at 18% 88%, var(--ambient-4), transparent 70%);
+  filter: saturate(115%);
 }
 
 // Type: tracking is size-specific — tighten as it grows, body stays near 0.
@@ -270,28 +337,29 @@ h4 {
   -webkit-backdrop-filter: var(--glass-card-blur);
   border: 1px solid var(--glass-card-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-md);
   overflow: hidden;
 
-  // The lit top lip that makes the surface read as a real material.
+  // Reflejo especular: una franja de luz en el canto superior, más intensa
+  // al centro, como la luz que atrapa el borde de un vidrio curvo.
   &::before {
     content: '';
     position: absolute;
     inset: 0 0 auto 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--glass-card-edge), transparent);
+    background: linear-gradient(90deg, transparent, var(--glass-card-edge) 30%, var(--glass-card-edge) 70%, transparent);
     pointer-events: none;
   }
 }
 
-// Angular Material cards inherit the same material.
+// Las tarjetas de Material son el mismo material.
 mat-card.mat-mdc-card {
   background: var(--glass-card-bg) !important;
   backdrop-filter: var(--glass-card-blur);
   -webkit-backdrop-filter: var(--glass-card-blur);
   border: 1px solid var(--glass-card-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-md) !important;
   color: var(--color-ink);
 }
 
@@ -353,13 +421,14 @@ mat-card.mat-mdc-card {
    para que quede claro que la tarea activa es el diálogo.
    ============================================================ */
 :root {
-  --mdc-dialog-container-color: var(--glass-overlay-bg);
+  --mdc-dialog-container-color: var(--glass-overlay-color);
   --mdc-dialog-container-shape: var(--radius-lg);
   --mdc-dialog-subhead-color: var(--color-ink);
   --mdc-dialog-supporting-text-color: var(--color-ink);
 }
 
 .app-dialog .mat-mdc-dialog-surface {
+  background: var(--glass-overlay-bg);
   backdrop-filter: var(--glass-card-blur);
   -webkit-backdrop-filter: var(--glass-card-blur);
   border: 1px solid var(--glass-card-border);
@@ -471,4 +540,294 @@ mat-card.mat-mdc-card {
   --mdc-outlined-button-label-text-color: var(--color-danger);
   --mat-text-button-state-layer-color: var(--color-danger);
   --mat-text-button-ripple-color: var(--color-danger-soft);
+}
+
+/* ============================================================
+   Liquid Glass: controles
+   Material pinta sus componentes planos; aquí reciben el mismo
+   material que las tarjetas, para que toda la interfaz sea una.
+   ============================================================ */
+
+// Botón principal: cápsula con un velo de luz arriba y una sombra de su propio
+// color, como una gota de vidrio tintado. El velo es blanco translúcido, así
+// sirve sobre cualquier color de fondo del botón.
+.mat-mdc-unelevated-button:not(:disabled) {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 8px 20px -10px var(--mdc-filled-button-container-color, var(--color-primary));
+  transition: transform 0.16s var(--ease-spring), box-shadow 0.2s ease, filter 0.2s ease;
+
+  &:hover {
+    filter: brightness(1.06);
+  }
+
+  // Respuesta al pulsar, no al soltar: se hunde apenas.
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+// Botón de contorno: una cápsula de vidrio.
+.mat-mdc-outlined-button:not(:disabled) {
+  background: var(--glass-chip-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  box-shadow: var(--glass-specular);
+  transition: transform 0.16s var(--ease-spring), background 0.2s ease;
+
+  &:hover {
+    background: var(--glass-field-hover-bg);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.mat-mdc-button:active,
+.mat-mdc-icon-button:active {
+  transform: scale(0.95);
+}
+
+.mat-mdc-button,
+.mat-mdc-icon-button {
+  transition: transform 0.16s var(--ease-spring);
+}
+
+// Campos: vidrio un grado más claro que la tarjeta que los contiene.
+.mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-text-field-wrapper {
+  background: var(--glass-field-bg);
+  border-radius: 14px;
+  transition: background 0.18s ease;
+}
+
+.mat-mdc-form-field.mat-form-field-appearance-outline:hover .mat-mdc-text-field-wrapper {
+  background: var(--glass-field-hover-bg);
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  background: var(--glass-field-hover-bg);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+
+// Menús, listas desplegables y autocompletado: vidrio flotante.
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
+  background: var(--glass-overlay-bg) !important;
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-specular), var(--shadow-lg) !important;
+  border-radius: 18px !important;
+}
+
+.mat-mdc-menu-item {
+  border-radius: 10px;
+  margin: 0 6px;
+  width: calc(100% - 12px) !important;
+}
+
+// Pestañas: un selector segmentado de vidrio en vez de una línea subrayada.
+.mat-mdc-tab-group .mat-mdc-tab-header {
+  padding: 5px;
+  border-radius: 999px;
+  border-bottom: none;
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-sm);
+  --mdc-secondary-navigation-tab-container-height: 40px;
+}
+
+.mat-mdc-tab-group .mat-mdc-tab {
+  border-radius: 999px;
+  min-width: auto !important;
+  padding: 0 18px !important;
+  transition: background 0.22s var(--ease-spring), color 0.2s ease;
+
+  &.mdc-tab--active {
+    background: var(--color-surface);
+    box-shadow: 0 1px 2px rgba(10, 35, 37, 0.08), 0 6px 16px -8px rgba(10, 35, 37, 0.3);
+  }
+
+  .mdc-tab-indicator {
+    display: none;
+  }
+}
+
+:root[data-theme='dark'] .mat-mdc-tab-group .mat-mdc-tab.mdc-tab--active {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.mat-mdc-tab-header-pagination {
+  border-radius: 999px;
+}
+
+// Grupos de botones (Día / Semana): la misma cápsula segmentada.
+.mat-button-toggle-group.mat-button-toggle-group-appearance-standard {
+  border-radius: 999px;
+  border: 1px solid var(--glass-card-border);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-sm);
+  padding: 3px;
+  gap: 2px;
+
+  .mat-button-toggle {
+    border: none !important;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-ink-soft);
+    transition: background 0.22s var(--ease-spring), color 0.2s ease;
+  }
+
+  .mat-button-toggle-checked {
+    background: var(--color-surface);
+    color: var(--color-primary);
+    box-shadow: 0 1px 2px rgba(10, 35, 37, 0.08), 0 6px 16px -8px rgba(10, 35, 37, 0.3);
+  }
+
+  .mat-button-toggle-button {
+    height: 34px;
+  }
+
+  .mat-button-toggle-label-content {
+    line-height: 34px;
+    padding: 0 14px;
+  }
+
+  // La marca de verificación sobra: la cápsula iluminada ya dice cuál está activa.
+  .mat-pseudo-checkbox {
+    display: none;
+  }
+}
+
+:root[data-theme='dark'] .mat-button-toggle-group .mat-button-toggle-checked {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+// Tablas: filas sobre el vidrio, sin fondo propio.
+.mat-mdc-table {
+  background: transparent !important;
+}
+
+.mat-mdc-header-row {
+  background: transparent !important;
+}
+
+.mat-mdc-header-cell {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-faint) !important;
+}
+
+.mat-mdc-row {
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--glass-field-bg);
+  }
+}
+
+.mat-mdc-cell,
+.mat-mdc-header-cell {
+  border-bottom-color: var(--color-border) !important;
+}
+
+// Chips: el material más ligero.
+.mat-mdc-chip.mat-mdc-standard-chip {
+  --mdc-chip-elevated-container-color: var(--glass-chip-bg);
+  --mdc-chip-outline-color: var(--glass-card-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+// Aviso inferior: una cápsula oscura flotante.
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+// Diálogos: el reflejo especular también en el borde de la ventana.
+.app-dialog .mat-mdc-dialog-surface {
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-lg) !important;
+}
+
+// Aparición de pantallas: sube 6 px y se funde. Corto y sin rebote, para que
+// cambiar de sección se sienta continuo en vez de un parpadeo.
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter,
+.shell-content > router-outlet + * {
+  animation: page-enter 0.32s var(--ease-spring) both;
+}
+
+// Los diálogos se materializan: escala y desenfoque a la vez.
+@keyframes glass-materialize {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.app-dialog .mat-mdc-dialog-surface {
+  animation: glass-materialize 0.28s var(--ease-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .shell-content > router-outlet + *,
+  .app-dialog .mat-mdc-dialog-surface {
+    animation: none;
+  }
+
+  .mat-mdc-unelevated-button:active,
+  .mat-mdc-outlined-button:active,
+  .mat-mdc-button:active,
+  .mat-mdc-icon-button:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-sidebar-bg: #0a302e;
+    --glass-field-bg: var(--color-surface);
+    --glass-chip-bg: var(--color-surface);
+  }
+
+  body::before {
+    display: none;
+  }
+
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel,
+  .mat-mdc-tab-group .mat-mdc-tab-header,
+  .mat-mdc-outlined-button {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }

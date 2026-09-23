@@ -7,6 +7,14 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def _prescriber(client, headers) -> str:
+    """Toda receta necesita un profesional que la firme."""
+    response = await client.post(
+        "/api/v1/professionals", json={"first_name": "Ana", "last_name": "Molina"}, headers=headers
+    )
+    return response.json()["id"]
+
+
 async def _create_patient(client, token, first_name="Rosa") -> str:
     created = await client.post(
         "/api/v1/patients", json={"first_name": first_name, "last_name": "Castro"}, headers=_auth(token)
@@ -97,6 +105,7 @@ async def test_create_prescription_with_items(client, clinic_with_users):
     created = await client.post(
         f"/api/v1/patients/{patient_id}/prescriptions",
         json={
+            "professional_id": await _prescriber(client, _auth(token)),
             "notes": "Tomar con alimentos",
             "items": [
                 {
@@ -258,3 +267,24 @@ async def test_role_without_prescriptions_write_cannot_prescribe(client, clinic_
         headers=_auth(dentist_token),
     )
     assert response.status_code == 403
+
+
+async def test_prescription_needs_an_active_prescriber(client, clinic_with_users):
+    """Una receta sin quien la firme no es un documento válido."""
+    token = await _login(client, "admin@clinicatest.io", "Admin123!")
+    patient_id = await _create_patient(client, token)
+    items = [{"medication": "Paracetamol 500 mg"}]
+
+    missing = await client.post(
+        f"/api/v1/patients/{patient_id}/prescriptions", json={"items": items}, headers=_auth(token)
+    )
+    assert missing.status_code == 422
+
+    prescriber = await _prescriber(client, _auth(token))
+    await client.put(f"/api/v1/professionals/{prescriber}", json={"is_active": False}, headers=_auth(token))
+    inactive = await client.post(
+        f"/api/v1/patients/{patient_id}/prescriptions",
+        json={"professional_id": prescriber, "items": items},
+        headers=_auth(token),
+    )
+    assert inactive.status_code == 400

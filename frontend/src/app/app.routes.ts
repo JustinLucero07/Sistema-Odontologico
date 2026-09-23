@@ -124,6 +124,11 @@ export const routes: Routes = [
           import('./features/settings/clinic/clinic.component').then((m) => m.ClinicComponent),
       },
       {
+        path: 'legal',
+        loadComponent: () =>
+          import('./features/legal/legal-page.component').then((m) => m.LegalPageComponent),
+      },
+      {
         path: 'settings/consents',
         canActivate: [permissionGuard],
         data: { permission: 'consents:write' },

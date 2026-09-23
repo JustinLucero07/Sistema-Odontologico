@@ -25,7 +25,7 @@ import {
   TreatmentPlanItem,
   TreatmentPlanItemStatus,
 } from '../../core/models/treatment.models';
-import { ClinicService } from '../../core/services/clinic.service';
+import { LegalService } from '../../core/services/legal.service';
 import { PatientsService } from '../../core/services/patients.service';
 import { TreatmentPlansService } from '../../core/services/treatment-plans.service';
 import { printBudget } from '../../shared/print/budget-print';
@@ -85,7 +85,7 @@ export class TreatmentPlansTabComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly auth = inject(AuthService);
-  private readonly clinicService = inject(ClinicService);
+  private readonly legalService = inject(LegalService);
   private readonly patientsService = inject(PatientsService);
   private readonly dialog = inject(MatDialog);
 
@@ -336,7 +336,7 @@ export class TreatmentPlansTabComponent implements OnChanges {
   async printBudget(budget: Budget, planTitle: string): Promise<void> {
     try {
       const [clinic, patient] = await Promise.all([
-        firstValueFrom(this.clinicService.getMyClinic()),
+        firstValueFrom(this.legalService.getController()),
         firstValueFrom(this.patientsService.getPatient(this.patientId)),
       ]);
       printBudget(budget, clinic, `${patient.first_name} ${patient.last_name}`, planTitle);

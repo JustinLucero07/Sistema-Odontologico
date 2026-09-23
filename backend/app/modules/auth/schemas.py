@@ -33,3 +33,6 @@ class MeResponse(BaseModel):
     is_superadmin: bool
     roles: list[str]
     permissions: list[str]
+    # True mientras no haya aceptado la versión vigente del acuerdo de
+    # confidencialidad: la web no le deja trabajar hasta entonces.
+    confidentiality_required: bool = False

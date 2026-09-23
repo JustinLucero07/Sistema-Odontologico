@@ -27,7 +27,7 @@ class PanelPage extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(resumenProvider),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 28 + MediaQuery.paddingOf(context).bottom),
         children: [
           Text(
             '$saludo, ${usuario?.nombre ?? ''}',

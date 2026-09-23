@@ -37,7 +37,13 @@ async def get_patient(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:read")),
 ):
-    return await service.get_patient_or_404(db, current_user.clinic_id, patient_id)
+    patient = await service.get_patient_or_404(db, current_user.clinic_id, patient_id)
+    # Quién abrió esta ficha queda registrado: la historia es confidencial.
+    from app.modules.privacy.service import log_patient_access
+
+    await log_patient_access(db, current_user.clinic_id, current_user.id, patient_id)
+    await db.commit()
+    return patient
 
 
 @router.put("/{patient_id}", response_model=PatientOut)

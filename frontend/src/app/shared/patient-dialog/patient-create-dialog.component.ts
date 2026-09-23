@@ -6,10 +6,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { firstValueFrom } from 'rxjs';
 
 import { Patient, Sex } from '../../core/models/patient.models';
 import { PatientsService } from '../../core/services/patients.service';
+import { CONSENT_METHOD_LABELS, ConsentMethod, LegalService } from '../../core/services/legal.service';
+import { printPrivacyNotice } from '../print/privacy-print';
 
 /**
  * Alta de paciente en un diálogo.
@@ -32,6 +35,7 @@ import { PatientsService } from '../../core/services/patients.service';
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatCheckboxModule,
   ],
   template: `
     <div class="dialog-head">
@@ -113,6 +117,43 @@ import { PatientsService } from '../../core/services/patients.service';
           </mat-form-field>
         </div>
 
+        <h3 class="group-title">Protección de datos</h3>
+        <div class="privacy" [class.missing]="form.controls.notice_given.touched && form.controls.notice_given.invalid">
+          <mat-checkbox formControlName="notice_given">
+            Informé al paciente cómo se tratan sus datos y le entregué el aviso de privacidad
+          </mat-checkbox>
+          <div class="privacy-row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Cómo se informó</mat-label>
+              <mat-select formControlName="notice_method">
+                @for (m of methods; track m.value) {
+                  <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button mat-button type="button" (click)="printNotice()">
+              <mat-icon>print</mat-icon>
+              Imprimir aviso para firmar
+            </button>
+          </div>
+          <mat-checkbox formControlName="communications">
+            Autoriza recibir recordatorios y mensajes por WhatsApp o correo
+            <span class="optional">(opcional, puede retirarlo cuando quiera)</span>
+          </mat-checkbox>
+          @if (isMinor()) {
+            <mat-form-field appearance="outline" class="rep" subscriptSizing="dynamic">
+              <mat-label>Representante legal (paciente menor de edad)</mat-label>
+              <input matInput formControlName="representative" placeholder="Nombre y parentesco" />
+            </mat-form-field>
+          }
+          @if (form.controls.notice_given.touched && form.controls.notice_given.invalid) {
+            <p class="privacy-error">La ley exige informar al paciente antes de registrar sus datos.</p>
+          }
+          @if (isMinor() && form.controls.representative.touched && !form.controls.representative.value.trim()) {
+            <p class="privacy-error">Indique quién representa al menor.</p>
+          }
+        </div>
+
         @if (error()) {
           <p class="form-error"><mat-icon>error_outline</mat-icon>{{ error() }}</p>
         }
@@ -158,6 +199,16 @@ import { PatientsService } from '../../core/services/patients.service';
         mat-icon { font-size: 18px; width: 18px; height: 18px; }
       }
       mat-dialog-actions { padding: 8px 24px 20px; }
+      .privacy {
+        display: grid; gap: 8px; padding: 12px 14px; border-radius: var(--radius-md);
+        background: var(--color-surface-muted); border: 1px solid var(--color-border);
+        &.missing { border-color: var(--color-danger); }
+      }
+      .privacy-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-left: 40px; }
+      .privacy-row mat-form-field { width: 240px; }
+      .rep { padding-left: 40px; width: 100%; }
+      .optional { color: var(--color-ink-faint); font-size: 0.8rem; }
+      .privacy-error { margin: 0; padding-left: 40px; font-size: 0.78rem; color: var(--color-danger); }
       @media (max-width: 600px) {
         .grid { grid-template-columns: 1fr; }
         .span-2 { grid-column: auto; }
@@ -168,6 +219,7 @@ import { PatientsService } from '../../core/services/patients.service';
 export class PatientCreateDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly patients = inject(PatientsService);
+  private readonly legal = inject(LegalService);
   private readonly ref = inject(MatDialogRef<PatientCreateDialogComponent, Patient>);
 
   readonly saving = signal(false);
@@ -183,14 +235,44 @@ export class PatientCreateDialogComponent {
     phone: [''],
     whatsapp: [''],
     email: ['', Validators.email],
+    notice_given: [false, Validators.requiredTrue],
+    notice_method: ['firma_presencial' as ConsentMethod],
+    communications: [false],
+    representative: [''],
   });
+
+  readonly methods = Object.entries(CONSENT_METHOD_LABELS).map(([value, label]) => ({
+    value: value as ConsentMethod,
+    label,
+  }));
+
+  /** Menor de edad según la fecha escrita: su representante firma por él. */
+  isMinor(): boolean {
+    const raw = this.form.controls.birth_date.value;
+    if (!raw) return false;
+    const birth = new Date(`${raw}T00:00:00`);
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
+    if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) {
+      age -= 1;
+    }
+    return age < 18;
+  }
+
+  async printNotice(): Promise<void> {
+    const controller = await firstValueFrom(this.legal.getController());
+    const v = this.form.getRawValue();
+    const name = `${v.first_name} ${v.last_name}`.trim();
+    printPrivacyNotice(controller, name || null);
+  }
 
   copyPhone(): void {
     this.form.controls.whatsapp.setValue(this.form.controls.phone.value);
   }
 
   async save(): Promise<void> {
-    if (this.form.invalid) {
+    const missingRepresentative = this.isMinor() && !this.form.controls.representative.value.trim();
+    if (this.form.invalid || missingRepresentative) {
       // Marcar todo como tocado para que los mensajes aparezcan en los campos,
       // en lugar de un botón gris que no explica por qué no hace nada.
       this.form.markAllAsTouched();
@@ -214,6 +296,30 @@ export class PatientCreateDialogComponent {
           email: trim(v.email),
         }),
       );
+      // La constancia de que se informó al paciente se guarda junto con el alta.
+      const signedBy = this.isMinor() ? v.representative.trim() : null;
+      try {
+        await firstValueFrom(
+          this.legal.recordConsent(created.id, {
+            kind: 'aviso_privacidad',
+            method: v.notice_method,
+            signed_by_name: signedBy,
+          }),
+        );
+        if (v.communications) {
+          await firstValueFrom(
+            this.legal.recordConsent(created.id, {
+              kind: 'comunicaciones',
+              granted: true,
+              method: v.notice_method,
+              signed_by_name: signedBy,
+            }),
+          );
+        }
+      } catch {
+        // El paciente ya existe: la constancia puede registrarse desde su ficha,
+        // que la muestra como pendiente. No se pierde el alta por esto.
+      }
       this.ref.close(created);
     } catch (e) {
       const detail = (e as { error?: { detail?: unknown } })?.error?.detail;

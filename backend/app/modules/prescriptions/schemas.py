@@ -19,7 +19,9 @@ class PrescriptionItemOut(PrescriptionItemIn):
 
 
 class PrescriptionCreate(BaseModel):
-    professional_id: uuid.UUID | None = None
+    # Obligatorio: una receta tiene que decir quién la emite y con qué registro
+    # profesional; sin prescriptor no es un documento válido.
+    professional_id: uuid.UUID
     notes: str | None = None
     items: list[PrescriptionItemIn] = Field(min_length=1)
 

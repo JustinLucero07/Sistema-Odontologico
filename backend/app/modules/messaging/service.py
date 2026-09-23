@@ -25,6 +25,7 @@ from app.shared.messaging import (
     STATUS_SIMULATED,
     get_messaging,
 )
+from app.modules.privacy.service import communications_revoked
 
 # Templates a clinic gets on day one. They are seeded per clinic on first use
 # so a practice can edit its own wording without touching anyone else's.
@@ -168,6 +169,11 @@ async def send_message(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, payload: MessageCreate
 ) -> OutboundMessage:
     patient = await get_patient_or_404(db, clinic_id, payload.patient_id)
+    if await communications_revoked(db, clinic_id, patient.id):
+        raise HTTPException(
+            status_code=409,
+            detail="El paciente retiró su autorización para recibir mensajes. Contáctelo por otra vía.",
+        )
 
     body = payload.body
     if not body and payload.template_code:
@@ -262,6 +268,11 @@ async def dispatch_due_reminders(
             continue
 
         patient = appointment.patient
+        if await communications_revoked(db, clinic_id, patient.id):
+            reminder.status = STATUS_CANCELLED
+            reminder.error = "El paciente retiró su autorización para recibir mensajes"
+            result.skipped += 1
+            continue
         try:
             to_address = _destination(patient, reminder.channel)
         except HTTPException as exc:

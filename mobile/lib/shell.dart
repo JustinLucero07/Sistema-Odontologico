@@ -5,6 +5,7 @@ import 'core/auth/auth_controller.dart';
 import 'features/agenda/agenda_page.dart';
 import 'features/pacientes/pacientes_page.dart';
 import 'features/panel/panel_page.dart';
+import 'shared/widgets/glass.dart';
 import 'shared/widgets/tooth_mark.dart';
 
 /// Navegación inferior en lugar del menú lateral de la web.
@@ -28,8 +29,15 @@ class _ShellState extends ConsumerState<Shell> {
   Widget build(BuildContext context) {
     final usuario = ref.watch(authProvider).usuario;
 
-    return Scaffold(
+    return AmbientBackground(
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
+      // El contenido pasa por debajo de la barra de navegación flotante: por
+      // eso se extiende detrás de ella. Las listas reservan ese espacio al
+      // final (MediaQuery.paddingOf(context).bottom) para no taparse.
+      extendBody: true,
       appBar: AppBar(
+        flexibleSpace: const GlassAppBarBackground(),
         titleSpacing: 16,
         title: Row(
           children: [
@@ -104,26 +112,27 @@ class _ShellState extends ConsumerState<Shell> {
         ],
       ),
       body: IndexedStack(index: _indice, children: _paginas),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: GlassNavBar(
         selectedIndex: _indice,
-        onDestinationSelected: (i) => setState(() => _indice = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.space_dashboard_outlined),
-            selectedIcon: Icon(Icons.space_dashboard),
+        onSelected: (i) => setState(() => _indice = i),
+        items: const [
+          GlassNavItem(
+            icon: Icons.space_dashboard_outlined,
+            selectedIcon: Icons.space_dashboard,
             label: 'Panel',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event),
+          GlassNavItem(
+            icon: Icons.event_outlined,
+            selectedIcon: Icons.event,
             label: 'Agenda',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
+          GlassNavItem(
+            icon: Icons.groups_outlined,
+            selectedIcon: Icons.groups,
             label: 'Pacientes',
           ),
         ],
+      ),
       ),
     );
   }

@@ -19,6 +19,14 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def _prescriber(client, headers) -> str:
+    """Toda receta necesita un profesional que la firme."""
+    response = await client.post(
+        "/api/v1/professionals", json={"first_name": "Ana", "last_name": "Molina"}, headers=headers
+    )
+    return response.json()["id"]
+
+
 async def _patient(client, token) -> str:
     created = await client.post(
         "/api/v1/patients", json={"first_name": "Lucía", "last_name": "Arce"}, headers=_auth(token)
@@ -275,7 +283,7 @@ async def test_prescription_is_voided_not_deleted(client, clinic_with_users):
     rx = (
         await client.post(
             f"/api/v1/patients/{patient_id}/prescriptions",
-            json={"items": [{"medication": "Ibuprofeno 400 mg"}]},
+            json={"professional_id": await _prescriber(client, h), "items": [{"medication": "Ibuprofeno 400 mg"}]},
             headers=h,
         )
     ).json()

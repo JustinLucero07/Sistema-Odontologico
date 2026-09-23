@@ -120,10 +120,23 @@
     @if (openForm() === 'recetas') {
       <mat-card class="form-card">
         <form [formGroup]="prescriptionForm" (ngSubmit)="savePrescription()">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Profesional que prescribe</mat-label>
+            <mat-select formControlName="professional_id">
+              @for (p of prescribers(); track p.id) {
+                <mat-option [value]="p.id">
+                  {{ p.first_name }} {{ p.last_name }}
+                  @if (p.license_number) { · Reg. {{ p.license_number }} }
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Figura en la receta con su registro profesional</mat-hint>
+            <mat-error>Elija quién firma la receta</mat-error>
+          </mat-form-field>
           @for (item of prescriptionItems(); track $index) {
             <div class="medication-row">
               <mat-form-field appearance="outline" class="grow">
-                <mat-label>Medicamento</mat-label>
+                <mat-label>Medicamento (nombre genérico y concentración)</mat-label>
                 <input matInput [value]="item.medication" (input)="updateItem($index, 'medication', $any($event.target).value)" />
               </mat-form-field>
               <mat-form-field appearance="outline">
@@ -174,7 +187,7 @@
           @if (prescription.voided_at) {
             <span class="void-badge">Anulada</span>
           } @else {
-            <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+            <button mat-button class="print-btn" (click)="printPrescription(prescription)"><mat-icon>print</mat-icon> Imprimir</button>
             @if (canWritePrescriptions()) {
               <button mat-button color="warn" (click)="voidPrescription(prescription)">
                 <mat-icon>block</mat-icon> Anular
@@ -257,7 +270,7 @@
           <span class="status-tag" [class.signed]="consent.status === 'firmado'">
             {{ consent.status === 'firmado' ? 'Firmado' : 'Pendiente de firma' }}
           </span>
-          <button mat-button class="print-btn" (click)="print()"><mat-icon>print</mat-icon> Imprimir</button>
+          <button mat-button class="print-btn" (click)="printConsent(consent)"><mat-icon>print</mat-icon> Imprimir</button>
         </div>
         <p class="consent-body">{{ consent.body }}</p>
         @if (consent.status === 'firmado') {

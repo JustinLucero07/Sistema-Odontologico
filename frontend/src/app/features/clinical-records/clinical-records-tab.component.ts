@@ -23,6 +23,12 @@ import {
   PrescriptionItem,
 } from '../../core/models/clinical-record.models';
 import { ClinicalRecordsService } from '../../core/services/clinical-records.service';
+import { Professional } from '../../core/models/clinic.models';
+import { ClinicService } from '../../core/services/clinic.service';
+import { LegalService } from '../../core/services/legal.service';
+import { PatientsService } from '../../core/services/patients.service';
+import { printPrescription } from '../../shared/print/prescription-print';
+import { printConsent } from '../../shared/print/consent-print';
 
 type Section = 'evoluciones' | 'recetas' | 'consentimientos' | 'documentos';
 
@@ -50,6 +56,12 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly clinicService = inject(ClinicService);
+  private readonly legalService = inject(LegalService);
+  private readonly patientsService = inject(PatientsService);
+
+  /** Quienes pueden firmar una receta: solo profesionales activos. */
+  readonly prescribers = signal<Professional[]>([]);
 
   readonly documentTypeLabels = DOCUMENT_TYPE_LABELS;
   readonly documentTypes = Object.keys(DOCUMENT_TYPE_LABELS);
@@ -85,7 +97,10 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     next_appointment_notes: [''],
   });
 
-  readonly prescriptionForm = this.fb.nonNullable.group({ notes: [''] });
+  readonly prescriptionForm = this.fb.nonNullable.group({
+    professional_id: ['', Validators.required],
+    notes: [''],
+  });
 
   readonly consentForm = this.fb.nonNullable.group({
     template_id: [''],
@@ -125,6 +140,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       firstValueFrom(this.service.listConsents(this.patientId)),
       firstValueFrom(this.service.listDocuments(this.patientId)),
       firstValueFrom(this.service.listConsentTemplates()),
+      firstValueFrom(this.clinicService.listProfessionals()),
     ]);
     // A role may hold only some of these permissions; the sections it cannot
     // read simply stay empty rather than breaking the whole tab.
@@ -133,6 +149,14 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     if (results[2].status === 'fulfilled') this.consents.set(results[2].value);
     if (results[3].status === 'fulfilled') this.documents.set(results[3].value);
     if (results[4].status === 'fulfilled') this.templates.set(results[4].value);
+    if (results[5].status === 'fulfilled') {
+      const active = results[5].value.filter((p) => p.is_active);
+      this.prescribers.set(active);
+      // Con un solo profesional no hay nada que elegir.
+      if (active.length === 1 && !this.prescriptionForm.controls.professional_id.value) {
+        this.prescriptionForm.controls.professional_id.setValue(active[0].id);
+      }
+    }
   }
 
   toggleForm(section: Section): void {
@@ -206,15 +230,21 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       this.snackBar.open('Agrega al menos un medicamento', 'Cerrar', { duration: 3000 });
       return;
     }
+    if (this.prescriptionForm.invalid) {
+      this.prescriptionForm.markAllAsTouched();
+      this.snackBar.open('Elija el profesional que firma la receta', 'Cerrar', { duration: 3000 });
+      return;
+    }
     this.saving.set(true);
     try {
       await firstValueFrom(
         this.service.createPrescription(this.patientId, {
+          professional_id: this.prescriptionForm.getRawValue().professional_id,
           notes: this.prescriptionForm.getRawValue().notes || null,
           items,
         }),
       );
-      this.prescriptionForm.reset();
+      this.prescriptionForm.reset({ professional_id: this.prescriptionForm.getRawValue().professional_id });
       this.prescriptionItems.set([{ medication: '' }]);
       this.openForm.set(null);
       this.snackBar.open('Receta emitida', 'Cerrar', { duration: 3000 });
@@ -323,7 +353,49 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
-  print(): void {
-    window.print();
+  async printConsent(consent: Consent): Promise<void> {
+    try {
+      const [clinic, patient] = await Promise.all([
+        firstValueFrom(this.legalService.getController()),
+        firstValueFrom(this.patientsService.getPatient(this.patientId)),
+      ]);
+      const opened = printConsent(consent, clinic, {
+        name: `${patient.first_name} ${patient.last_name}`,
+        national_id: patient.national_id,
+        age: patient.age,
+      });
+      if (!opened) {
+        this.snackBar.open('El navegador bloqueó la ventana de impresión', 'Cerrar', { duration: 4000 });
+      }
+    } catch {
+      this.snackBar.open('No se pudo preparar el consentimiento', 'Cerrar', { duration: 4000 });
+    }
+  }
+
+  /** La receta como documento propio, con prescriptor y registro profesional. */
+  async printPrescription(prescription: Prescription): Promise<void> {
+    try {
+      const [clinic, patient, professionals] = await Promise.all([
+        firstValueFrom(this.legalService.getController()),
+        firstValueFrom(this.patientsService.getPatient(this.patientId)),
+        firstValueFrom(this.clinicService.listProfessionals()),
+      ]);
+      const prof = professionals.find((p) => p.id === prescription.professional_id) ?? null;
+      const opened = printPrescription(
+        prescription,
+        clinic,
+        {
+          name: `${patient.first_name} ${patient.last_name}`,
+          national_id: patient.national_id,
+          age: patient.age,
+        },
+        prof ? { name: `${prof.first_name} ${prof.last_name}`, license_number: prof.license_number } : null,
+      );
+      if (!opened) {
+        this.snackBar.open('El navegador bloqueó la ventana de impresión', 'Cerrar', { duration: 4000 });
+      }
+    } catch {
+      this.snackBar.open('No se pudo preparar la receta', 'Cerrar', { duration: 4000 });
+    }
   }
 }

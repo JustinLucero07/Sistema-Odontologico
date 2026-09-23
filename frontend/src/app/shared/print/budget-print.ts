@@ -1,4 +1,4 @@
-import { Clinic } from '../../core/models/clinic.models';
+import { ClinicIdentity } from './print-document';
 import { Budget } from '../../core/models/treatment.models';
 
 /** Escapes text before it goes into the printed HTML. Treatment descriptions
@@ -25,7 +25,7 @@ const money = (n: number) =>
  */
 export function printBudget(
   budget: Budget,
-  clinic: Clinic | null,
+  clinic: ClinicIdentity | null,
   patientName: string,
   planTitle?: string,
 ): void {
@@ -121,7 +121,10 @@ export function printBudget(
     <div>Firma del paciente — acepto el presupuesto</div>
   </div>
 
-  <footer>Presupuesto con validez de 30 días desde su emisión, salvo indicación en contrario.</footer>
+  <footer>
+    Presupuesto con validez de 30 días desde su emisión, salvo indicación en contrario.
+    Este documento no es un comprobante de venta ni tiene validez tributaria.
+  </footer>
   <script>window.onload = () => { window.focus(); window.print(); };</script>
 </body></html>`);
   win.document.close();

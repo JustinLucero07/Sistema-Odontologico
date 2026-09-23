@@ -43,6 +43,7 @@ from app.modules.reports.router import router as reports_router
 from app.modules.treatment_plans.router import patient_plans_router, plans_router
 from app.modules.treatments.router import router as treatments_router
 from app.modules.users.router import router as users_router
+from app.modules.privacy.router import legal_router, patient_router as privacy_patient_router
 
 settings = get_settings()
 
@@ -110,6 +111,8 @@ app.include_router(patient_ai_router)
 app.include_router(patient_portal_router)
 app.include_router(portal_manage_router)
 app.include_router(portal_public_router)
+app.include_router(privacy_patient_router)
+app.include_router(legal_router)
 
 
 @app.get("/api/v1/health")

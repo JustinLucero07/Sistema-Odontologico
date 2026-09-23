@@ -37,6 +37,10 @@ class User(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Acuerdo de confidencialidad: qué versión aceptó y cuándo. Quien accede a
+    # historias clínicas se compromete a guardar el secreto de lo que ve.
+    confidentiality_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    confidentiality_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     roles: Mapped[list["Role"]] = relationship(secondary=user_roles, back_populates="users")
 

@@ -106,7 +106,9 @@ ThemeData _build(Brightness brightness) {
           titleMedium: TextStyle(fontWeight: FontWeight.w600, color: ink),
         ),
     appBarTheme: AppBarTheme(
-      backgroundColor: base,
+      // Transparente: cada barra pone detrás GlassAppBarBackground.
+      backgroundColor: Colors.transparent,
+      scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       foregroundColor: ink,
       elevation: 0,
@@ -118,38 +120,69 @@ ThemeData _build(Brightness brightness) {
         color: ink,
       ),
     ),
+    // Las tarjetas que no usan GlassCard reciben al menos el mismo tinte
+    // translúcido y el borde claro, para no desentonar.
     cardTheme: CardThemeData(
-      color: surface,
+      color: dark ? const Color(0xA8223E42) : const Color(0xCCFFFFFF),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: ink.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: dark ? const Color(0x17FFFFFF) : const Color(0xB3FFFFFF),
+        ),
       ),
       margin: EdgeInsets.zero,
     ),
+    // Campos: vidrio un grado más claro que la tarjeta que los contiene.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surface,
+      fillColor: dark ? const Color(0x0DFFFFFF) : const Color(0x99FFFFFF),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: ink.withValues(alpha: 0.14)),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: ink.withValues(alpha: 0.1)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: ink.withValues(alpha: 0.14)),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: ink.withValues(alpha: 0.1)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: primary, width: 2),
       ),
     ),
+    // Acciones en cápsula, como en la web.
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const StadiumBorder(),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: const StadiumBorder(),
+        backgroundColor: dark ? const Color(0x0FFFFFFF) : const Color(0x80FFFFFF),
+        side: BorderSide(color: ink.withValues(alpha: 0.12)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(shape: const StadiumBorder()),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: dark ? const Color(0xF0162A2D) : const Color(0xF2FAFCFC),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 8,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: dark ? const Color(0xF2162A2D) : const Color(0xF5FAFCFC),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: surface,
