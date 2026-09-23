@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.imaging import service
 from app.modules.imaging.models import IMAGE_TYPES, TOOTH_SCOPED_TYPES
-from app.modules.imaging.schemas import ClinicalImageOut, ImageArchiveRequest
+from app.modules.imaging.schemas import ClinicalImageOut, ImageArchiveRequest, ImageUpdate
 
 patient_router = APIRouter(prefix="/api/v1/patients/{patient_id}/images", tags=["imaging"])
 router = APIRouter(prefix="/api/v1/images", tags=["imaging"])
@@ -103,5 +103,28 @@ async def post_archive_image(
     image = await service.archive_image(
         db, current_user.clinic_id, current_user.id, image_id, payload.reason
     )
+    await db.commit()
+    return image
+
+
+@router.put("/{image_id}", response_model=ClinicalImageOut)
+async def put_image(
+    image_id: uuid.UUID,
+    payload: ImageUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("imaging:write")),
+):
+    image = await service.update_image(db, current_user.clinic_id, current_user.id, image_id, payload)
+    await db.commit()
+    return image
+
+
+@router.post("/{image_id}/restore", response_model=ClinicalImageOut)
+async def post_restore_image(
+    image_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("imaging:write")),
+):
+    image = await service.restore_image(db, current_user.clinic_id, current_user.id, image_id)
     await db.commit()
     return image

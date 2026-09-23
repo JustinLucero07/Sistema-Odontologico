@@ -162,7 +162,9 @@ ThemeData _build(Brightness brightness) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: const StadiumBorder(),
-        backgroundColor: dark ? const Color(0x0FFFFFFF) : const Color(0x80FFFFFF),
+        backgroundColor: dark
+            ? const Color(0x0FFFFFFF)
+            : const Color(0x80FFFFFF),
         side: BorderSide(color: ink.withValues(alpha: 0.12)),
       ),
     ),

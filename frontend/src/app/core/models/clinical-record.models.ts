@@ -74,6 +74,8 @@ export interface Consent {
   signed_at: string | null;
   signed_by_name: string | null;
   signature_notes: string | null;
+  voided_at?: string | null;
+  void_reason?: string | null;
 }
 
 export interface ConsentCreate {
@@ -93,6 +95,8 @@ export interface PatientDocument {
   original_filename: string;
   mime_type: string | null;
   size_bytes: number | null;
+  archived_at?: string | null;
+  archived_reason?: string | null;
 }
 
 export const DOCUMENT_TYPE_LABELS: Record<string, string> = {

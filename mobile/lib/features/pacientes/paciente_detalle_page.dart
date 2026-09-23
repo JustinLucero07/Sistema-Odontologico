@@ -8,6 +8,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../shared/odontograma/odontograma_widget.dart';
 import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
+import '../../shared/widgets/glass.dart';
 
 final _fichaProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>(
@@ -40,27 +41,28 @@ class PacienteDetallePage extends ConsumerWidget {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(nombre, overflow: TextOverflow.ellipsis),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Ficha'),
-              Tab(text: 'Odontograma'),
-              Tab(text: 'Cuenta'),
+      child: AmbientBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            flexibleSpace: const GlassAppBarBackground(),
+            title: Text(nombre, overflow: TextOverflow.ellipsis),
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(56),
+              child: _PestanasVidrio(),
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              _Ficha(pacienteId: pacienteId),
+              _Odontograma(pacienteId: pacienteId),
+              _Cuenta(pacienteId: pacienteId),
             ],
           ),
+          floatingActionButton: (usuario?.puede('imaging:write') ?? false)
+              ? _BotonAcciones(pacienteId: pacienteId, nombre: nombre)
+              : null,
         ),
-        body: TabBarView(
-          children: [
-            _Ficha(pacienteId: pacienteId),
-            _Odontograma(pacienteId: pacienteId),
-            _Cuenta(pacienteId: pacienteId),
-          ],
-        ),
-        floatingActionButton: (usuario?.puede('imaging:write') ?? false)
-            ? _BotonAcciones(pacienteId: pacienteId, nombre: nombre)
-            : null,
       ),
     );
   }
@@ -84,7 +86,7 @@ class _Ficha extends ConsumerWidget {
       data: (p) => ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
+          GlassCard(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -110,7 +112,7 @@ class _Ficha extends ConsumerWidget {
           ),
           if (p['notes'] != null && '${p['notes']}'.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Card(
+            GlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -239,7 +241,7 @@ class _Odontograma extends ConsumerWidget {
                   ),
                 ),
               ),
-            Card(
+            GlassCard(
               clipBehavior: Clip.antiAlias,
               // Dieciséis piezas en el ancho de un teléfono quedan pequeñas.
               // Pellizcar para ampliar es el gesto que cualquiera prueba
@@ -373,7 +375,7 @@ class _Cuenta extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
+            GlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Column(
@@ -426,7 +428,7 @@ class _Cuenta extends ConsumerWidget {
               Text('Cargos', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               for (final c in cargos)
-                Card(
+                GlassCard(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     title: Text('${c['description']}'),
@@ -749,3 +751,52 @@ class _DialogoEvolucionState extends State<_DialogoEvolucion> {
 /// El tema da a los botones rellenos el ancho completo, pensado para el login.
 /// Dentro de un diálogo eso empuja «Cancelar» a otra línea.
 final _botonDialogo = FilledButton.styleFrom(minimumSize: const Size(96, 44));
+
+/// Pestañas como selector segmentado de vidrio: una cápsula con la opción
+/// activa iluminada, en vez de la línea subrayada de Material.
+class _PestanasVidrio extends StatelessWidget {
+  const _PestanasVidrio();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: GlassPanel(
+        radius: 24,
+        elevated: false,
+        padding: const EdgeInsets.all(4),
+        child: TabBar(
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.tab,
+          splashBorderRadius: BorderRadius.circular(20),
+          labelColor: scheme.primary,
+          unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.6),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13.5,
+          ),
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: dark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+            boxShadow: dark
+                ? null
+                : const [
+                    BoxShadow(
+                      color: Color(0x220A2325),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+          ),
+          tabs: const [
+            Tab(height: 36, text: 'Ficha'),
+            Tab(height: 36, text: 'Odontograma'),
+            Tab(height: 36, text: 'Cuenta'),
+          ],
+        ),
+      ),
+    );
+  }
+}

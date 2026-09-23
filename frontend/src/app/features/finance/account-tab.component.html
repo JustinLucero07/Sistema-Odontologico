@@ -9,11 +9,11 @@
     </div>
     @if (canWrite) {
       <div class="account-actions">
-        <button mat-flat-button (click)="showPaymentForm.set(!showPaymentForm()); showChargeForm.set(false)">
+        <button mat-flat-button (click)="showPaymentForm.set(true)">
           <mat-icon>payments</mat-icon>
           Registrar pago
         </button>
-        <button mat-stroked-button (click)="showChargeForm.set(!showChargeForm()); showPaymentForm.set(false)">
+        <button mat-stroked-button (click)="showChargeForm.set(true)">
           <mat-icon>receipt_long</mat-icon>
           Nuevo cargo
         </button>
@@ -63,85 +63,7 @@
       }
     </section>
 
-    @if (showPaymentForm()) {
-      <form class="form-card" [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
-        <h3>Registrar pago</h3>
-        <div class="form-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Importe</mat-label>
-            <span matTextPrefix>$&nbsp;</span>
-            <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
-          </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Medio de pago</mat-label>
-            <mat-select formControlName="method">
-              @for (method of methods(); track method.code) {
-                <mat-option [value]="method.code">{{ method.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Aplicar a</mat-label>
-            <mat-select formControlName="charge_id">
-              <mat-option value="">A cuenta (sin cargo)</mat-option>
-              @for (charge of openCharges(); track charge.id) {
-                <mat-option [value]="charge.id">
-                  {{ charge.description }} — pendiente $ {{ money(charge.pending) }}
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          @if (selectedMethodNeedsReference()) {
-            <mat-form-field appearance="outline">
-              <mat-label>Referencia / autorización</mat-label>
-              <input matInput formControlName="reference" />
-              <mat-hint>Necesaria para conciliar con el banco</mat-hint>
-            </mat-form-field>
-          }
-
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Notas</mat-label>
-            <input matInput formControlName="notes" />
-          </mat-form-field>
-        </div>
-        <div class="form-actions">
-          <button mat-flat-button type="submit" [disabled]="paymentForm.invalid || saving()">
-            Guardar pago
-          </button>
-          <button mat-stroked-button type="button" (click)="showPaymentForm.set(false)">Cancelar</button>
-        </div>
-      </form>
-    }
-
-    @if (showChargeForm()) {
-      <form class="form-card" [formGroup]="chargeForm" (ngSubmit)="submitCharge()">
-        <h3>Nuevo cargo</h3>
-        <div class="form-grid">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Concepto</mat-label>
-            <input matInput formControlName="description" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Importe</mat-label>
-            <span matTextPrefix>$&nbsp;</span>
-            <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Notas</mat-label>
-            <input matInput formControlName="notes" />
-          </mat-form-field>
-        </div>
-        <div class="form-actions">
-          <button mat-flat-button type="submit" [disabled]="chargeForm.invalid || saving()">
-            Guardar cargo
-          </button>
-          <button mat-stroked-button type="button" (click)="showChargeForm.set(false)">Cancelar</button>
-        </div>
-      </form>
-    }
 
     <!-- Charges -->
     <section class="block">
@@ -335,5 +257,89 @@
         <button mat-stroked-button (click)="voiding.set(null)">Cancelar</button>
       </div>
     </div>
+  </div>
+}
+
+@if (showPaymentForm()) {
+  <div class="overlay" (click)="showPaymentForm.set(false)">
+    <form class="panel" (click)="$event.stopPropagation()" [formGroup]="paymentForm" (ngSubmit)="submitPayment()">
+    <h3>Registrar pago</h3>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Importe</mat-label>
+        <span matTextPrefix>$&nbsp;</span>
+        <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Medio de pago</mat-label>
+        <mat-select formControlName="method">
+          @for (method of methods(); track method.code) {
+            <mat-option [value]="method.code">{{ method.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Aplicar a</mat-label>
+        <mat-select formControlName="charge_id">
+          <mat-option value="">A cuenta (sin cargo)</mat-option>
+          @for (charge of openCharges(); track charge.id) {
+            <mat-option [value]="charge.id">
+              {{ charge.description }} — pendiente $ {{ money(charge.pending) }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (selectedMethodNeedsReference()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Referencia / autorización</mat-label>
+          <input matInput formControlName="reference" />
+          <mat-hint>Necesaria para conciliar con el banco</mat-hint>
+        </mat-form-field>
+      }
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Notas</mat-label>
+        <input matInput formControlName="notes" />
+      </mat-form-field>
+    </div>
+    <div class="form-actions">
+      <button mat-flat-button type="submit" [disabled]="paymentForm.invalid || saving()">
+        Guardar pago
+      </button>
+      <button mat-stroked-button type="button" (click)="showPaymentForm.set(false)">Cancelar</button>
+    </div>
+  </form>
+  </div>
+}
+
+@if (showChargeForm()) {
+  <div class="overlay" (click)="showChargeForm.set(false)">
+    <form class="panel" (click)="$event.stopPropagation()" [formGroup]="chargeForm" (ngSubmit)="submitCharge()">
+    <h3>Nuevo cargo</h3>
+    <div class="form-grid">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Concepto</mat-label>
+        <input matInput formControlName="description" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Importe</mat-label>
+        <span matTextPrefix>$&nbsp;</span>
+        <input matInput formControlName="amount" inputmode="decimal" placeholder="0.00" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Notas</mat-label>
+        <input matInput formControlName="notes" />
+      </mat-form-field>
+    </div>
+    <div class="form-actions">
+      <button mat-flat-button type="submit" [disabled]="chargeForm.invalid || saving()">
+        Guardar cargo
+      </button>
+      <button mat-stroked-button type="button" (click)="showChargeForm.set(false)">Cancelar</button>
+    </div>
+  </form>
   </div>
 }

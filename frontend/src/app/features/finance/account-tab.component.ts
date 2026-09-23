@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -104,6 +104,15 @@ export class AccountTabComponent implements OnInit {
     if (balance < 0) return 'credit';
     return 'settled';
   });
+
+  /** Esc cierra cualquier ventana abierta, como en un diálogo normal. */
+  @HostListener('document:keydown.escape')
+  closePanels(): void {
+    this.showPaymentForm.set(false);
+    this.showChargeForm.set(false);
+    this.planningFor.set(null);
+    this.voiding.set(null);
+  }
 
   async ngOnInit(): Promise<void> {
     this.methods.set(await firstValueFrom(this.finance.getMethods()));

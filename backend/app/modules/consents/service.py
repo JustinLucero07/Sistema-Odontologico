@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import record_audit
+from app.shared.voiding import apply_void
 from app.modules.consents.models import Consent, ConsentTemplate
 from app.modules.consents.schemas import ConsentCreate, ConsentSign, ConsentTemplateCreate, ConsentTemplateUpdate
 from app.modules.patients.service import get_patient_or_404
@@ -131,6 +132,10 @@ async def sign_consent(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Este consentimiento ya fue firmado"
         )
+    if consent.voided_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Este consentimiento está anulado y no se puede firmar"
+        )
 
     consent.status = "firmado"
     consent.signed_at = datetime.now(timezone.utc)
@@ -140,5 +145,26 @@ async def sign_consent(
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="sign", entity_type="consent",
         entity_id=str(consent_id), after={"signed_by_name": payload.signed_by_name},
+    )
+    return consent
+
+
+async def void_consent(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, consent_id: uuid.UUID, reason: str
+) -> Consent:
+    """Un consentimiento no se borra. Si estaba pendiente se anula (emitido por
+    error); si estaba firmado, el paciente lo revoca, que es su derecho. En
+    ambos casos el texto y la firma originales siguen en la historia."""
+    consent = (
+        await db.execute(select(Consent).where(Consent.id == consent_id, Consent.clinic_id == clinic_id))
+    ).scalar_one_or_none()
+    if consent is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consentimiento no encontrado")
+    apply_void(consent, actor_id, reason, "El consentimiento")
+    await db.flush()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id,
+        action="revoke" if consent.status == "firmado" else "void", entity_type="consent",
+        entity_id=str(consent_id), after={"reason": consent.void_reason},
     )
     return consent

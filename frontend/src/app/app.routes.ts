@@ -129,6 +129,15 @@ export const routes: Routes = [
           import('./features/legal/legal-page.component').then((m) => m.LegalPageComponent),
       },
       {
+        path: 'settings/messages',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/messages/message-templates.component').then(
+            (m) => m.MessageTemplatesComponent,
+          ),
+      },
+      {
         path: 'settings/consents',
         canActivate: [permissionGuard],
         data: { permission: 'consents:write' },

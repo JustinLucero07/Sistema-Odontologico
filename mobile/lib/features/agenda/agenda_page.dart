@@ -7,6 +7,7 @@ import '../../core/models/cita.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import '../pacientes/paciente_detalle_page.dart';
+import '../../shared/widgets/glass.dart';
 
 final diaAgendaProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -55,7 +56,12 @@ class AgendaPage extends ConsumerWidget {
                   );
                 }
                 return ListView.separated(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.paddingOf(context).bottom),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    8,
+                    16,
+                    24 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   itemCount: lista.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) => _TarjetaCita(cita: lista[i]),
@@ -155,7 +161,7 @@ class _TarjetaCita extends ConsumerWidget {
     final color = StatusColors.of(context, cita.estado);
     final cancelada = cita.estado == 'cancelada' || cita.estado == 'no_asistio';
 
-    return Card(
+    return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.of(context).push(

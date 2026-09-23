@@ -224,6 +224,13 @@ $frontend-theme: mat.define-theme((
   --mat-tab-header-active-label-text-color: var(--color-primary);
   --mat-tab-header-active-ripple-color: var(--color-primary);
   --mat-tab-header-inactive-label-text-color: var(--color-ink-soft);
+  --mat-tab-header-active-focus-label-text-color: var(--color-primary);
+  --mat-tab-header-active-hover-label-text-color: var(--color-primary);
+  --mat-tab-header-inactive-focus-label-text-color: var(--color-ink);
+  --mat-tab-header-inactive-hover-label-text-color: var(--color-ink);
+  --mdc-chip-label-text-color: var(--color-ink);
+  --mdc-chip-with-icon-icon-color: var(--color-ink-soft);
+  --mat-chip-with-icon-icon-color: var(--color-ink-soft);
 
   --mdc-linear-progress-active-indicator-color: var(--color-primary);
   --mdc-circular-progress-active-indicator-color: var(--color-primary);
@@ -630,6 +637,15 @@ mat-card.mat-mdc-card {
   width: calc(100% - 12px) !important;
 }
 
+// El tema base de Material es claro: sin esto, todo texto sin color propio
+// dentro de pestañas y chips hereda su tinta oscura y en modo oscuro
+// desaparece. Se reasigna a la tinta del tema de la app.
+.mat-mdc-tab-group,
+.mat-mdc-tab-body-content,
+.mat-mdc-chip {
+  color: var(--color-ink);
+}
+
 // Pestañas: un selector segmentado de vidrio en vez de una línea subrayada.
 .mat-mdc-tab-group .mat-mdc-tab-header {
   padding: 5px;
@@ -829,5 +845,47 @@ mat-card.mat-mdc-card {
   .mat-mdc-outlined-button {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ============================================================
+   Barras de desplazamiento
+   Finas, sin flechas y sobre fondo transparente: la clásica con
+   botones de subir/bajar se veía pesada en cada panel. Solo el
+   pulgar, discreto, que se aclara al pasar el ratón.
+   Chrome ignora ::-webkit-scrollbar si se declaran scrollbar-width
+   o scrollbar-color, así que esas dos solo van para Firefox.
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-ink) 32%, transparent);
+}
+
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent) transparent;
   }
 }

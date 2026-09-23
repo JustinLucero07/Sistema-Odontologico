@@ -1,6 +1,15 @@
 <div class="appointments-tab">
+  @if (auth.hasPermission('appointments:write')) {
+    <div class="tab-actions">
+      <a mat-flat-button routerLink="/agenda" [queryParams]="{ nueva: 1, paciente: patientId }">
+        <mat-icon>event</mat-icon>
+        Agendar cita
+      </a>
+    </div>
+  }
+
   @if (appointments().length === 0) {
-    <p class="empty-hint">Este paciente no tiene citas registradas. Se agendan desde la Agenda.</p>
+    <p class="empty-hint">Este paciente no tiene citas registradas.</p>
   }
 
   @if (upcoming.length > 0) {
@@ -20,6 +29,15 @@
           <span class="status-tag" [style.color]="statusColor(appointment)">
             {{ statusLabels[appointment.status] }}
           </span>
+          @if (canChange(appointment)) {
+            <a mat-icon-button routerLink="/agenda" [queryParams]="{ editar: appointment.id }"
+               matTooltip="Reprogramar" aria-label="Reprogramar cita">
+              <mat-icon>edit_calendar</mat-icon>
+            </a>
+            <button mat-icon-button (click)="cancel(appointment)" matTooltip="Cancelar cita" aria-label="Cancelar cita">
+              <mat-icon>event_busy</mat-icon>
+            </button>
+          }
         </div>
       }
     </section>

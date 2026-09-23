@@ -56,4 +56,7 @@ class ConsentOut(BaseModel):
     signed_by_name: str | None
     signature_notes: str | None
 
+    voided_at: datetime | None = None
+    void_reason: str | None = None
+
     model_config = {"from_attributes": True}

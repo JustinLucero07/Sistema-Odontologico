@@ -352,3 +352,42 @@
   color: var(--color-primary);
   font-size: 0.82rem;
 }
+
+.archived-toggle {
+  margin-bottom: 8px;
+}
+
+.document-row.archived {
+  opacity: 0.6;
+}
+
+.void-btn {
+  margin-left: 8px;
+}
+
+.record-card.voided .consent-body {
+  text-decoration: line-through;
+  color: var(--color-ink-faint);
+}
+
+.file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-ink-soft);
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+  }
+
+  mat-icon {
+    color: var(--color-primary);
+  }
+}

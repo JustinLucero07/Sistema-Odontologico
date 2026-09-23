@@ -2,27 +2,12 @@
   <section class="block">
     <div class="block-header">
       <h2><mat-icon>fact_check</mat-icon> Diagnósticos</h2>
-      <button mat-button *appHasPermission="'diagnoses:write'" (click)="showDiagnosisForm.set(!showDiagnosisForm())">
+      <button mat-button *appHasPermission="'diagnoses:write'" (click)="openForm('diagnosis')">
         <mat-icon>add</mat-icon>
         Nuevo diagnóstico
       </button>
     </div>
 
-    @if (showDiagnosisForm()) {
-      <form [formGroup]="diagnosisForm" (ngSubmit)="submitDiagnosis()" class="inline-form">
-        <mat-form-field appearance="outline" class="fdi-field">
-          <mat-label>Pieza (FDI)</mat-label>
-          <input matInput formControlName="fdi_number" placeholder="Ej. 16" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="grow-field">
-          <mat-label>Descripción del diagnóstico</mat-label>
-          <input matInput formControlName="description" />
-        </mat-form-field>
-        <button mat-flat-button color="primary" type="submit" [disabled]="diagnosisForm.invalid || saving()">
-          Guardar
-        </button>
-      </form>
-    }
 
     @if (diagnoses().length === 0) {
       <p class="empty-hint">Sin diagnósticos registrados.</p>
@@ -66,23 +51,12 @@
   <section class="block">
     <div class="block-header">
       <h2><mat-icon>medical_information</mat-icon> Planes de tratamiento</h2>
-      <button mat-button *appHasPermission="'treatments:write'" (click)="showNewPlanForm.set(!showNewPlanForm())">
+      <button mat-button *appHasPermission="'treatments:write'" (click)="openForm('plan')">
         <mat-icon>add</mat-icon>
         Nuevo plan
       </button>
     </div>
 
-    @if (showNewPlanForm()) {
-      <form [formGroup]="planForm" (ngSubmit)="submitNewPlan()" class="inline-form">
-        <mat-form-field appearance="outline" class="grow-field">
-          <mat-label>Título del plan</mat-label>
-          <input matInput formControlName="title" />
-        </mat-form-field>
-        <button mat-flat-button color="primary" type="submit" [disabled]="planForm.invalid || saving()">
-          Crear plan
-        </button>
-      </form>
-    }
 
     @if (plans().length === 0) {
       <p class="empty-hint">Este paciente aún no tiene un plan de tratamiento.</p>
@@ -163,33 +137,6 @@
           </table>
         }
 
-        @if (addingItemToPlan() === plan.id) {
-          <form [formGroup]="itemForm" (ngSubmit)="submitItem(plan.id)" class="inline-form item-form">
-            <mat-form-field appearance="outline" class="grow-field">
-              <mat-label>Tratamiento</mat-label>
-              <mat-select formControlName="treatment_id" (selectionChange)="onTreatmentSelected($event.value)">
-                @for (t of catalog(); track t.id) {
-                  <mat-option [value]="t.id">{{ t.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="fdi-field">
-              <mat-label>Pieza</mat-label>
-              <input matInput formControlName="fdi_number" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="price-field">
-              <mat-label>Precio</mat-label>
-              <input matInput type="number" formControlName="price" min="0" step="0.01" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="price-field">
-              <mat-label>Descuento</mat-label>
-              <input matInput type="number" formControlName="discount" min="0" step="0.01" />
-            </mat-form-field>
-            <button mat-flat-button color="primary" type="submit" [disabled]="itemForm.invalid || saving()">
-              Agregar
-            </button>
-          </form>
-        }
 
         <div class="plan-actions">
           <button mat-button *appHasPermission="'treatments:write'" (click)="startAddingItem(plan.id)">
@@ -273,4 +220,69 @@
       <button mat-flat-button type="submit" [disabled]="saving()">Guardar cambios</button>
     </mat-dialog-actions>
   </form>
+</ng-template>
+
+<ng-template #diagnosisDialog>
+  <h2 mat-dialog-title>Nuevo diagnóstico</h2>
+  <mat-dialog-content>
+    <form [formGroup]="diagnosisForm" (ngSubmit)="submitDiagnosis()" class="dialog-form">
+        <mat-form-field appearance="outline" class="fdi-field">
+          <mat-label>Pieza (FDI)</mat-label>
+          <input matInput formControlName="fdi_number" placeholder="Ej. 16" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="grow-field">
+          <mat-label>Descripción del diagnóstico</mat-label>
+          <input matInput formControlName="description" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="diagnosisForm.invalid || saving()">
+          Guardar
+        </button>
+      </form>
+  </mat-dialog-content>
+</ng-template>
+
+<ng-template #planDialog>
+  <h2 mat-dialog-title>Nuevo plan de tratamiento</h2>
+  <mat-dialog-content>
+    <form [formGroup]="planForm" (ngSubmit)="submitNewPlan()" class="dialog-form">
+        <mat-form-field appearance="outline" class="grow-field">
+          <mat-label>Título del plan</mat-label>
+          <input matInput formControlName="title" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="submit" [disabled]="planForm.invalid || saving()">
+          Crear plan
+        </button>
+      </form>
+  </mat-dialog-content>
+</ng-template>
+
+<ng-template #addItemDialog>
+  <h2 mat-dialog-title>Agregar tratamiento al plan</h2>
+  <mat-dialog-content>
+    <form [formGroup]="itemForm" (ngSubmit)="submitItem(addingItemToPlan()!)" class="dialog-form">
+            <mat-form-field appearance="outline" class="grow-field">
+              <mat-label>Tratamiento</mat-label>
+              <mat-select formControlName="treatment_id" (selectionChange)="onTreatmentSelected($event.value)">
+                @for (t of catalog(); track t.id) {
+                  <mat-option [value]="t.id">{{ t.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="fdi-field">
+              <mat-label>Pieza</mat-label>
+              <input matInput formControlName="fdi_number" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="price-field">
+              <mat-label>Precio</mat-label>
+              <input matInput type="number" formControlName="price" min="0" step="0.01" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="price-field">
+              <mat-label>Descuento</mat-label>
+              <input matInput type="number" formControlName="discount" min="0" step="0.01" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" [disabled]="itemForm.invalid || saving()">
+              Agregar
+            </button>
+          </form>
+  </mat-dialog-content>
 </ng-template>

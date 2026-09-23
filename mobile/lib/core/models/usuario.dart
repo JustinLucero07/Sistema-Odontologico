@@ -8,6 +8,7 @@ class Usuario {
     required this.esSuperadmin,
     required this.roles,
     required this.permisos,
+    this.confidencialidadPendiente = false,
   });
 
   final String id;
@@ -18,6 +19,10 @@ class Usuario {
   final bool esSuperadmin;
   final List<String> roles;
   final List<String> permisos;
+
+  /// Falta aceptar la versión vigente del acuerdo de confidencialidad: hasta
+  /// entonces la app no muestra datos de pacientes.
+  final bool confidencialidadPendiente;
 
   String get nombreCompleto => '$nombre $apellido';
   String get iniciales {
@@ -40,5 +45,7 @@ class Usuario {
     esSuperadmin: json['is_superadmin'] as bool? ?? false,
     roles: (json['roles'] as List? ?? []).cast<String>(),
     permisos: (json['permissions'] as List? ?? []).cast<String>(),
+    confidencialidadPendiente:
+        json['confidentiality_required'] as bool? ?? false,
   );
 }

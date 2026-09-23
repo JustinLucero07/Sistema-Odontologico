@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -144,7 +145,13 @@ async def _placeholders(
         "clinica": clinic.name if clinic else "la clínica",
     }
     if appointment is not None:
-        local = appointment.starts_at.astimezone(timezone.utc)
+        # La hora que lee el paciente es la de la clínica, no la de UTC: una
+        # cita a las 11:00 en Ecuador no puede llegar anunciada a las 16:00.
+        try:
+            tz = ZoneInfo(clinic.timezone if clinic and clinic.timezone else "UTC")
+        except ZoneInfoNotFoundError:
+            tz = ZoneInfo("UTC")
+        local = appointment.starts_at.astimezone(tz)
         values["fecha"] = local.strftime("%d/%m/%Y")
         values["hora"] = local.strftime("%H:%M")
     return values

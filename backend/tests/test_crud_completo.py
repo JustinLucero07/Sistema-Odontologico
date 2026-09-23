@@ -336,3 +336,108 @@ async def test_branch_with_rooms_is_not_deleted_and_rooms_are_editable(client, c
 
     assert (await client.delete(f"/api/v1/clinics/operatories/{room['id']}", headers=h)).status_code == 204
     assert (await client.delete(f"/api/v1/clinics/branches/{branch['id']}", headers=h)).status_code == 204
+
+
+# ---- Radiografías, documentos y consentimientos ---------------------------
+
+
+def _png() -> bytes:
+    from tests.test_phase7 import _png_bytes
+
+    return _png_bytes()
+
+
+async def test_image_metadata_is_editable_and_archive_is_reversible(client, clinic_with_users, tmp_path, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "STORAGE_LOCAL_PATH", str(tmp_path))
+    h = _auth(await _token(client))
+    patient_id = await _patient(client, h["Authorization"].split()[1])
+    image = (
+        await client.post(
+            f"/api/v1/patients/{patient_id}/images",
+            files={"file": ("rx.png", _png(), "image/png")},
+            data={"title": "Periapical", "image_type": "periapical"},
+            headers=h,
+        )
+    ).json()
+
+    edited = await client.put(
+        f"/api/v1/images/{image['id']}",
+        json={"title": "Periapical 16-17", "image_type": "periapical", "fdi_numbers": ["16", "17"]},
+        headers=h,
+    )
+    assert edited.status_code == 200
+    assert edited.json()["fdi_numbers"] == ["16", "17"]
+
+    bad = await client.put(
+        f"/api/v1/images/{image['id']}", json={"title": "X", "image_type": "periapical", "fdi_numbers": ["99"]}, headers=h
+    )
+    assert bad.status_code == 400
+
+    await client.post(f"/api/v1/images/{image['id']}/archive", json={"reason": "Paciente equivocado"}, headers=h)
+    restored = await client.post(f"/api/v1/images/{image['id']}/restore", headers=h)
+    assert restored.status_code == 200
+    assert restored.json()["archived_at"] is None
+    assert (await client.post(f"/api/v1/images/{image['id']}/restore", headers=h)).status_code == 409
+
+
+async def test_documents_are_edited_archived_and_restored_never_deleted(client, clinic_with_users, tmp_path, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "STORAGE_LOCAL_PATH", str(tmp_path))
+    h = _auth(await _token(client))
+    patient_id = await _patient(client, h["Authorization"].split()[1])
+    doc = (
+        await client.post(
+            f"/api/v1/patients/{patient_id}/documents",
+            files={"file": ("informe.txt", b"contenido", "text/plain")},
+            data={"title": "Informe", "document_type": "informe"},
+            headers=h,
+        )
+    ).json()
+
+    edited = await client.put(
+        f"/api/v1/documents/{doc['id']}", json={"title": "Informe radiológico", "document_type": "informe"}, headers=h
+    )
+    assert edited.json()["title"] == "Informe radiológico"
+
+    await client.post(f"/api/v1/documents/{doc['id']}/archive", json={"reason": "Duplicado"}, headers=h)
+    active = (await client.get(f"/api/v1/patients/{patient_id}/documents", headers=h)).json()
+    assert active == []
+    everything = (await client.get(f"/api/v1/patients/{patient_id}/documents?include_archived=true", headers=h)).json()
+    assert everything[0]["archived_reason"] == "Duplicado"
+    # Archivado no es borrado: el archivo se sigue pudiendo descargar.
+    assert (await client.get(f"/api/v1/documents/{doc['id']}/download", headers=h)).status_code == 200
+
+    await client.post(f"/api/v1/documents/{doc['id']}/restore", headers=h)
+    assert len((await client.get(f"/api/v1/patients/{patient_id}/documents", headers=h)).json()) == 1
+
+
+async def test_consent_can_be_revoked_and_a_voided_one_not_signed(client, clinic_with_users):
+    h = _auth(await _token(client))
+    patient_id = await _patient(client, h["Authorization"].split()[1])
+    consent = (
+        await client.post(
+            f"/api/v1/patients/{patient_id}/consents", json={"title": "Exodoncia", "body": "Texto"}, headers=h
+        )
+    ).json()
+
+    voided = await client.post(f"/api/v1/consents/{consent['id']}/void", json={"reason": "Emitido por error"}, headers=h)
+    assert voided.status_code == 200
+    assert voided.json()["void_reason"] == "Emitido por error"
+    sign = await client.put(f"/api/v1/consents/{consent['id']}/sign", json={"signed_by_name": "Lucía"}, headers=h)
+    assert sign.status_code == 400
+
+    signed = (
+        await client.post(
+            f"/api/v1/patients/{patient_id}/consents", json={"title": "Endodoncia", "body": "Texto"}, headers=h
+        )
+    ).json()
+    await client.put(f"/api/v1/consents/{signed['id']}/sign", json={"signed_by_name": "Lucía"}, headers=h)
+    revoked = await client.post(
+        f"/api/v1/consents/{signed['id']}/void", json={"reason": "El paciente revoca antes del procedimiento"}, headers=h
+    )
+    assert revoked.status_code == 200
+    # La firma original sigue a la vista junto con la revocación.
+    assert revoked.json()["signed_by_name"] == "Lucía"

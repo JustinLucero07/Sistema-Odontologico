@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.consents import service
+from app.shared.voiding import VoidRequest
 from app.modules.consents.schemas import (
     ConsentCreate,
     ConsentOut,
@@ -80,5 +81,17 @@ async def post_consent(
     current_user: CurrentUser = Depends(require_permission("consents:write")),
 ):
     consent = await service.create_consent(db, current_user.clinic_id, current_user.id, patient_id, payload)
+    await db.commit()
+    return consent
+
+
+@router.post("/{consent_id}/void", response_model=ConsentOut)
+async def void_consent(
+    consent_id: uuid.UUID,
+    payload: VoidRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("consents:write")),
+):
+    consent = await service.void_consent(db, current_user.clinic_id, current_user.id, consent_id, payload.reason)
     await db.commit()
     return consent

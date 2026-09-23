@@ -25,56 +25,6 @@
       }
     </div>
 
-    @if (openForm() === 'evoluciones') {
-      <mat-card class="form-card">
-        @if (editingEvolution(); as editing) {
-          <p class="editing-note">
-            <mat-icon>history_edu</mat-icon>
-            Corrigiendo la evolución del {{ editing.created_at | date: 'd MMM y' }}. El texto anterior queda guardado en la auditoría.
-          </p>
-        }
-        <form [formGroup]="evolutionForm" (ngSubmit)="saveEvolution()" class="record-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Procedimiento realizado</mat-label>
-            <input matInput formControlName="procedure" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Piezas tratadas (FDI)</mat-label>
-            <input matInput formControlName="fdi_numbers" placeholder="Ej. 46, 26" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Anestesia</mat-label>
-            <input matInput formControlName="anesthesia" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Material utilizado</mat-label>
-            <input matInput formControlName="materials" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Diagnóstico</mat-label>
-            <input matInput formControlName="diagnosis" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Evolución</mat-label>
-            <textarea matInput formControlName="evolution" rows="2"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Indicaciones al paciente</mat-label>
-            <textarea matInput formControlName="instructions" rows="2"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Notas para la próxima cita</mat-label>
-            <input matInput formControlName="next_appointment_notes" />
-          </mat-form-field>
-          <div class="form-actions full">
-            <button mat-flat-button color="primary" type="submit" [disabled]="evolutionForm.invalid || saving()">
-              {{ editingEvolution() ? 'Guardar corrección' : 'Guardar evolución' }}
-            </button>
-            <button mat-button type="button" (click)="openForm.set(null); editingEvolution.set(null)">Cancelar</button>
-          </div>
-        </form>
-      </mat-card>
-    }
 
     @if (evolutions().length === 0) {
       <p class="empty-hint">Sin evoluciones registradas.</p>
@@ -117,63 +67,6 @@
       }
     </div>
 
-    @if (openForm() === 'recetas') {
-      <mat-card class="form-card">
-        <form [formGroup]="prescriptionForm" (ngSubmit)="savePrescription()">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Profesional que prescribe</mat-label>
-            <mat-select formControlName="professional_id">
-              @for (p of prescribers(); track p.id) {
-                <mat-option [value]="p.id">
-                  {{ p.first_name }} {{ p.last_name }}
-                  @if (p.license_number) { · Reg. {{ p.license_number }} }
-                </mat-option>
-              }
-            </mat-select>
-            <mat-hint>Figura en la receta con su registro profesional</mat-hint>
-            <mat-error>Elija quién firma la receta</mat-error>
-          </mat-form-field>
-          @for (item of prescriptionItems(); track $index) {
-            <div class="medication-row">
-              <mat-form-field appearance="outline" class="grow">
-                <mat-label>Medicamento (nombre genérico y concentración)</mat-label>
-                <input matInput [value]="item.medication" (input)="updateItem($index, 'medication', $any($event.target).value)" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Dosis</mat-label>
-                <input matInput [value]="item.dosage || ''" (input)="updateItem($index, 'dosage', $any($event.target).value)" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Frecuencia</mat-label>
-                <input matInput [value]="item.frequency || ''" (input)="updateItem($index, 'frequency', $any($event.target).value)" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Duración</mat-label>
-                <input matInput [value]="item.duration || ''" (input)="updateItem($index, 'duration', $any($event.target).value)" />
-              </mat-form-field>
-              @if (prescriptionItems().length > 1) {
-                <button mat-icon-button type="button" (click)="removePrescriptionItem($index)" aria-label="Quitar">
-                  <mat-icon>close</mat-icon>
-                </button>
-              }
-            </div>
-          }
-          <button mat-button type="button" (click)="addPrescriptionItem()">
-            <mat-icon>add</mat-icon> Agregar medicamento
-          </button>
-
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Indicaciones generales</mat-label>
-            <textarea matInput formControlName="notes" rows="2"></textarea>
-          </mat-form-field>
-
-          <div class="form-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Emitir receta</button>
-            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
-          </div>
-        </form>
-      </mat-card>
-    }
 
     @if (prescriptions().length === 0) {
       <p class="empty-hint">Sin recetas emitidas.</p>
@@ -231,45 +124,22 @@
       }
     </div>
 
-    @if (openForm() === 'consentimientos') {
-      <mat-card class="form-card">
-        <form [formGroup]="consentForm" (ngSubmit)="saveConsent()" class="record-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Plantilla</mat-label>
-            <mat-select formControlName="template_id" (selectionChange)="onTemplateSelected($event.value)">
-              <mat-option value="">Redactar manualmente</mat-option>
-              @for (template of templates(); track template.id) {
-                <mat-option [value]="template.id">{{ template.name }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Título</mat-label>
-            <input matInput formControlName="title" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Texto del consentimiento</mat-label>
-            <textarea matInput formControlName="body" rows="5"></textarea>
-          </mat-form-field>
-          <div class="form-actions full">
-            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Crear consentimiento</button>
-            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
-          </div>
-        </form>
-      </mat-card>
-    }
 
     @if (consents().length === 0) {
       <p class="empty-hint">Sin consentimientos registrados.</p>
     }
 
     @for (consent of consents(); track consent.id) {
-      <mat-card class="record-card">
+      <mat-card class="record-card" [class.voided]="consent.voided_at">
         <div class="record-head">
           <strong>{{ consent.title }}</strong>
-          <span class="status-tag" [class.signed]="consent.status === 'firmado'">
-            {{ consent.status === 'firmado' ? 'Firmado' : 'Pendiente de firma' }}
-          </span>
+          @if (consent.voided_at) {
+            <span class="void-badge">{{ consent.status === 'firmado' ? 'Revocado' : 'Anulado' }}</span>
+          } @else {
+            <span class="status-tag" [class.signed]="consent.status === 'firmado'">
+              {{ consent.status === 'firmado' ? 'Firmado' : 'Pendiente de firma' }}
+            </span>
+          }
           <button mat-button class="print-btn" (click)="printConsent(consent)"><mat-icon>print</mat-icon> Imprimir</button>
         </div>
         <p class="consent-body">{{ consent.body }}</p>
@@ -277,9 +147,20 @@
           <p class="record-note">
             Firmado por {{ consent.signed_by_name }} el {{ consent.signed_at | date: 'd MMM y, HH:mm' }}
           </p>
-        } @else if (canWriteConsents()) {
+        } @else if (canWriteConsents() && !consent.voided_at) {
           <button mat-stroked-button (click)="startSigning(consent)">
             <mat-icon>draw</mat-icon> Registrar firma
+          </button>
+        }
+        @if (consent.voided_at) {
+          <p class="void-reason">
+            {{ consent.status === 'firmado' ? 'Revocado' : 'Anulado' }} el {{ consent.voided_at | date: 'd MMM y' }}:
+            {{ consent.void_reason }}
+          </p>
+        } @else if (canWriteConsents()) {
+          <button mat-button color="warn" class="void-btn" (click)="voidConsent(consent)">
+            <mat-icon>block</mat-icon>
+            {{ consent.status === 'firmado' ? 'Registrar revocación' : 'Anular' }}
           </button>
         }
       </mat-card>
@@ -291,53 +172,23 @@
     <div class="section-head">
       <p class="section-hint">Archivos del paciente. Cada descarga queda registrada en la auditoría.</p>
       @if (canWriteDocuments()) {
-        <button mat-flat-button color="primary" (click)="toggleForm('documentos')">
+        <button mat-flat-button color="primary" (click)="newDocument()">
           <mat-icon>upload</mat-icon> Subir documento
         </button>
       }
     </div>
 
-    @if (openForm() === 'documentos') {
-      <mat-card class="form-card">
-        <form [formGroup]="documentForm" (ngSubmit)="uploadDocument()" class="record-form">
-          <div class="file-picker full">
-            <input type="file" id="document-file" (change)="onFileSelected($event)" />
-            @if (selectedFile(); as file) {
-              <span class="file-name">{{ file.name }} · {{ fileSize(file.size) }}</span>
-            }
-          </div>
-          <mat-form-field appearance="outline">
-            <mat-label>Título</mat-label>
-            <input matInput formControlName="title" />
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Tipo</mat-label>
-            <mat-select formControlName="document_type">
-              @for (type of documentTypes; track type) {
-                <mat-option [value]="type">{{ documentTypeLabels[type] }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Descripción</mat-label>
-            <input matInput formControlName="description" />
-          </mat-form-field>
-          <div class="form-actions full">
-            <button mat-flat-button color="primary" type="submit" [disabled]="!selectedFile() || documentForm.invalid || saving()">
-              Subir
-            </button>
-            <button mat-button type="button" (click)="openForm.set(null)">Cancelar</button>
-          </div>
-        </form>
-      </mat-card>
-    }
+
+    <mat-slide-toggle class="archived-toggle" [checked]="showArchivedDocs()" (change)="toggleArchivedDocs($event.checked)">
+      Ver archivados
+    </mat-slide-toggle>
 
     @if (documents().length === 0) {
       <p class="empty-hint">Sin documentos cargados.</p>
     }
 
     @for (doc of documents(); track doc.id) {
-      <div class="document-row">
+      <div class="document-row" [class.archived]="doc.archived_at">
         <mat-icon>description</mat-icon>
         <div class="document-main">
           <strong>{{ doc.title }}</strong>
@@ -347,10 +198,35 @@
             @if (doc.size_bytes) { · {{ fileSize(doc.size_bytes) }} }
             · {{ doc.created_at | date: 'd MMM y' }}
           </span>
+          @if (doc.archived_at) {
+            <span class="void-reason">Archivado: {{ doc.archived_reason }}</span>
+          }
         </div>
         <button mat-button (click)="download(doc)">
           <mat-icon>download</mat-icon> Descargar
         </button>
+        @if (canWriteDocuments()) {
+          <button mat-icon-button [matMenuTriggerFor]="docMenu" aria-label="Acciones del documento">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #docMenu="matMenu" xPosition="before">
+            <button mat-menu-item (click)="editDocument(doc)">
+              <mat-icon>edit</mat-icon>
+              Editar datos
+            </button>
+            @if (doc.archived_at) {
+              <button mat-menu-item (click)="restoreDocument(doc)">
+                <mat-icon>unarchive</mat-icon>
+                Restaurar
+              </button>
+            } @else {
+              <button mat-menu-item class="danger-item" (click)="archiveDocument(doc)">
+                <mat-icon>inventory_2</mat-icon>
+                Archivar
+              </button>
+            }
+          </mat-menu>
+        }
       </div>
     }
   }
@@ -378,3 +254,184 @@
     </div>
   </div>
 }
+
+<ng-template #evolucionesDialog>
+  <h2 mat-dialog-title>{{ editingEvolution() ? 'Corregir evolución' : 'Nueva evolución' }}</h2>
+  <mat-dialog-content>
+        @if (editingEvolution(); as editing) {
+          <p class="editing-note">
+            <mat-icon>history_edu</mat-icon>
+            Corrigiendo la evolución del {{ editing.created_at | date: 'd MMM y' }}. El texto anterior queda guardado en la auditoría.
+          </p>
+        }
+        <form [formGroup]="evolutionForm" (ngSubmit)="saveEvolution()" class="record-form">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Procedimiento realizado</mat-label>
+            <input matInput formControlName="procedure" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Piezas tratadas (FDI)</mat-label>
+            <input matInput formControlName="fdi_numbers" placeholder="Ej. 46, 26" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Anestesia</mat-label>
+            <input matInput formControlName="anesthesia" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Material utilizado</mat-label>
+            <input matInput formControlName="materials" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Diagnóstico</mat-label>
+            <input matInput formControlName="diagnosis" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Evolución</mat-label>
+            <textarea matInput formControlName="evolution" rows="2"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Indicaciones al paciente</mat-label>
+            <textarea matInput formControlName="instructions" rows="2"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Notas para la próxima cita</mat-label>
+            <input matInput formControlName="next_appointment_notes" />
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="evolutionForm.invalid || saving()">
+              {{ editingEvolution() ? 'Guardar corrección' : 'Guardar evolución' }}
+            </button>
+            <button mat-button type="button" (click)="closeForm()">Cancelar</button>
+          </div>
+        </form>
+        </mat-dialog-content>
+</ng-template>
+
+<ng-template #recetasDialog>
+  <h2 mat-dialog-title>Nueva receta</h2>
+  <mat-dialog-content>
+        <form [formGroup]="prescriptionForm" (ngSubmit)="savePrescription()">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Profesional que prescribe</mat-label>
+            <mat-select formControlName="professional_id">
+              @for (p of prescribers(); track p.id) {
+                <mat-option [value]="p.id">
+                  {{ p.first_name }} {{ p.last_name }}
+                  @if (p.license_number) { · Reg. {{ p.license_number }} }
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Figura en la receta con su registro profesional</mat-hint>
+            <mat-error>Elija quién firma la receta</mat-error>
+          </mat-form-field>
+          @for (item of prescriptionItems(); track $index) {
+            <div class="medication-row">
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Medicamento (nombre genérico y concentración)</mat-label>
+                <input matInput [value]="item.medication" (input)="updateItem($index, 'medication', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Dosis</mat-label>
+                <input matInput [value]="item.dosage || ''" (input)="updateItem($index, 'dosage', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Frecuencia</mat-label>
+                <input matInput [value]="item.frequency || ''" (input)="updateItem($index, 'frequency', $any($event.target).value)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Duración</mat-label>
+                <input matInput [value]="item.duration || ''" (input)="updateItem($index, 'duration', $any($event.target).value)" />
+              </mat-form-field>
+              @if (prescriptionItems().length > 1) {
+                <button mat-icon-button type="button" (click)="removePrescriptionItem($index)" aria-label="Quitar">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+          }
+          <button mat-button type="button" (click)="addPrescriptionItem()">
+            <mat-icon>add</mat-icon> Agregar medicamento
+          </button>
+
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Indicaciones generales</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Emitir receta</button>
+            <button mat-button type="button" (click)="closeForm()">Cancelar</button>
+          </div>
+        </form>
+        </mat-dialog-content>
+</ng-template>
+
+<ng-template #consentimientosDialog>
+  <h2 mat-dialog-title>Nuevo consentimiento</h2>
+  <mat-dialog-content>
+        <form [formGroup]="consentForm" (ngSubmit)="saveConsent()" class="record-form">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Plantilla</mat-label>
+            <mat-select formControlName="template_id" (selectionChange)="onTemplateSelected($event.value)">
+              <mat-option value="">Redactar manualmente</mat-option>
+              @for (template of templates(); track template.id) {
+                <mat-option [value]="template.id">{{ template.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Título</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Texto del consentimiento</mat-label>
+            <textarea matInput formControlName="body" rows="5"></textarea>
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Crear consentimiento</button>
+            <button mat-button type="button" (click)="closeForm()">Cancelar</button>
+          </div>
+        </form>
+        </mat-dialog-content>
+</ng-template>
+
+<ng-template #documentosDialog>
+  <h2 mat-dialog-title>{{ editingDoc() ? 'Editar documento' : 'Subir documento' }}</h2>
+  <mat-dialog-content>
+        <form [formGroup]="documentForm" (ngSubmit)="uploadDocument()" class="record-form">
+          @if (!editingDoc()) {
+          <label class="file-picker full">
+            <input type="file" id="document-file" hidden (change)="onFileSelected($event)" />
+            <mat-icon>{{ selectedFile() ? 'check_circle' : 'upload_file' }}</mat-icon>
+            @if (selectedFile(); as file) {
+              <span class="file-name">{{ file.name }} · {{ fileSize(file.size) }}</span>
+            } @else {
+              <span class="file-name">Elegir archivo (PDF, imagen, documento)</span>
+            }
+          </label>
+          }
+          <mat-form-field appearance="outline">
+            <mat-label>Título</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="document_type">
+              @for (type of documentTypes; track type) {
+                <mat-option [value]="type">{{ documentTypeLabels[type] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Descripción</mat-label>
+            <input matInput formControlName="description" />
+          </mat-form-field>
+          <div class="form-actions full">
+            <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+              {{ editingDoc() ? 'Guardar cambios' : 'Subir' }}
+            </button>
+            <button mat-button type="button" (click)="closeForm()">Cancelar</button>
+          </div>
+        </form>
+        </mat-dialog-content>
+</ng-template>

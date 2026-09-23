@@ -230,3 +230,48 @@ async def archive_image(
         after={"reason": image.archived_reason},
     )
     return image
+
+
+async def update_image(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, image_id: uuid.UUID, payload
+) -> ClinicalImage:
+    image = await get_or_404(db, clinic_id, image_id)
+    if payload.image_type not in IMAGE_TYPE_CODES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de imagen inválido")
+    invalid = [n for n in payload.fdi_numbers if n not in VALID_FDI_NUMBERS]
+    if invalid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Piezas FDI inválidas: {', '.join(invalid)}"
+        )
+    before = {"title": image.title, "image_type": image.image_type, "description": image.description}
+    image.title = payload.title.strip()
+    image.image_type = payload.image_type
+    image.description = payload.description
+    image.taken_on = payload.taken_on
+    image.fdi_numbers = payload.fdi_numbers or None
+    await db.flush()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="clinical_image",
+        entity_id=str(image_id), before=before, after=payload.model_dump(mode="json"),
+    )
+    return image
+
+
+async def restore_image(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, image_id: uuid.UUID
+) -> ClinicalImage:
+    """Devuelve una imagen archivada a la lista activa. El archivado previo
+    queda en la auditoría con su motivo: restaurar no borra esa historia."""
+    image = await get_or_404(db, clinic_id, image_id)
+    if image.archived_at is None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="La imagen no está archivada")
+    before = {"archived_at": image.archived_at, "archived_reason": image.archived_reason}
+    image.archived_at = None
+    image.archived_by_id = None
+    image.archived_reason = None
+    await db.flush()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="restore", entity_type="clinical_image",
+        entity_id=str(image_id), before=before,
+    )
+    return image

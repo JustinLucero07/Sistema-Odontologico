@@ -90,6 +90,10 @@ export class TreatmentPlansTabComponent implements OnChanges {
   private readonly dialog = inject(MatDialog);
 
   @ViewChild('itemDialog') itemDialog!: TemplateRef<unknown>;
+  @ViewChild('diagnosisDialog') private diagnosisDialog!: TemplateRef<unknown>;
+  @ViewChild('planDialog') private planDialog!: TemplateRef<unknown>;
+  @ViewChild('addItemDialog') private addItemDialog!: TemplateRef<unknown>;
+  private formRef: MatDialogRef<unknown> | null = null;
   private itemDialogRef: MatDialogRef<unknown> | null = null;
   /** Ítem que se edita en el diálogo, con el plan al que pertenece. */
   readonly editingItem = signal<{ planId: string; item: TreatmentPlanItem } | null>(null);
@@ -115,8 +119,6 @@ export class TreatmentPlansTabComponent implements OnChanges {
   readonly budgets = signal<Budget[]>([]);
   readonly catalog = signal<Treatment[]>([]);
 
-  readonly showDiagnosisForm = signal(false);
-  readonly showNewPlanForm = signal(false);
   readonly addingItemToPlan = signal<string | null>(null);
   readonly saving = signal(false);
 
@@ -178,7 +180,7 @@ export class TreatmentPlansTabComponent implements OnChanges {
         }),
       );
       this.diagnosisForm.reset();
-      this.showDiagnosisForm.set(false);
+      this.closeFormDialog();
       this.snackBar.open('Diagnóstico registrado', 'Cerrar', { duration: 3000 });
       await this.reload();
     } finally {
@@ -194,7 +196,7 @@ export class TreatmentPlansTabComponent implements OnChanges {
         this.plansService.createPlan(this.patientId, { title: this.planForm.getRawValue().title, items: [] }),
       );
       this.planForm.reset({ title: 'Plan de tratamiento' });
-      this.showNewPlanForm.set(false);
+      this.closeFormDialog();
       this.snackBar.open('Plan de tratamiento creado', 'Cerrar', { duration: 3000 });
       await this.reload();
     } finally {
@@ -202,8 +204,31 @@ export class TreatmentPlansTabComponent implements OnChanges {
     }
   }
 
+  /** Los formularios de alta se abren en una ventana emergente. */
+  openForm(kind: 'diagnosis' | 'plan' | 'item'): void {
+    const template = { diagnosis: this.diagnosisDialog, plan: this.planDialog, item: this.addItemDialog }[kind];
+    this.formRef?.close();
+    const ref = this.dialog.open(template, {
+      width: kind === 'item' ? '620px' : '520px',
+      maxWidth: '96vw',
+      autoFocus: 'first-tabbable',
+      panelClass: 'app-dialog',
+    });
+    this.formRef = ref;
+    ref.afterClosed().subscribe(() => {
+      if (this.formRef === ref) this.formRef = null;
+      if (kind === 'item') this.addingItemToPlan.set(null);
+    });
+  }
+
+  private closeFormDialog(): void {
+    this.formRef?.close();
+    this.formRef = null;
+  }
+
   startAddingItem(planId: string): void {
     this.addingItemToPlan.set(planId);
+    this.openForm('item');
     this.itemForm.reset({ price: 0, discount: 0 });
   }
 
@@ -220,7 +245,7 @@ export class TreatmentPlansTabComponent implements OnChanges {
           discount: value.discount,
         }),
       );
-      this.addingItemToPlan.set(null);
+      this.closeFormDialog();
       this.snackBar.open('Ítem agregado al plan', 'Cerrar', { duration: 3000 });
       await this.reload();
     } finally {

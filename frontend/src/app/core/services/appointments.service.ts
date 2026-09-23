@@ -24,6 +24,10 @@ export class AppointmentsService {
     return this.http.get<Appointment[]>(`${environment.apiUrl}/patients/${patientId}/appointments`);
   }
 
+  get(id: string): Observable<Appointment> {
+    return this.http.get<Appointment>(`${this.base}/${id}`);
+  }
+
   create(payload: AppointmentCreate): Observable<Appointment> {
     return this.http.post<Appointment>(this.base, payload);
   }

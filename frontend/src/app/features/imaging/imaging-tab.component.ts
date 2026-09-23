@@ -1,7 +1,9 @@
 import { DatePipe } from '@angular/common';
-import { Component, Input, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -18,6 +20,7 @@ import {
   IMAGE_TYPE_ICONS,
 } from '../../core/models/clinical-image.models';
 import { ImagingService } from '../../core/services/imaging.service';
+import { promptText } from '../../shared/confirm-dialog/prompt-dialog.component';
 
 @Component({
   selector: 'app-imaging-tab',
@@ -27,6 +30,8 @@ import { ImagingService } from '../../core/services/imaging.service';
     FormsModule,
     ReactiveFormsModule,
     MatButtonModule,
+    MatDialogModule,
+    MatMenuModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -43,6 +48,12 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
   private readonly service = inject(ImagingService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+
+  @ViewChild('formDialog') formDialog!: TemplateRef<unknown>;
+  private dialogRef: MatDialogRef<unknown> | null = null;
+  /** Estudio que se edita; null cuando el diálogo sube uno nuevo. */
+  readonly editing = signal<ClinicalImage | null>(null);
   readonly auth = inject(AuthService);
 
   readonly images = signal<ClinicalImage[]>([]);
@@ -50,7 +61,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
   readonly loading = signal(true);
   readonly uploading = signal(false);
   readonly showArchived = signal(false);
-  readonly showForm = signal(false);
 
   /** Object URLs are revoked on destroy; a blob URL that is never released
    *  keeps a whole radiograph alive in memory for the tab's lifetime. */
@@ -61,8 +71,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
   readonly viewerUrl = signal<string | null>(null);
   readonly zoom = signal(1);
 
-  readonly archiving = signal<ClinicalImage | null>(null);
-  archiveReason = '';
 
   selectedFile: File | null = null;
   readonly icons = IMAGE_TYPE_ICONS;
@@ -136,7 +144,15 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
   }
 
   async upload(): Promise<void> {
-    if (!this.selectedFile || this.form.invalid || this.uploading()) return;
+    if (!this.selectedFile) {
+      this.snackBar.open('Elija el archivo de la imagen', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (this.uploading()) return;
     this.uploading.set(true);
     try {
       const raw = this.form.getRawValue();
@@ -153,7 +169,7 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
       this.snackBar.open('Imagen guardada', 'Cerrar', { duration: 3000 });
       this.form.reset({ image_type: 'panoramica' });
       this.selectedFile = null;
-      this.showForm.set(false);
+      this.dialogRef?.close();
       await this.reload();
     } catch (error: unknown) {
       const detail = (error as { error?: { detail?: string } })?.error?.detail;
@@ -183,21 +199,88 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
     this.zoom.set(Math.min(Math.max(this.zoom() + delta, 0.5), 6));
   }
 
-  askArchive(image: ClinicalImage): void {
-    this.archiving.set(image);
-    this.archiveReason = '';
+  openForm(image: ClinicalImage | null = null): void {
+    this.editing.set(image);
+    this.selectedFile = null;
+    this.form.reset({
+      title: image?.title ?? '',
+      image_type: image?.image_type ?? 'panoramica',
+      taken_on: image?.taken_on ?? '',
+      fdi_numbers: (image?.fdi_numbers ?? []).join(','),
+      description: image?.description ?? '',
+    });
+    this.dialogRef = this.dialog.open(this.formDialog, {
+      width: '640px',
+      maxWidth: '96vw',
+      autoFocus: 'first-tabbable',
+      panelClass: 'app-dialog',
+    });
   }
 
-  async confirmArchive(): Promise<void> {
-    const image = this.archiving();
-    if (!image || !this.archiveReason.trim()) return;
+  async save(): Promise<void> {
+    const editing = this.editing();
+    if (!editing) {
+      await this.upload();
+      return;
+    }
+    if (this.form.invalid || this.uploading()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.uploading.set(true);
     try {
-      await firstValueFrom(this.service.archive(image.id, this.archiveReason.trim()));
+      const raw = this.form.getRawValue();
+      await firstValueFrom(
+        this.service.update(editing.id, {
+          title: raw.title,
+          image_type: raw.image_type,
+          description: raw.description || null,
+          taken_on: raw.taken_on || null,
+          fdi_numbers: raw.fdi_numbers
+            .split(',')
+            .map((n) => n.trim())
+            .filter(Boolean),
+        }),
+      );
+      this.dialogRef?.close();
+      this.snackBar.open('Datos del estudio actualizados', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch (error: unknown) {
+      const detail = (error as { error?: { detail?: string } })?.error?.detail;
+      this.snackBar.open(detail ?? 'No se pudo guardar', 'Cerrar', { duration: 5000 });
+    } finally {
+      this.uploading.set(false);
+    }
+  }
+
+  async askArchive(image: ClinicalImage): Promise<void> {
+    const reason = await promptText(this.dialog, {
+      title: `Archivar «${image.title}»`,
+      message:
+        'Deja de aparecer en la lista activa, pero se conserva: saber qué estudio se vio en cada ' +
+        'momento forma parte de la historia clínica. Se puede restaurar.',
+      label: 'Motivo',
+      minLength: 3,
+      confirmLabel: 'Archivar',
+      danger: true,
+    });
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.service.archive(image.id, reason));
       this.snackBar.open('Imagen archivada', 'Cerrar', { duration: 3000 });
-      this.archiving.set(null);
       await this.reload();
     } catch {
       this.snackBar.open('No se pudo archivar la imagen', 'Cerrar', { duration: 5000 });
+    }
+  }
+
+  async restore(image: ClinicalImage): Promise<void> {
+    try {
+      await firstValueFrom(this.service.restore(image.id));
+      this.snackBar.open('Imagen restaurada', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch {
+      this.snackBar.open('No se pudo restaurar la imagen', 'Cerrar', { duration: 5000 });
     }
   }
 

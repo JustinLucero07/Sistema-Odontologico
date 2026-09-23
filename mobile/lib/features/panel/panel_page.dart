@@ -7,6 +7,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
+import '../../shared/widgets/glass.dart';
 
 final resumenProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(panelRepoProvider).resumen(),
@@ -27,7 +28,12 @@ class PanelPage extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(resumenProvider),
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 28 + MediaQuery.paddingOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          28 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           Text(
             '$saludo, ${usuario?.nombre ?? ''}',
@@ -130,7 +136,7 @@ class _Tarjetas extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 10),
-          Card(
+          GlassCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
@@ -195,7 +201,7 @@ class _Kpi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primario = Theme.of(context).colorScheme.primary;
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(

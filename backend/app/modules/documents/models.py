@@ -38,3 +38,10 @@ class Document(UUIDPKMixin, TenantMixin, Base):
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     mime_type: Mapped[str | None] = mapped_column(String(120))
     size_bytes: Mapped[int | None] = mapped_column(BigInteger)
+
+    # Un documento no se borra: se archiva con motivo y se puede recuperar.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    archived_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    archived_reason: Mapped[str | None] = mapped_column(Text)

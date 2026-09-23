@@ -69,6 +69,8 @@
               type="button"
               class="appointment"
               [class.is-cancelled]="item.appointment.status === 'cancelada' || item.appointment.status === 'no_asistio'"
+              [class.compact]="item.height < 48"
+              [attr.title]="(item.appointment.starts_at | date: 'HH:mm') + ' · ' + item.appointment.patient_name + (item.appointment.treatment_name ? ' · ' + item.appointment.treatment_name : '')"
               [style.top.px]="item.top"
               [style.height.px]="item.height"
               [style.--appointment-color]="item.color"

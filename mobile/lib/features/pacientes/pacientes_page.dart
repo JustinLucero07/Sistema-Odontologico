@@ -105,7 +105,9 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  padding: EdgeInsets.only(
+                    bottom: 24 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   itemCount: lista.length,
                   separatorBuilder: (_, __) =>
                       const Divider(height: 1, indent: 72),

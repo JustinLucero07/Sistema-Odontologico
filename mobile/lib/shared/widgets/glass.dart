@@ -32,7 +32,9 @@ class AmbientBackground extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0)],
+            ),
           ),
         ),
       ),
@@ -168,7 +170,11 @@ class GlassPanel extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [t.edge.withValues(alpha: 0), t.edge, t.edge.withValues(alpha: 0)],
+                    colors: [
+                      t.edge.withValues(alpha: 0),
+                      t.edge,
+                      t.edge.withValues(alpha: 0),
+                    ],
                   ),
                 ),
               ),
@@ -190,8 +196,17 @@ class GlassPanel extends StatelessWidget {
         borderRadius: shape,
         boxShadow: elevated
             ? [
-                BoxShadow(color: t.shadow, blurRadius: 30, spreadRadius: -12, offset: const Offset(0, 14)),
-                BoxShadow(color: t.shadow.withValues(alpha: 0.08), blurRadius: 2, offset: const Offset(0, 1)),
+                BoxShadow(
+                  color: t.shadow,
+                  blurRadius: 30,
+                  spreadRadius: -12,
+                  offset: const Offset(0, 14),
+                ),
+                BoxShadow(
+                  color: t.shadow.withValues(alpha: 0.08),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
               ]
             : null,
       ),
@@ -221,13 +236,12 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget content = child;
-    if (onTap != null) {
-      content = Material(
-        type: MaterialType.transparency,
-        child: InkWell(onTap: onTap, child: child),
-      );
-    }
+    // Siempre hay un Material transparente: los InkWell de dentro (que antes
+    // encontraban el del Card) lo necesitan para dibujar la respuesta al toque.
+    final Widget content = Material(
+      type: MaterialType.transparency,
+      child: onTap == null ? child : InkWell(onTap: onTap, child: child),
+    );
     final card = GlassPanel(radius: radius, child: content);
     return margin == null ? card : Padding(padding: margin!, child: card);
   }
@@ -250,7 +264,8 @@ class GlassNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final ink = Theme.of(context).textTheme.bodyMedium?.color ?? scheme.onSurface;
+    final ink =
+        Theme.of(context).textTheme.bodyMedium?.color ?? scheme.onSurface;
 
     return SafeArea(
       top: false,
@@ -266,7 +281,9 @@ class GlassNavBar extends StatelessWidget {
                 child: _NavButton(
                   item: items[i],
                   selected: i == selectedIndex,
-                  color: i == selectedIndex ? scheme.primary : ink.withValues(alpha: 0.6),
+                  color: i == selectedIndex
+                      ? scheme.primary
+                      : ink.withValues(alpha: 0.6),
                   onTap: () => onSelected(i),
                 ),
               ),
@@ -278,7 +295,11 @@ class GlassNavBar extends StatelessWidget {
 }
 
 class GlassNavItem {
-  const GlassNavItem({required this.icon, required this.selectedIcon, required this.label});
+  const GlassNavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
 
   final IconData icon;
   final IconData selectedIcon;
@@ -286,7 +307,12 @@ class GlassNavItem {
 }
 
 class _NavButton extends StatelessWidget {
-  const _NavButton({required this.item, required this.selected, required this.color, required this.onTap});
+  const _NavButton({
+    required this.item,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
 
   final GlassNavItem item;
   final bool selected;
@@ -312,16 +338,28 @@ class _NavButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: selected
-                ? (dark ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.95))
+                ? (dark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.95))
                 : Colors.transparent,
             boxShadow: selected && !dark
-                ? const [BoxShadow(color: Color(0x220A2325), blurRadius: 14, offset: Offset(0, 6))]
+                ? const [
+                    BoxShadow(
+                      color: Color(0x220A2325),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ]
                 : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(selected ? item.selectedIcon : item.icon, color: color, size: 24),
+              Icon(
+                selected ? item.selectedIcon : item.icon,
+                color: color,
+                size: 24,
+              ),
               const SizedBox(height: 2),
               Text(
                 item.label,

@@ -59,4 +59,17 @@ export class ImagingService {
       reason,
     });
   }
+
+  /** Corrige los datos del estudio; el archivo no cambia. */
+  update(
+    imageId: string,
+    payload: { title: string; image_type: string; description: string | null; taken_on: string | null; fdi_numbers: string[] },
+  ): Observable<ClinicalImage> {
+    return this.http.put<ClinicalImage>(`${environment.apiUrl}/images/${imageId}`, payload);
+  }
+
+  /** Devuelve una imagen archivada a la lista activa. */
+  restore(imageId: string): Observable<ClinicalImage> {
+    return this.http.post<ClinicalImage>(`${environment.apiUrl}/images/${imageId}/restore`, {});
+  }
 }

@@ -267,3 +267,29 @@ mat-chip.status-rechazado {
     opacity: 1;
   }
 }
+
+// Formularios dentro de las ventanas emergentes: campos a lo ancho y el botón
+// de guardar alineado a la derecha, como en el resto de diálogos.
+.dialog-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding-top: 6px;
+
+  .grow-field {
+    grid-column: 1 / -1;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  button[type='submit'] {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}

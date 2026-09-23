@@ -6,6 +6,7 @@ import 'core/auth/auth_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/login/login_page.dart';
 import 'shell.dart';
+import 'features/legal/confidencialidad_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,9 @@ class _OdontoAppState extends ConsumerState<OdontoApp> {
       themeMode: ThemeMode.system,
       home: switch (auth.estado) {
         EstadoSesion.cargando => const _Arranque(),
+        EstadoSesion.autenticado
+            when auth.usuario?.confidencialidadPendiente ?? false =>
+          const ConfidencialidadPage(),
         EstadoSesion.autenticado => const Shell(),
         EstadoSesion.anonimo => const LoginPage(),
       },

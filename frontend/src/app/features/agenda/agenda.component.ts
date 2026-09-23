@@ -32,7 +32,8 @@ import { PatientPickerComponent } from '../../shared/patient-picker/patient-pick
  * the edge of the grid rather than being hidden. */
 const START_HOUR = 7;
 const END_HOUR = 21;
-const HOUR_HEIGHT = 56;
+// 72 px por hora: una cita de 30 min mide 36 px, suficiente para leerse.
+const HOUR_HEIGHT = 72;
 
 interface PositionedAppointment {
   appointment: Appointment;
@@ -193,6 +194,20 @@ export class AgendaComponent implements OnInit {
       }
       this.newAppointment(patient);
       // Se limpia la URL para que recargar la página no vuelva a abrirlo.
+      this.router.navigate([], { queryParams: {}, replaceUrl: true });
+    }
+
+    // `?editar=<id>` abre esa cita para reprogramarla, en su semana.
+    const editId = params.get('editar');
+    if (editId) {
+      try {
+        const appointment = await firstValueFrom(this.appointmentsService.get(editId));
+        this.anchorDate.set(startOfDay(new Date(appointment.starts_at)));
+        await this.reload();
+        this.editAppointment(appointment);
+      } catch {
+        this.snackBar.open('No se encontró la cita', 'Cerrar', { duration: 3000 });
+      }
       this.router.navigate([], { queryParams: {}, replaceUrl: true });
     }
   }

@@ -1,4 +1,6 @@
-<mat-sidenav-container class="shell-container">
+<!-- autosize: el contenido se reajusta cuando el menú cambia de ancho al
+     plegarse, no solo cuando se abre. -->
+<mat-sidenav-container class="shell-container" autosize>
   <mat-sidenav
     #sidenav
     [mode]="compact() ? 'over' : 'side'"

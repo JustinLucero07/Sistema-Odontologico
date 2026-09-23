@@ -424,3 +424,19 @@ async def test_portal_use_is_counted(client, clinic_with_users):
     ).json()
     assert links[0]["use_count"] == 2
     assert links[0]["last_used_at"] is not None
+
+
+async def test_reminder_states_the_time_in_the_clinic_timezone(client, clinic_with_users, db_session):
+    """Una cita a las 11:00 en Ecuador no puede anunciarse a las 16:00 (UTC)."""
+    from zoneinfo import ZoneInfo
+
+    token = await _login(client, "admin@clinicatest.io", "Admin123!")
+    patient_id = await _patient(client, token, whatsapp="+593999000111")
+    appointment_id = await _appointment_with_due_reminder(client, token, db_session, patient_id)
+    appointment = (await client.get(f"/api/v1/appointments/{appointment_id}", headers=_auth(token))).json()
+    local = datetime.fromisoformat(appointment["starts_at"]).astimezone(ZoneInfo("America/Guayaquil"))
+
+    await client.post("/api/v1/messaging/dispatch", headers=_auth(token))
+    messages = (await client.get("/api/v1/messaging/messages", headers=_auth(token))).json()
+    body = next(m["body"] for m in messages if m["patient_id"] == patient_id)
+    assert local.strftime("%H:%M") in body

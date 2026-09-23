@@ -123,6 +123,12 @@ export class ShellComponent {
           permission: 'consents:write',
         },
         {
+          label: 'Mensajes',
+          icon: 'forum',
+          route: '/settings/messages',
+          permission: 'settings:manage',
+        },
+        {
           label: 'Profesionales',
           icon: 'medical_information',
           route: '/settings/professionals',

@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ClinicalImageOut(BaseModel):
@@ -31,3 +31,14 @@ class ImageArchiveRequest(BaseModel):
     withdrawn but not why, which is exactly the question asked later."""
 
     reason: str
+
+
+class ImageUpdate(BaseModel):
+    """Datos descriptivos de la imagen. El archivo en sí no se cambia: si la
+    imagen está mal, se archiva y se sube la correcta."""
+
+    title: str = Field(min_length=1, max_length=200)
+    image_type: str
+    description: str | None = None
+    taken_on: date | None = None
+    fdi_numbers: list[str] = Field(default_factory=list)

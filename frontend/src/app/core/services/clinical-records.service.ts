@@ -62,8 +62,31 @@ export class ClinicalRecordsService {
 
   // ---- Documents -------------------------------------------------------
 
-  listDocuments(patientId: string): Observable<PatientDocument[]> {
-    return this.http.get<PatientDocument[]>(`${this.api}/patients/${patientId}/documents`);
+  listDocuments(patientId: string, includeArchived = false): Observable<PatientDocument[]> {
+    return this.http.get<PatientDocument[]>(`${this.api}/patients/${patientId}/documents`, {
+      params: { include_archived: includeArchived },
+    });
+  }
+
+  updateDocument(
+    documentId: string,
+    payload: { title: string; document_type: string; description: string | null },
+  ): Observable<PatientDocument> {
+    return this.http.put<PatientDocument>(`${this.api}/documents/${documentId}`, payload);
+  }
+
+  /** Un documento no se borra: se archiva con motivo y se puede restaurar. */
+  archiveDocument(documentId: string, reason: string): Observable<PatientDocument> {
+    return this.http.post<PatientDocument>(`${this.api}/documents/${documentId}/archive`, { reason });
+  }
+
+  restoreDocument(documentId: string): Observable<PatientDocument> {
+    return this.http.post<PatientDocument>(`${this.api}/documents/${documentId}/restore`, {});
+  }
+
+  /** Anula un consentimiento pendiente o registra que el paciente revocó uno firmado. */
+  voidConsent(consentId: string, reason: string): Observable<Consent> {
+    return this.http.post<Consent>(`${this.api}/consents/${consentId}/void`, { reason });
   }
 
   uploadDocument(

@@ -1,18 +1,20 @@
 import { DatePipe } from '@angular/common';
-import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnChanges, TemplateRef, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
-import { promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
+import { promptText, promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
 import {
   ClinicalEvolution,
   Consent,
@@ -40,10 +42,13 @@ type Section = 'evoluciones' | 'recetas' | 'consentimientos' | 'documentos';
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatMenuModule,
+    MatSlideToggleModule,
   ],
   templateUrl: './clinical-records-tab.component.html',
   styleUrl: './clinical-records-tab.component.scss',
@@ -56,6 +61,18 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+
+  // Los formularios de alta viven en ventanas emergentes: la lista no salta
+  // y la tarea en curso queda clara.
+  @ViewChild('evolucionesDialog') private evolucionesDialog!: TemplateRef<unknown>;
+  @ViewChild('recetasDialog') private recetasDialog!: TemplateRef<unknown>;
+  @ViewChild('consentimientosDialog') private consentimientosDialog!: TemplateRef<unknown>;
+  @ViewChild('documentosDialog') private documentosDialog!: TemplateRef<unknown>;
+  private formRef: MatDialogRef<unknown> | null = null;
+
+  readonly showArchivedDocs = signal(false);
+  /** Documento cuyo título o tipo se corrige; null al subir uno nuevo. */
+  readonly editingDoc = signal<PatientDocument | null>(null);
   private readonly clinicService = inject(ClinicService);
   private readonly legalService = inject(LegalService);
   private readonly patientsService = inject(PatientsService);
@@ -138,7 +155,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       firstValueFrom(this.service.listEvolutions(this.patientId)),
       firstValueFrom(this.service.listPrescriptions(this.patientId)),
       firstValueFrom(this.service.listConsents(this.patientId)),
-      firstValueFrom(this.service.listDocuments(this.patientId)),
+      firstValueFrom(this.service.listDocuments(this.patientId, this.showArchivedDocs())),
       firstValueFrom(this.service.listConsentTemplates()),
       firstValueFrom(this.clinicService.listProfessionals()),
     ]);
@@ -160,7 +177,31 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   }
 
   toggleForm(section: Section): void {
-    this.openForm.set(this.openForm() === section ? null : section);
+    const templates: Partial<Record<Section, TemplateRef<unknown>>> = {
+      evoluciones: this.evolucionesDialog,
+      recetas: this.recetasDialog,
+      consentimientos: this.consentimientosDialog,
+      documentos: this.documentosDialog,
+    };
+    const template = templates[section];
+    if (!template) return;
+    this.formRef?.close();
+    this.openForm.set(section);
+    this.formRef = this.dialog.open(template, {
+      width: section === 'recetas' ? '820px' : '680px',
+      maxWidth: '96vw',
+      autoFocus: 'first-tabbable',
+      panelClass: 'app-dialog',
+    });
+    this.formRef.afterClosed().subscribe(() => {
+      this.closeForm();
+      this.editingEvolution.set(null);
+    });
+  }
+
+  closeForm(): void {
+    this.formRef?.close();
+    this.formRef = null;
   }
 
   // ---- Evolutions ------------------------------------------------------
@@ -183,7 +224,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       instructions: item.instructions ?? '',
       next_appointment_notes: item.next_appointment_notes ?? '',
     });
-    this.openForm.set('evoluciones');
+    this.toggleForm('evoluciones');
   }
 
   async saveEvolution(): Promise<void> {
@@ -198,7 +239,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       }
       this.evolutionForm.reset();
       this.editingEvolution.set(null);
-      this.openForm.set(null);
+      this.closeForm();
       this.snackBar.open(editing ? 'Corrección guardada (queda en la auditoría)' : 'Evolución registrada', 'Cerrar', {
         duration: 3000,
       });
@@ -246,7 +287,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       );
       this.prescriptionForm.reset({ professional_id: this.prescriptionForm.getRawValue().professional_id });
       this.prescriptionItems.set([{ medication: '' }]);
-      this.openForm.set(null);
+      this.closeForm();
       this.snackBar.open('Receta emitida', 'Cerrar', { duration: 3000 });
       await this.reload();
     } finally {
@@ -280,7 +321,7 @@ export class ClinicalRecordsTabComponent implements OnChanges {
         }),
       );
       this.consentForm.reset();
-      this.openForm.set(null);
+      this.closeForm();
       this.snackBar.open('Consentimiento creado', 'Cerrar', { duration: 3000 });
       await this.reload();
     } finally {
@@ -316,8 +357,33 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   }
 
   async uploadDocument(): Promise<void> {
+    const editing = this.editingDoc();
+    if (editing) {
+      if (this.documentForm.invalid || this.saving()) return;
+      this.saving.set(true);
+      try {
+        const v = this.documentForm.getRawValue();
+        await firstValueFrom(
+          this.service.updateDocument(editing.id, {
+            title: v.title,
+            document_type: v.document_type,
+            description: v.description || null,
+          }),
+        );
+        this.closeForm();
+        this.snackBar.open('Documento actualizado', 'Cerrar', { duration: 3000 });
+        await this.reload();
+      } finally {
+        this.saving.set(false);
+      }
+      return;
+    }
     const file = this.selectedFile();
-    if (!file || this.documentForm.invalid || this.saving()) return;
+    if (!file) {
+      this.snackBar.open('Elija el archivo a subir', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (this.documentForm.invalid || this.saving()) return;
     this.saving.set(true);
     try {
       const value = this.documentForm.getRawValue();
@@ -326,13 +392,69 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       );
       this.documentForm.reset({ document_type: 'otro' });
       this.selectedFile.set(null);
-      this.openForm.set(null);
+      this.closeForm();
       this.snackBar.open('Documento subido', 'Cerrar', { duration: 3000 });
       await this.reload();
     } catch {
       this.snackBar.open('No se pudo subir el documento', 'Cerrar', { duration: 3000 });
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  async toggleArchivedDocs(value: boolean): Promise<void> {
+    this.showArchivedDocs.set(value);
+    await this.reload();
+  }
+
+  editDocument(doc: PatientDocument): void {
+    this.editingDoc.set(doc);
+    this.documentForm.reset({
+      title: doc.title,
+      document_type: doc.document_type,
+      description: doc.description ?? '',
+    });
+    this.toggleForm('documentos');
+  }
+
+  newDocument(): void {
+    this.editingDoc.set(null);
+    this.selectedFile.set(null);
+    this.documentForm.reset({ document_type: 'otro' });
+    this.toggleForm('documentos');
+  }
+
+  async archiveDocument(doc: PatientDocument): Promise<void> {
+    const reason = await promptText(this.dialog, {
+      title: `Archivar «${doc.title}»`,
+      message: 'Deja de aparecer en la lista pero no se borra: el archivo se conserva y se puede restaurar.',
+      label: 'Motivo',
+      minLength: 3,
+      confirmLabel: 'Archivar',
+      danger: true,
+    });
+    if (!reason) return;
+    await firstValueFrom(this.service.archiveDocument(doc.id, reason));
+    this.snackBar.open('Documento archivado', 'Cerrar', { duration: 3000 });
+    await this.reload();
+  }
+
+  async restoreDocument(doc: PatientDocument): Promise<void> {
+    await firstValueFrom(this.service.restoreDocument(doc.id));
+    this.snackBar.open('Documento restaurado', 'Cerrar', { duration: 3000 });
+    await this.reload();
+  }
+
+  async voidConsent(consent: Consent): Promise<void> {
+    const signed = consent.status === 'firmado';
+    const reason = await promptVoidReason(this.dialog, signed ? 'consentimiento (revocación)' : 'consentimiento');
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.service.voidConsent(consent.id, reason));
+      this.snackBar.open(signed ? 'Revocación registrada' : 'Consentimiento anulado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch {
+      this.snackBar.open('No se pudo registrar', 'Cerrar', { duration: 4000 });
     }
   }
 

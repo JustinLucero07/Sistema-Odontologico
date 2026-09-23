@@ -120,6 +120,13 @@ class AuthController extends StateNotifier<AuthState> {
     );
   }
 
+  /// Registra la aceptación del acuerdo y relee el usuario, que ya no lo
+  /// tendrá pendiente.
+  Future<void> aceptarConfidencialidad() async {
+    await _api.dio.post('/auth/confidentiality');
+    await _cargarUsuario();
+  }
+
   Future<void> cerrarSesion() async {
     final refresh = await _tokens.readRefreshToken();
     try {

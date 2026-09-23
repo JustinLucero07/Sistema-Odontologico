@@ -138,7 +138,8 @@
   padding: 4px 6px;
   border: none;
   border-left: 3px solid var(--appointment-color);
-  border-radius: 6px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(10, 35, 37, 0.06);
   background: color-mix(in srgb, var(--appointment-color) 16%, var(--color-surface));
   color: var(--color-ink);
   text-align: left;
@@ -148,6 +149,18 @@
 
   &:hover {
     filter: brightness(0.96);
+  }
+
+  // Cita corta: hora y nombre en una sola línea, el resto en el tooltip.
+  &.compact {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+
+    .appointment-time {
+      flex-shrink: 0;
+    }
   }
 
   &.is-cancelled {
@@ -160,14 +173,14 @@
 }
 
 .appointment-time {
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--appointment-color);
   font-variant-numeric: tabular-nums;
 }
 
 .appointment-patient {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.15;
   white-space: nowrap;

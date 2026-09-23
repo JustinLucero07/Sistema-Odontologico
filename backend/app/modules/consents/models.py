@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.shared.mixins import TenantMixin, TimestampMixin, UUIDPKMixin
+from app.shared.voiding import VoidableMixin
 
 
 class ConsentTemplate(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
@@ -20,7 +21,7 @@ class ConsentTemplate(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class Consent(UUIDPKMixin, TenantMixin, Base):
+class Consent(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
     """A consent given by a specific patient for a specific procedure.
 
     The wording is copied into `body` when the consent is created rather than
