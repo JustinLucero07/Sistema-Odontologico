@@ -41,6 +41,7 @@ class Attention(BaseModel):
     stock_alerts: int | None
     lab_overdue: int | None
     budgets_awaiting: int | None
+    credits_overdue: int | None = None
     birthdays: list[BirthdayEntry] | None
 
 

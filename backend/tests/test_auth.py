@@ -40,7 +40,11 @@ async def test_me_returns_current_user_and_permissions(client, clinic_with_users
     assert "users:manage" in body["permissions"]
 
 
-async def test_refresh_rotates_token_and_old_cookie_is_invalid(client, clinic_with_users):
+async def test_refresh_rotates_token_and_old_cookie_is_invalid(client, clinic_with_users, monkeypatch):
+    # Pasada la gracia de renovación simultánea, el token viejo ya no sirve.
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "REFRESH_REUSE_GRACE_SECONDS", 0)
     login = await client.post(
         "/api/v1/auth/login", json={"email": "admin@clinicatest.io", "password": "Admin123!"}
     )

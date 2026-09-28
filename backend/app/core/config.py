@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Segundos en que un token recién renovado se sigue aceptando: dos pestañas
+    # o dos peticiones que renuevan a la vez no deben cerrar la sesión.
+    REFRESH_REUSE_GRACE_SECONDS: int = 30
 
     CORS_ORIGINS: list[str] = ["http://localhost:4200"]
 

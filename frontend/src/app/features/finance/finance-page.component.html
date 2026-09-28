@@ -1,0 +1,265 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Finanzas</h1>
+      <p class="page-sub">Ventas, cobros, egresos y cierres de caja del periodo</p>
+    </div>
+    @if (canWrite) {
+      <button mat-flat-button (click)="newExpense()">
+        <mat-icon>remove_circle_outline</mat-icon>
+        Registrar egreso
+      </button>
+    }
+  </header>
+
+  <!-- Periodo -->
+  <div class="period">
+    <div class="presets">
+      @for (p of presets; track p.code) {
+        <button type="button" class="preset" [class.on]="preset() === p.code" (click)="setPreset(p.code)">
+          {{ p.label }}
+        </button>
+      }
+    </div>
+    <div class="custom">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" [ngModel]="from()" (ngModelChange)="setCustom('from', $event)" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" [ngModel]="to()" (ngModelChange)="setCustom('to', $event)" />
+      </mat-form-field>
+    </div>
+  </div>
+
+  <!-- Vistas -->
+  <div class="views" role="tablist">
+    <button role="tab" [class.on]="view() === 'resumen'" (click)="view.set('resumen')"><mat-icon>insights</mat-icon>Resumen</button>
+    <button role="tab" [class.on]="view() === 'cobros'" (click)="view.set('cobros')">
+      <mat-icon>payments</mat-icon>Cobros <span class="count">{{ livePayments().length }}</span>
+    </button>
+    <button role="tab" [class.on]="view() === 'egresos'" (click)="view.set('egresos')">
+      <mat-icon>receipt</mat-icon>Egresos <span class="count">{{ liveExpenses().length }}</span>
+    </button>
+    <button role="tab" [class.on]="view() === 'cajas'" (click)="view.set('cajas')"><mat-icon>point_of_sale</mat-icon>Cierres de caja</button>
+  </div>
+
+  @if (summary(); as s) {
+    @if (view() === 'resumen') {
+      <section class="kpis">
+        <article class="glass-card kpi">
+          <span class="kpi-label">Ventas</span>
+          <strong class="numeric"><small>$</small>{{ money(s.sales) }}</strong>
+          <span class="kpi-hint">Servicios cargados a pacientes</span>
+        </article>
+        <article class="glass-card kpi">
+          <span class="kpi-label">Ingresos cobrados</span>
+          <strong class="numeric in"><small>$</small>{{ money(s.income) }}</strong>
+          <span class="kpi-hint">Dinero que entró</span>
+        </article>
+        <article class="glass-card kpi">
+          <span class="kpi-label">Egresos</span>
+          <strong class="numeric out"><small>$</small>{{ money(s.expenses) }}</strong>
+          <span class="kpi-hint">Gastos pagados</span>
+        </article>
+        <article class="glass-card kpi highlight" [class.negative]="+s.net < 0">
+          <span class="kpi-label">Utilidad</span>
+          <strong class="numeric"><small>$</small>{{ money(s.net) }}</strong>
+          <span class="kpi-hint">Ingresos − egresos</span>
+        </article>
+        <article class="glass-card kpi">
+          <span class="kpi-label">Por cobrar</span>
+          <strong class="numeric"><small>$</small>{{ money(s.receivables) }}</strong>
+          <span class="kpi-hint">Saldo pendiente hoy</span>
+        </article>
+      </section>
+
+      <section class="glass-card chart-card">
+        <header class="card-head">
+          <div>
+            <h2>Ingresos y egresos por mes</h2>
+            <p class="card-sub">{{ s.date_from | date: 'd MMM y' }} – {{ s.date_to | date: 'd MMM y' }}</p>
+          </div>
+          <div class="legend">
+            <span><i class="dot in"></i>Ingresos</span>
+            <span><i class="dot out"></i>Egresos</span>
+          </div>
+        </header>
+        <div class="bars">
+          @for (m of chart(); track m.label) {
+            <div class="month" [matTooltip]="'Ingresos $' + money(m.income) + ' · Egresos $' + money(m.expenses) + ' · Utilidad $' + money(m.net)">
+              <div class="pair">
+                <span class="bar in" [style.height.%]="m.incomePct"></span>
+                <span class="bar out" [style.height.%]="m.expensesPct"></span>
+              </div>
+              <span class="month-label">{{ m.label }}</span>
+              <span class="month-net numeric" [class.negative]="m.net < 0">{{ money(m.net) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="split">
+        <article class="glass-card list-card">
+          <h2>Cobros por medio de pago</h2>
+          @for (b of s.income_by_method; track b.code) {
+            <div class="row-bar">
+              <span class="row-label">{{ b.label }} <em>{{ b.count }}</em></span>
+              <span class="row-value numeric">$ {{ money(b.total) }}</span>
+              <div class="track"><div class="fill in" [style.width.%]="(+b.total / maxMethod()) * 100"></div></div>
+            </div>
+          } @empty {
+            <p class="muted">Sin cobros en el periodo.</p>
+          }
+        </article>
+        <article class="glass-card list-card">
+          <h2>Egresos por categoría</h2>
+          @for (b of s.expenses_by_category; track b.code) {
+            <div class="row-bar">
+              <span class="row-label">{{ b.label }} <em>{{ b.count }}</em></span>
+              <span class="row-value numeric">$ {{ money(b.total) }}</span>
+              <div class="track"><div class="fill out" [style.width.%]="(+b.total / maxCategory()) * 100"></div></div>
+            </div>
+          } @empty {
+            <p class="muted">Sin egresos en el periodo.</p>
+          }
+        </article>
+      </section>
+    }
+
+    @if (view() === 'cobros') {
+      <section class="glass-card table-card">
+        <header class="card-head">
+          <div>
+            <h2>Cobros</h2>
+            <p class="card-sub">{{ livePayments().length }} cobros · $ {{ money(paymentsTotal()) }}</p>
+          </div>
+          <button mat-stroked-button (click)="exportCsv('payments')"><mat-icon>download</mat-icon>Exportar a Excel</button>
+        </header>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Paciente</th><th>Concepto</th><th>Medio</th><th>Referencia</th><th>Recibió</th><th class="num">Importe</th></tr>
+            </thead>
+            <tbody>
+              @for (p of payments(); track p.id) {
+                <tr [class.voided]="p.voided_at">
+                  <td>{{ p.received_on | date: 'dd/MM/yyyy' }}</td>
+                  <td><a [routerLink]="['/patients', p.patient_id]">{{ p.patient_name }}</a></td>
+                  <td>{{ p.concept || 'A cuenta' }}@if (p.voided_at) { <span class="void-tag" [matTooltip]="p.void_reason || ''">Anulado</span> }</td>
+                  <td>{{ p.method_label }}</td>
+                  <td class="muted">{{ p.reference || '—' }}</td>
+                  <td class="muted">{{ p.received_by_name || '—' }}</td>
+                  <td class="num numeric">$ {{ money(p.amount) }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="empty">Sin cobros en el periodo.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    @if (view() === 'egresos') {
+      <section class="glass-card table-card">
+        <header class="card-head">
+          <div>
+            <h2>Egresos</h2>
+            <p class="card-sub">{{ liveExpenses().length }} egresos · $ {{ money(expensesTotal()) }}</p>
+          </div>
+          <div class="head-actions">
+            <button mat-stroked-button (click)="exportCsv('expenses')"><mat-icon>download</mat-icon>Exportar a Excel</button>
+            @if (canWrite) {
+              <button mat-flat-button (click)="newExpense()"><mat-icon>add</mat-icon>Registrar egreso</button>
+            }
+          </div>
+        </header>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Proveedor</th><th>Comprobante</th><th>Medio</th><th class="num">Importe</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (e of expenses(); track e.id) {
+                <tr [class.voided]="e.voided_at">
+                  <td>{{ e.spent_on | date: 'dd/MM/yyyy' }}</td>
+                  <td>
+                    {{ e.description }}
+                    @if (e.voided_at) { <span class="void-tag" [matTooltip]="e.void_reason || ''">Anulado</span> }
+                    @if (e.cash_session_id) { <span class="cash-tag" matTooltip="Pagado con la caja">Caja</span> }
+                  </td>
+                  <td>{{ e.category_label }}</td>
+                  <td class="muted">{{ e.supplier_name || '—' }}</td>
+                  <td class="muted">{{ e.receipt_number || '—' }}</td>
+                  <td>{{ e.method_label }}</td>
+                  <td class="num numeric">$ {{ money(e.amount) }}</td>
+                  <td class="actions">
+                    @if (canWrite && !e.voided_at) {
+                      <button mat-icon-button [matMenuTriggerFor]="expMenu" aria-label="Acciones del egreso">
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      <mat-menu #expMenu="matMenu" xPosition="before">
+                        <button mat-menu-item (click)="editExpense(e)"><mat-icon>edit</mat-icon>Editar</button>
+                        <button mat-menu-item class="danger-item" (click)="voidExpense(e)"><mat-icon>block</mat-icon>Anular</button>
+                      </mat-menu>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="8" class="empty">Sin egresos en el periodo.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    @if (view() === 'cajas') {
+      <section class="glass-card table-card">
+        <header class="card-head">
+          <div>
+            <h2>Cierres de caja</h2>
+            <p class="card-sub">Últimas cajas: lo que se esperaba en efectivo y lo que se contó</p>
+          </div>
+          <a mat-stroked-button routerLink="/cash"><mat-icon>point_of_sale</mat-icon>Ir a la caja de hoy</a>
+        </header>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Apertura</th><th>Cierre</th><th>Responsable</th><th class="num">Fondo</th>
+                <th class="num">Entradas</th><th class="num">Salidas</th><th class="num">Esperado</th>
+                <th class="num">Contado</th><th class="num">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of sessions(); track c.id) {
+                <tr>
+                  <td>{{ c.opened_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>
+                    @if (c.closed_at) { {{ c.closed_at | date: 'HH:mm' }} } @else { <span class="open-tag">Abierta</span> }
+                  </td>
+                  <td class="muted">{{ c.closed_by_name || c.opened_by_name || '—' }}</td>
+                  <td class="num numeric">$ {{ money(c.opening_float) }}</td>
+                  <td class="num numeric in">+ {{ money(c.cash_in) }}</td>
+                  <td class="num numeric out">− {{ money(c.cash_out) }}</td>
+                  <td class="num numeric">$ {{ money(c.expected_cash) }}</td>
+                  <td class="num numeric">{{ c.counted_cash !== null ? '$ ' + money(c.counted_cash) : '—' }}</td>
+                  <td class="num numeric diff" [class]="diffClass(c.difference)">
+                    {{ c.difference !== null ? money(c.difference) : '—' }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="9" class="empty">Todavía no se abrió ninguna caja.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  } @else if (loading()) {
+    <p class="muted">Cargando…</p>
+  }
+</div>

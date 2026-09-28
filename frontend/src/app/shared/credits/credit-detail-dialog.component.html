@@ -1,0 +1,171 @@
+@if (credit(); as c) {
+  <div class="head">
+    <div>
+      <h2>{{ c.patient_name }}</h2>
+      <p>{{ c.charge_description }} · {{ c.frequency_label }} · desde {{ c.created_at | date: 'd MMM y' }}</p>
+    </div>
+    <span class="state" [attr.data-status]="c.status">{{ statusLabels[c.status] }}</span>
+  </div>
+
+  <mat-dialog-content>
+    <div class="numbers">
+      <div><span>Total en cuotas</span><b>$ {{ money(c.total) }}</b></div>
+      <div><span>Pagado</span><b class="ok">$ {{ money(c.paid) }}</b></div>
+      <div><span>Pendiente</span><b>$ {{ money(c.pending) }}</b></div>
+      @if (+c.overdue > 0) {
+        <div><span>Vencido · {{ c.days_late }} días</span><b class="bad">$ {{ money(c.overdue) }}</b></div>
+      } @else if (c.next_due_on) {
+        <div><span>Próxima cuota · {{ c.next_due_on | date: 'd MMM' }}</span><b>$ {{ money(c.next_amount!) }}</b></div>
+      }
+    </div>
+    <div class="bar"><div class="fill" [style.width.%]="progress(c)"></div></div>
+    <p class="terms">
+      Entrada $ {{ money(c.down_payment) }} · financiado $ {{ money(c.principal) }} ·
+      interés {{ c.monthly_rate }} % mensual (costo $ {{ money(c.total_interest) }})
+      @if (c.guarantor_name) { · garante {{ c.guarantor_name }} }
+    </p>
+    @if (c.void_reason) {
+      <p class="dialog-error">Anulado: {{ c.void_reason }}</p>
+    }
+
+    <!-- Acciones -->
+    <div class="actions">
+      @if (canWrite && c.status !== 'anulado' && c.status !== 'pagado') {
+        <button mat-flat-button (click)="open('pay')"><mat-icon>payments</mat-icon>Cobrar cuota</button>
+      }
+      @if (whatsappLink(c); as link) {
+        <a mat-stroked-button [href]="link" target="_blank" rel="noopener"><mat-icon>chat</mat-icon>Recordar por WhatsApp</a>
+      } @else if (!c.communications_allowed && c.status !== 'pagado' && c.status !== 'anulado') {
+        <span class="muted" matTooltip="El paciente retiró su autorización para recibir mensajes">
+          <mat-icon>block</mat-icon> Sin autorización de mensajes
+        </span>
+      }
+      <button mat-stroked-button (click)="printAgreement()"><mat-icon>print</mat-icon>Acuerdo de pago</button>
+      <button mat-icon-button [matMenuTriggerFor]="more" aria-label="Más acciones"><mat-icon>more_vert</mat-icon></button>
+      <mat-menu #more="matMenu" xPosition="before">
+        <button mat-menu-item (click)="goToPatient(c)"><mat-icon>person</mat-icon>Ver ficha del paciente</button>
+        @if (canWrite && c.status !== 'anulado') {
+          <button mat-menu-item (click)="open('edit')"><mat-icon>edit</mat-icon>Editar garante y notas</button>
+          @if (c.status !== 'pagado') {
+            <button mat-menu-item (click)="open('restructure')"><mat-icon>event_repeat</mat-icon>Refinanciar saldo</button>
+          }
+          <button mat-menu-item class="danger-item" (click)="voidCredit()"><mat-icon>block</mat-icon>Anular crédito</button>
+        }
+      </mat-menu>
+    </div>
+
+    @if (panel() === 'pay') {
+      <form class="panel" [formGroup]="payForm" (ngSubmit)="pay()">
+        <h3>Cobrar cuota</h3>
+        <div class="dialog-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Importe</mat-label>
+            <span matTextPrefix>$&nbsp;</span>
+            <input matInput formControlName="amount" inputmode="decimal" />
+            <mat-hint>Puede cobrar más de una cuota o un abono parcial</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Medio de pago</mat-label>
+            <mat-select formControlName="method">
+              @for (m of methods(); track m.code) { <mat-option [value]="m.code">{{ m.label }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          @if (needsReference()) {
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>Referencia</mat-label>
+              <input matInput formControlName="reference" />
+            </mat-form-field>
+          }
+        </div>
+        <div class="panel-actions">
+          <button mat-button type="button" (click)="panel.set(null)">Cancelar</button>
+          <button mat-flat-button type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Cobrar e imprimir recibo' }}</button>
+        </div>
+      </form>
+    }
+
+    @if (panel() === 'edit') {
+      <form class="panel" [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <h3>Garante y notas</h3>
+        <div class="dialog-grid">
+          <mat-form-field appearance="outline" class="full"><mat-label>Nombre del garante</mat-label><input matInput formControlName="guarantor_name" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Cédula</mat-label><input matInput formControlName="guarantor_id_number" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Teléfono</mat-label><input matInput formControlName="guarantor_phone" /></mat-form-field>
+          <mat-form-field appearance="outline" class="full"><mat-label>Notas</mat-label><textarea matInput formControlName="notes" rows="2"></textarea></mat-form-field>
+        </div>
+        <div class="panel-actions">
+          <button mat-button type="button" (click)="panel.set(null)">Cancelar</button>
+          <button mat-flat-button type="submit" [disabled]="saving()">Guardar</button>
+        </div>
+      </form>
+    }
+
+    @if (panel() === 'restructure') {
+      <form class="panel" [formGroup]="restructureForm" (ngSubmit)="restructure()">
+        <h3>Refinanciar saldo de $ {{ money(c.pending) }}</h3>
+        <p class="dialog-note">Las cuotas pagadas no cambian. El saldo se reparte en el nuevo calendario sin intereses adicionales.</p>
+        <div class="dialog-grid">
+          <mat-form-field appearance="outline"><mat-label>Número de cuotas</mat-label><input matInput type="number" min="1" formControlName="installment_count" /></mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Frecuencia</mat-label>
+            <mat-select formControlName="frequency">
+              @for (f of options()?.frequencies ?? []; track f.code) { <mat-option [value]="f.code">{{ f.label }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Primera cuota</mat-label><input matInput type="date" formControlName="first_due_on" /></mat-form-field>
+        </div>
+        <div class="panel-actions">
+          <button mat-button type="button" (click)="panel.set(null)">Cancelar</button>
+          <button mat-flat-button type="submit" [disabled]="saving()">Refinanciar</button>
+        </div>
+      </form>
+    }
+
+    @if (error()) { <p class="dialog-error">{{ error() }}</p> }
+
+    <h3>Calendario de cuotas</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>N.°</th><th>Vence</th><th class="num">Cuota</th><th class="num">Pagado</th><th class="num">Pendiente</th><th>Estado</th></tr></thead>
+        <tbody>
+          @for (r of c.installments; track r.number) {
+            <tr [attr.data-status]="r.status">
+              <td>{{ r.number }}</td>
+              <td>{{ r.due_on | date: 'dd/MM/yyyy' }}</td>
+              <td class="num">$ {{ money(r.amount) }}</td>
+              <td class="num">$ {{ money(r.paid) }}</td>
+              <td class="num">$ {{ money(r.pending) }}</td>
+              <td><span class="pill" [attr.data-status]="r.status">{{ rowLabels[r.status] }}@if (r.days_late) { · {{ r.days_late }} d }</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Pagos del crédito</h3>
+    @if (c.payments.length === 0) {
+      <p class="muted">Todavía no hay pagos de cuotas.</p>
+    } @else {
+      <ul class="payments">
+        @for (p of c.payments; track p.group_id) {
+          <li [class.voided]="p.voided_at">
+            <span class="when">{{ p.received_on | date: 'dd/MM/yyyy' }}</span>
+            <span class="what">{{ p.method_label }}@if (p.reference) { · {{ p.reference }} }@if (p.voided_at) { · anulado: {{ p.void_reason }} }</span>
+            <b class="numeric">$ {{ money(p.amount) }}</b>
+            @if (!p.voided_at) {
+              <button mat-icon-button (click)="receipt(p)" matTooltip="Imprimir recibo" aria-label="Imprimir recibo"><mat-icon>receipt</mat-icon></button>
+              @if (canWrite) {
+                <button mat-icon-button (click)="voidPayment(p)" matTooltip="Anular pago" aria-label="Anular pago"><mat-icon>block</mat-icon></button>
+              }
+            }
+          </li>
+        }
+      </ul>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cerrar</button>
+  </mat-dialog-actions>
+} @else {
+  <mat-dialog-content><p class="muted">Cargando…</p></mat-dialog-content>
+}

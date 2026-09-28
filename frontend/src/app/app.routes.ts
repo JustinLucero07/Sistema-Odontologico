@@ -80,6 +80,13 @@ export const routes: Routes = [
           import('./features/finance/cash-page.component').then((m) => m.CashPageComponent),
       },
       {
+        path: 'finance',
+        canActivate: [permissionGuard],
+        data: { permission: 'payments:read' },
+        loadComponent: () =>
+          import('./features/finance/finance-page.component').then((m) => m.FinancePageComponent),
+      },
+      {
         path: 'inventory',
         canActivate: [permissionGuard],
         data: { permission: 'inventory:read' },

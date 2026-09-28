@@ -87,6 +87,12 @@ class Payment(UUIDPKMixin, TenantMixin, Base):
     charge_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("charges.id"), nullable=True, index=True
     )
+    # Pago de una cuota de crédito. Una cuota con interés se registra como dos
+    # pagos (interés y capital) que comparten split_group_id: se anulan juntos.
+    credit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("credits.id"), nullable=True, index=True
+    )
+    split_group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     cash_session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("cash_sessions.id"), nullable=True, index=True
     )

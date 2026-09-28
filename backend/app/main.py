@@ -44,6 +44,8 @@ from app.modules.treatment_plans.router import patient_plans_router, plans_route
 from app.modules.treatments.router import router as treatments_router
 from app.modules.users.router import router as users_router
 from app.modules.privacy.router import legal_router, patient_router as privacy_patient_router
+from app.modules.expenses.router import router as expenses_router
+from app.modules.credits.router import patient_router as patient_credits_router, router as credits_router
 
 settings = get_settings()
 
@@ -113,6 +115,9 @@ app.include_router(portal_manage_router)
 app.include_router(portal_public_router)
 app.include_router(privacy_patient_router)
 app.include_router(legal_router)
+app.include_router(expenses_router)
+app.include_router(credits_router)
+app.include_router(patient_credits_router)
 
 
 @app.get("/api/v1/health")

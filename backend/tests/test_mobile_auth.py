@@ -45,7 +45,11 @@ async def test_the_body_token_can_refresh_a_session(client, clinic_with_users):
     assert refreshed.json()["refresh_token"] != token
 
 
-async def test_a_rotated_token_cannot_be_reused(client, clinic_with_users):
+async def test_a_rotated_token_cannot_be_reused(client, clinic_with_users, monkeypatch):
+    # Pasada la gracia de renovación simultánea, el token viejo ya no sirve.
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "REFRESH_REUSE_GRACE_SECONDS", 0)
     """La rotación solo protege si el token viejo muere al usarse."""
     token = (await _login(client, MOBILE)).json()["refresh_token"]
     client.cookies.clear()

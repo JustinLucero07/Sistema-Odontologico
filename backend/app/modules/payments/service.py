@@ -17,6 +17,7 @@ from app.modules.payments.constants import (
 from app.modules.payments.models import CashSession, Charge, Installment, Payment
 from app.modules.payments.schemas import (
     AccountStatement,
+    CashSessionOut,
     CashSessionClose,
     CashSessionOpen,
     ChargeCreate,
@@ -280,6 +281,18 @@ async def void_charge(
     return charge
 
 
+async def _financed_by(db: AsyncSession, charge_id: uuid.UUID) -> bool:
+    from app.modules.credits.models import Credit
+
+    found = await db.scalar(
+        select(Credit.id).where(
+            Credit.voided_at.is_(None),
+            (Credit.charge_id == charge_id) | (Credit.interest_charge_id == charge_id),
+        ).limit(1)
+    )
+    return found is not None
+
+
 async def set_installment_plan(
     db: AsyncSession,
     clinic_id: uuid.UUID,
@@ -291,6 +304,11 @@ async def set_installment_plan(
     if charge.voided_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="No se puede refinanciar un cargo anulado"
+        )
+    if await _financed_by(db, charge.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este cargo ya tiene un crédito: refinancie desde el crédito.",
         )
 
     total = money(charge.amount)
@@ -348,6 +366,13 @@ async def create_payment(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="El cargo está anulado"
             )
+        if await _financed_by(db, charge.id):
+            # Pagado por fuera, el crédito no se enteraría y seguiría mostrando
+            # cuotas pendientes de algo ya cobrado.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este cargo está financiado con un crédito: registre el pago como cuota del crédito.",
+            )
         pending = money(charge.amount - _paid_on(charge))
         # Refusing the overpayment rather than absorbing it keeps the charge's
         # own arithmetic honest; genuine extra money is taken on account.
@@ -404,9 +429,24 @@ async def void_payment(
     if payment.voided_at is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El pago ya está anulado")
 
-    payment.voided_at = datetime.now(timezone.utc)
-    payment.voided_by_id = actor_id
-    payment.void_reason = reason.strip()
+    now = datetime.now(timezone.utc)
+    group = [payment]
+    if payment.split_group_id is not None:
+        # Las dos partes de una cuota (interés y capital) se anulan juntas.
+        siblings = (
+            await db.execute(
+                select(Payment).where(
+                    Payment.split_group_id == payment.split_group_id,
+                    Payment.id != payment.id,
+                    Payment.voided_at.is_(None),
+                )
+            )
+        ).scalars().all()
+        group.extend(siblings)
+    for item in group:
+        item.voided_at = now
+        item.voided_by_id = actor_id
+        item.void_reason = reason.strip()
     await db.flush()
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="void", entity_type="payment",
@@ -467,8 +507,12 @@ async def close_session(
         )
     )
     taken = money(sum((p.amount for p in result.scalars().all()), ZERO))
+    # Los gastos pagados en efectivo con esta caja salieron del cajón.
+    from app.modules.expenses.service import cash_expenses_total
 
-    session.expected_cash = money(session.opening_float + taken)
+    spent = await cash_expenses_total(db, clinic_id, session.id)
+
+    session.expected_cash = money(session.opening_float + taken - spent)
     session.counted_cash = money(payload.counted_cash)
     session.difference = money(session.counted_cash - session.expected_cash)
     session.closed_at = datetime.now(timezone.utc)
@@ -499,8 +543,21 @@ async def daily_report(db: AsyncSession, clinic_id: uuid.UUID, day: date) -> Dai
     for payment in live:
         by_method.setdefault(payment.method, []).append(payment)
 
+    from app.modules.expenses.models import Expense
+
+    expenses = (
+        await db.execute(
+            select(Expense).where(
+                Expense.clinic_id == clinic_id, Expense.spent_on == day, Expense.voided_at.is_(None)
+            )
+        )
+    ).scalars().all()
+
     return DailyCashReport(
         day=day,
+        expenses_total=money(sum((e.amount for e in expenses), ZERO)),
+        expenses_count=len(expenses),
+        cash_expenses=money(sum((e.amount for e in expenses if e.method == CASH_METHOD), ZERO)),
         total=money(sum((p.amount for p in live), ZERO)),
         payment_count=len(live),
         by_method=sorted(
@@ -519,3 +576,31 @@ async def daily_report(db: AsyncSession, clinic_id: uuid.UUID, day: date) -> Dai
         voided_total=money(sum((p.amount for p in voided), ZERO)),
         voided_count=len(voided),
     )
+
+
+async def session_with_totals(db: AsyncSession, clinic_id: uuid.UUID) -> dict | None:
+    """La caja abierta con lo que lleva: efectivo cobrado, efectivo gastado y
+    lo que debería haber en el cajón en este momento."""
+    session = await get_open_session(db, clinic_id)
+    if session is None:
+        return None
+    from app.modules.expenses.service import cash_expenses_total
+
+    cash_in = money(
+        sum(
+            (
+                await db.execute(
+                    select(Payment.amount).where(
+                        Payment.clinic_id == clinic_id,
+                        Payment.cash_session_id == session.id,
+                        Payment.voided_at.is_(None),
+                    )
+                )
+            ).scalars().all(),
+            ZERO,
+        )
+    )
+    cash_out = await cash_expenses_total(db, clinic_id, session.id)
+    out = CashSessionOut.model_validate(session).model_dump()
+    out.update(cash_in=cash_in, cash_out=cash_out, expected_now=money(session.opening_float + cash_in - cash_out))
+    return out

@@ -105,6 +105,8 @@ class PaymentOut(BaseModel):
     id: uuid.UUID
     patient_id: uuid.UUID
     charge_id: uuid.UUID | None
+    credit_id: uuid.UUID | None = None
+    split_group_id: uuid.UUID | None = None
     cash_session_id: uuid.UUID | None
     amount: Decimal
     method: str
@@ -150,6 +152,11 @@ class CashSessionOut(BaseModel):
     difference: Decimal | None
     notes: str | None
     is_open: bool
+    # Solo en la caja abierta: lo que va entrando y saliendo en efectivo, y
+    # cuánto debería haber ahora mismo en el cajón.
+    cash_in: Decimal | None = None
+    cash_out: Decimal | None = None
+    expected_now: Decimal | None = None
 
     model_config = {"from_attributes": True}
 
@@ -187,3 +194,7 @@ class DailyCashReport(BaseModel):
     by_method: list[MethodBreakdown]
     voided_total: Decimal
     voided_count: int
+    # Egresos del día: el total y cuánto de eso salió de la caja en efectivo.
+    expenses_total: Decimal = Decimal("0.00")
+    expenses_count: int = 0
+    cash_expenses: Decimal = Decimal("0.00")

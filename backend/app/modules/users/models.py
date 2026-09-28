@@ -79,5 +79,8 @@ class RefreshToken(UUIDPKMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Cuándo se sustituyó por uno nuevo al renovar. Distinto de un cierre de
+    # sesión: permite unos segundos de gracia a peticiones que ya iban en camino.
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(300))
     ip_address: Mapped[str | None] = mapped_column(String(50))

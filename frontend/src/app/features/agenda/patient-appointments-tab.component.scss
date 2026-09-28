@@ -1,7 +1,7 @@
 .appointments-tab {
   display: grid;
   gap: 22px;
-  max-width: 760px;
+  width: 100%;
 }
 
 h3 {
@@ -15,9 +15,10 @@ h3 {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-card-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--glass-card-bg);
+  box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-sm);
   margin-bottom: 6px;
 
   &.is-past {
@@ -63,5 +64,5 @@ h3 {
 .tab-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 12px;
+  justify-self: stretch;
 }

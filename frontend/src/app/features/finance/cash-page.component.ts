@@ -2,6 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { CashSession, DailyCashReport, formatMoney } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
+import { openExpenseDialog } from '../../shared/finance/expense-dialog.component';
 
 @Component({
   selector: 'app-cash-page',
@@ -22,6 +25,7 @@ import { FinanceService } from '../../core/services/finance.service';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    RouterLink,
   ],
   templateUrl: './cash-page.component.html',
   styleUrl: './cash-page.component.scss',
@@ -29,6 +33,7 @@ import { FinanceService } from '../../core/services/finance.service';
 export class CashPageComponent implements OnInit {
   private readonly finance = inject(FinanceService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   readonly auth = inject(AuthService);
 
   readonly session = signal<CashSession | null>(null);
@@ -57,7 +62,7 @@ export class CashPageComponent implements OnInit {
     await this.reload();
   }
 
-  private async reload(): Promise<void> {
+  async reload(): Promise<void> {
     this.loading.set(true);
     try {
       const [session, report] = await Promise.all([
@@ -74,6 +79,15 @@ export class CashPageComponent implements OnInit {
   async changeDay(value: string): Promise<void> {
     this.day = value;
     await this.reload();
+  }
+
+  /** Un gasto pagado ahora en efectivo sale de la caja abierta. */
+  async newExpense(): Promise<void> {
+    const saved = await openExpenseDialog(this.dialog);
+    if (saved) {
+      this.snackBar.open('Egreso registrado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    }
   }
 
   async open(): Promise<void> {

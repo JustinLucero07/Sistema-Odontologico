@@ -7,7 +7,9 @@ from app.modules.audit import models as audit_models  # noqa: F401
 from app.modules.budgets import models as budgets_models  # noqa: F401
 from app.modules.clinics import models as clinics_models  # noqa: F401
 from app.modules.prescriptions import models as prescriptions_models  # noqa: F401
+from app.modules.credits import models as credits_models  # noqa: F401
 from app.modules.documents import models as documents_models  # noqa: F401
+from app.modules.expenses import models as expenses_models  # noqa: F401
 from app.modules.consents import models as consents_models  # noqa: F401
 from app.modules.clinical_evolution import models as clinical_evolution_models  # noqa: F401
 from app.modules.diagnoses import models as diagnoses_models  # noqa: F401

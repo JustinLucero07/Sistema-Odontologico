@@ -129,7 +129,7 @@ async def get_cash_session(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("payments:read")),
 ):
-    return await service.get_open_session(db, current_user.clinic_id)
+    return await service.session_with_totals(db, current_user.clinic_id)
 
 
 @router.post("/cash-session/open", response_model=CashSessionOut, status_code=201)

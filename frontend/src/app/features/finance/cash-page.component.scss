@@ -240,3 +240,70 @@
     transition: none;
   }
 }
+
+.head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+// Arqueo en vivo: cuatro cifras en fila, la última destacada.
+.till {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 12px;
+
+  span {
+    display: grid;
+  }
+
+  em {
+    font-style: normal;
+    font-size: 0.72rem;
+    color: var(--color-ink-faint);
+  }
+
+  b {
+    font-size: 1.02rem;
+  }
+
+  .plus b {
+    color: var(--color-success);
+  }
+
+  .minus b {
+    color: var(--color-danger);
+  }
+
+  .expected {
+    padding-left: 16px;
+    border-left: 2px solid var(--color-primary);
+
+    b {
+      font-size: 1.3rem;
+      color: var(--color-primary);
+    }
+  }
+}
+
+.day-expenses {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  font-size: 0.86rem;
+
+  mat-icon {
+    color: var(--color-accent);
+  }
+
+  span {
+    flex: 1;
+  }
+}

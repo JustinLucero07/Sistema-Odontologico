@@ -1,11 +1,24 @@
 <div class="cash">
   <header class="cash-head">
     <div>
-      <h1>Caja</h1>
+      <h1>Caja del día</h1>
       <p class="cash-sub">
         Apertura, arqueo y cierre del día. Solo el efectivo entra en la caja: tarjetas y
         transferencias se cobran igual, pero no se cuentan aquí.
       </p>
+    </div>
+
+    <div class="head-actions">
+      @if (canWrite) {
+        <button mat-stroked-button (click)="newExpense()">
+          <mat-icon>remove_circle_outline</mat-icon>
+          Registrar gasto
+        </button>
+      }
+      <a mat-stroked-button routerLink="/finance">
+        <mat-icon>account_balance</mat-icon>
+        Ver finanzas
+      </a>
     </div>
 
     <mat-form-field appearance="outline" class="day-picker">
@@ -28,6 +41,13 @@
             Desde {{ open.opened_at | date: 'dd/MM/yyyy HH:mm' }} ·
             Fondo inicial $ {{ money(open.opening_float) }}
           </span>
+          <!-- Arqueo en vivo: lo que debería haber ahora mismo en el cajón. -->
+          <div class="till">
+            <span><em>Fondo</em><b class="numeric">$ {{ money(open.opening_float) }}</b></span>
+            <span class="plus"><em>+ Cobros en efectivo</em><b class="numeric">$ {{ money(open.cash_in ?? 0) }}</b></span>
+            <span class="minus"><em>− Gastos en efectivo</em><b class="numeric">$ {{ money(open.cash_out ?? 0) }}</b></span>
+            <span class="expected"><em>= Debería haber</em><b class="numeric">$ {{ money(open.expected_now ?? open.opening_float) }}</b></span>
+          </div>
         </div>
 
         @if (canWrite) {
@@ -115,6 +135,16 @@
             }
           </ul>
         }
+
+        <div class="day-expenses">
+          <mat-icon>receipt</mat-icon>
+          <span>
+            Egresos del día: <b class="numeric">$ {{ money(r.expenses_total) }}</b>
+            ({{ r.expenses_count }})
+            @if (+r.cash_expenses > 0) { · $ {{ money(r.cash_expenses) }} salieron en efectivo }
+          </span>
+          <a mat-button routerLink="/finance">Ver detalle</a>
+        </div>
 
         @if (r.voided_count > 0) {
           <p class="voided-note">

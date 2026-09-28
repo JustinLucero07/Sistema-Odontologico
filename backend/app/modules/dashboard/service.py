@@ -251,6 +251,12 @@ async def _attention(
             )
         ) or 0
 
+    credits_overdue = None
+    if can("payments:read"):
+        from app.modules.credits.service import summary as credit_summary
+
+        credits_overdue = (await credit_summary(db, clinic_id)).overdue_count
+
     birthdays = None
     if can("patients:read"):
         rows = (
@@ -277,6 +283,7 @@ async def _attention(
         "stock_alerts": stock_alerts,
         "lab_overdue": lab_overdue,
         "budgets_awaiting": budgets_awaiting,
+        "credits_overdue": credits_overdue,
         "birthdays": birthdays,
     }
 

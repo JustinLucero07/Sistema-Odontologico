@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -114,10 +114,18 @@ async def rotate_refresh_token(
     stored = result.scalar_one_or_none()
 
     now = datetime.now(timezone.utc)
-    if stored is None or stored.revoked_at is not None or stored.expires_at < now:
+    in_grace = (
+        stored is not None
+        and stored.rotated_at is not None
+        and stored.revoked_at == stored.rotated_at
+        and (now - stored.rotated_at).total_seconds() <= settings.REFRESH_REUSE_GRACE_SECONDS
+    )
+    if stored is None or stored.expires_at < now or (stored.revoked_at is not None and not in_grace):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token inválido o expirado")
 
-    stored.revoked_at = now
+    if not in_grace:
+        stored.revoked_at = now
+        stored.rotated_at = now
 
     user_result = await db.execute(
         select(User)
@@ -138,3 +146,9 @@ async def revoke_refresh_token(db: AsyncSession, raw_token: str) -> None:
     stored = result.scalar_one_or_none()
     if stored is not None and stored.revoked_at is None:
         stored.revoked_at = datetime.now(timezone.utc)
+    if stored is not None:
+        # Cerrar sesión termina también la gracia de los tokens recién
+        # renovados de este usuario: nada vuelve a entrar después de salir.
+        await db.execute(
+            update(RefreshToken).where(RefreshToken.user_id == stored.user_id).values(rotated_at=None)
+        )

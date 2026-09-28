@@ -1,0 +1,225 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 24px 6px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--color-ink-faint);
+  }
+}
+
+.state,
+.pill {
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+
+  &[data-status='vencido'],
+  &[data-status='vencida'] {
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  &[data-status='pagado'],
+  &[data-status='pagada'] {
+    background: var(--color-success-soft);
+    color: var(--color-success);
+  }
+
+  &[data-status='anulado'],
+  &[data-status='pendiente'] {
+    background: var(--color-surface-muted);
+    color: var(--color-ink-soft);
+  }
+
+  &[data-status='parcial'] {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  div {
+    display: grid;
+  }
+
+  span {
+    font-size: 0.72rem;
+    color: var(--color-ink-faint);
+  }
+
+  b {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ok {
+    color: var(--color-success);
+  }
+
+  .bad {
+    color: var(--color-danger);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.bar {
+  height: 8px;
+  margin: 12px 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-mint));
+  transition: width 0.6s var(--ease-spring);
+}
+
+.terms {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 14px;
+
+  .muted {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.panel {
+  margin-bottom: 14px;
+  padding: 14px 16px 10px;
+  border-radius: var(--radius-md);
+  background: var(--glass-field-bg);
+  border: 1px solid var(--color-border);
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+h3 {
+  margin: 14px 0 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.panel h3 {
+  margin-top: 0;
+}
+
+.scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  text-align: left;
+  font-size: 0.72rem;
+  color: var(--color-ink-faint);
+  padding: 7px 10px;
+}
+
+td {
+  padding: 7px 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+tr[data-status='vencida'] td {
+  background: var(--color-danger-soft);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.payments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-border);
+
+    &.voided {
+      color: var(--color-ink-faint);
+      text-decoration: line-through;
+    }
+  }
+
+  .when {
+    width: 90px;
+    font-size: 0.82rem;
+  }
+
+  .what {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--color-ink-soft);
+  }
+}
+
+.muted {
+  color: var(--color-ink-faint);
+  font-size: 0.84rem;
+}

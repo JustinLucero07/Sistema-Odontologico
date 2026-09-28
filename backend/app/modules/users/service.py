@@ -80,6 +80,9 @@ async def _revoke_sessions(db: AsyncSession, user_id: uuid.UUID) -> None:
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(timezone.utc))
     )
+    # Sin gracia para los recién renovados: tras un cambio de contraseña o
+    # una desactivación no entra nadie con un token anterior.
+    await db.execute(update(RefreshToken).where(RefreshToken.user_id == user_id).values(rotated_at=None))
 
 
 async def update_user(

@@ -31,7 +31,7 @@ type Doc = 'privacidad' | 'confidencialidad';
         </button>
         <button role="tab" [class.on]="doc() === 'confidencialidad'" [attr.aria-selected]="doc() === 'confidencialidad'"
                 (click)="doc.set('confidencialidad')">
-          <mat-icon>shield_person</mat-icon> Acuerdo de confidencialidad
+          <mat-icon>verified_user</mat-icon> Acuerdo de confidencialidad
         </button>
       </div>
 

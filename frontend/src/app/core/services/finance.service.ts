@@ -6,10 +6,16 @@ import { environment } from '../../../environments/environment';
 import {
   AccountStatement,
   CashSession,
+  CashSessionRow,
   Charge,
   DailyCashReport,
+  Expense,
+  ExpenseCategory,
+  ExpenseInput,
+  FinanceSummary,
   Payment,
   PaymentMethodOption,
+  PaymentRow,
 } from '../models/finance.models';
 
 export interface PaymentInput {
@@ -88,5 +94,50 @@ export class FinanceService {
   getDailyReport(day?: string): Observable<DailyCashReport> {
     const query = day ? `?day=${day}` : '';
     return this.http.get<DailyCashReport>(`${environment.apiUrl}/finance/daily-report${query}`);
+  }
+
+  // ---- Egresos, resumen y listados -------------------------------------
+
+  private range(from: string, to: string) {
+    return { date_from: from, date_to: to };
+  }
+
+  getExpenseCategories(): Observable<ExpenseCategory[]> {
+    return this.http.get<ExpenseCategory[]>(`${environment.apiUrl}/finance/expense-categories`);
+  }
+
+  listExpenses(from: string, to: string): Observable<Expense[]> {
+    return this.http.get<Expense[]>(`${environment.apiUrl}/finance/expenses`, { params: this.range(from, to) });
+  }
+
+  createExpense(body: ExpenseInput): Observable<Expense> {
+    return this.http.post<Expense>(`${environment.apiUrl}/finance/expenses`, body);
+  }
+
+  updateExpense(id: string, body: ExpenseInput): Observable<Expense> {
+    return this.http.put<Expense>(`${environment.apiUrl}/finance/expenses/${id}`, body);
+  }
+
+  voidExpense(id: string, reason: string): Observable<Expense> {
+    return this.http.post<Expense>(`${environment.apiUrl}/finance/expenses/${id}/void`, { reason });
+  }
+
+  getSummary(from: string, to: string): Observable<FinanceSummary> {
+    return this.http.get<FinanceSummary>(`${environment.apiUrl}/finance/summary`, { params: this.range(from, to) });
+  }
+
+  listPayments(from: string, to: string): Observable<PaymentRow[]> {
+    return this.http.get<PaymentRow[]>(`${environment.apiUrl}/finance/payments`, { params: this.range(from, to) });
+  }
+
+  listCashSessions(): Observable<CashSessionRow[]> {
+    return this.http.get<CashSessionRow[]>(`${environment.apiUrl}/finance/cash-sessions`);
+  }
+
+  downloadCsv(kind: 'payments' | 'expenses', from: string, to: string): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/finance/${kind}.csv`, {
+      params: this.range(from, to),
+      responseType: 'blob',
+    });
   }
 }

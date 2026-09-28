@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, firstValueFrom, tap } from 'rxjs';
+import { Observable, finalize, firstValueFrom, shareReplay, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AccessTokenResponse, CurrentUser, LoginRequest } from '../models/auth.models';
@@ -36,10 +36,21 @@ export class AuthService {
       .pipe(tap((response) => (this.accessToken = response.access_token)));
   }
 
+  /** Renovación en curso, compartida. Cuando el pase de acceso vence, el panel
+   *  lanza varias peticiones a la vez y todas reciben 401: si cada una renovaba
+   *  por su cuenta, la primera invalidaba el token de las demás y la sesión se
+   *  cerraba. Ahora todas esperan la misma renovación. */
+  private refreshInFlight: Observable<AccessTokenResponse> | null = null;
+
   refresh(): Observable<AccessTokenResponse> {
-    return this.http
+    this.refreshInFlight ??= this.http
       .post<AccessTokenResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true })
-      .pipe(tap((response) => (this.accessToken = response.access_token)));
+      .pipe(
+        tap((response) => (this.accessToken = response.access_token)),
+        finalize(() => (this.refreshInFlight = null)),
+        shareReplay(1),
+      );
+    return this.refreshInFlight;
   }
 
   async loadCurrentUser(): Promise<CurrentUser | null> {

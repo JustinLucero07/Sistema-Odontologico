@@ -20,7 +20,7 @@ import { LegalSection, confidentialityAgreement } from './legal-texts';
   imports: [MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule],
   template: `
     <div class="head">
-      <span class="icon"><mat-icon>shield_person</mat-icon></span>
+      <span class="icon"><mat-icon>verified_user</mat-icon></span>
       <div>
         <h2>Acuerdo de confidencialidad</h2>
         <p>Antes de continuar, lea y acepte cómo se protegen los datos de los pacientes.</p>

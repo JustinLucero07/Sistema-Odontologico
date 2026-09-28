@@ -96,7 +96,8 @@ export class ShellComponent {
     {
       title: 'Administración',
       items: [
-        { label: 'Caja', icon: 'point_of_sale', route: '/cash', permission: 'payments:read' },
+        { label: 'Caja del día', icon: 'point_of_sale', route: '/cash', permission: 'payments:read' },
+        { label: 'Finanzas', icon: 'account_balance', route: '/finance', permission: 'payments:read' },
         { label: 'Reportes', icon: 'insights', route: '/reports', permission: 'reports:read' },
         { label: 'Inventario', icon: 'inventory_2', route: '/inventory', permission: 'inventory:read' },
         {

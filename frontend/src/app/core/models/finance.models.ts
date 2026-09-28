@@ -84,6 +84,10 @@ export interface CashSession {
   difference: string | null;
   notes: string | null;
   is_open: boolean;
+  /** Solo en la caja abierta: efectivo que entró, que salió y lo que debería haber. */
+  cash_in?: string | null;
+  cash_out?: string | null;
+  expected_now?: string | null;
 }
 
 export interface MethodBreakdown {
@@ -100,6 +104,97 @@ export interface DailyCashReport {
   by_method: MethodBreakdown[];
   voided_total: string;
   voided_count: number;
+  expenses_total: string;
+  expenses_count: number;
+  cash_expenses: string;
+}
+
+export interface ExpenseCategory {
+  code: string;
+  label: string;
+}
+
+export interface Expense {
+  id: string;
+  spent_on: string;
+  category: string;
+  category_label: string;
+  description: string;
+  amount: string;
+  method: PaymentMethodCode;
+  method_label: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  receipt_number: string | null;
+  cash_session_id: string | null;
+  notes: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  voided_at: string | null;
+  void_reason: string | null;
+}
+
+export interface ExpenseInput {
+  spent_on: string;
+  category: string;
+  description: string;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  receipt_number?: string | null;
+  notes?: string | null;
+  /** Solo al crear: el importe y el medio no se editan después. */
+  amount?: string;
+  method?: PaymentMethodCode;
+}
+
+export interface Breakdown {
+  code: string;
+  label: string;
+  total: string;
+  count: number;
+}
+
+export interface FinanceSummary {
+  date_from: string;
+  date_to: string;
+  sales: string;
+  income: string;
+  expenses: string;
+  net: string;
+  receivables: string;
+  income_by_method: Breakdown[];
+  expenses_by_category: Breakdown[];
+  monthly: { month: string; income: string; expenses: string; net: string }[];
+}
+
+export interface PaymentRow {
+  id: string;
+  received_on: string;
+  patient_id: string;
+  patient_name: string;
+  concept: string | null;
+  amount: string;
+  method: PaymentMethodCode;
+  method_label: string;
+  reference: string | null;
+  received_by_name: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+}
+
+export interface CashSessionRow {
+  id: string;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by_name: string | null;
+  closed_by_name: string | null;
+  opening_float: string;
+  cash_in: string;
+  cash_out: string;
+  expected_cash: string;
+  counted_cash: string | null;
+  difference: string | null;
+  notes: string | null;
 }
 
 /** Amounts cross the wire as strings so no cent is lost to a JSON float on the
