@@ -187,6 +187,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
         route: '/laboratory',
       });
     }
+    if (a.credits_overdue) {
+      items.push({
+        icon: 'credit_score',
+        tone: 'danger',
+        title: plural(a.credits_overdue, 'crédito con cuotas vencidas', 'créditos con cuotas vencidas'),
+        detail: 'Recuerde el pago al paciente',
+        route: '/credits',
+      });
+    }
     if (a.stock_alerts) {
       items.push({
         icon: 'inventory_2',

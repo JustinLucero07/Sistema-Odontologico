@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
+from app.core.password_policy import enforce as enforce_password
 from app.core.security import hash_password
 from app.modules.users.models import Permission, RefreshToken, Role, User, user_roles
 from app.modules.users.schemas import RoleCreate, RoleUpdate, UserCreate, UserUpdate
@@ -53,11 +54,13 @@ async def create_user(
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ya existe un usuario con ese email")
 
+    enforce_password(payload.password, email=payload.email, names=(payload.first_name, payload.last_name))
     roles = await _get_roles_by_ids(db, clinic_id, payload.role_ids)
     user = User(
         clinic_id=clinic_id,
         email=payload.email.lower(),
         hashed_password=hash_password(payload.password),
+        must_change_password=True,
         first_name=payload.first_name,
         last_name=payload.last_name,
         roles=roles,
@@ -102,7 +105,10 @@ async def update_user(
     if payload.role_ids is not None:
         user.roles = await _get_roles_by_ids(db, clinic_id, payload.role_ids)
     if payload.password is not None:
+        enforce_password(payload.password, email=user.email, names=(user.first_name, user.last_name))
         user.hashed_password = hash_password(payload.password)
+        user.must_change_password = True
+        user.password_changed_at = datetime.now(timezone.utc)
     if payload.password is not None or payload.is_active is False:
         await _revoke_sessions(db, user.id)
 

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/api/repositorios.dart';
 import '../../core/auth/auth_controller.dart';
+import '../../shared/odontograma/condiciones.dart';
 import '../../shared/odontograma/odontograma_widget.dart';
 import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
@@ -175,14 +176,26 @@ class _Ficha extends ConsumerWidget {
   }
 }
 
-class _Odontograma extends ConsumerWidget {
+class _Odontograma extends ConsumerStatefulWidget {
   const _Odontograma({required this.pacienteId});
 
   final String pacienteId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Odontograma> createState() => _OdontogramaState();
+}
+
+class _OdontogramaState extends ConsumerState<_Odontograma> {
+  bool _temporal = false;
+  String? _seleccionado;
+
+  String get pacienteId => widget.pacienteId;
+
+  @override
+  Widget build(BuildContext context) {
     final odontograma = ref.watch(_odontogramaProvider(pacienteId));
+    final scheme = Theme.of(context).colorScheme;
+    final tenue = scheme.onSurface.withValues(alpha: 0.55);
 
     return odontograma.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -193,30 +206,56 @@ class _Odontograma extends ConsumerWidget {
         onReintentar: () => ref.invalidate(_odontogramaProvider(pacienteId)),
       ),
       data: (datos) {
-        final condiciones = (datos?['conditions'] as List? ?? [])
+        final todas = (datos?['conditions'] as List? ?? [])
             .cast<Map<String, dynamic>>();
+        final piezas = [
+          ...filaArcada('upper', temporal: _temporal),
+          ...filaArcada('lower', temporal: _temporal),
+        ];
+        final hayTemporales = todas.any(
+          (c) => '5678'.contains('${c['fdi_number']}'[0]),
+        );
+
         final dientes = <String, Diente>{};
-        for (final fdi in [...filaArcada('upper'), ...filaArcada('lower')]) {
-          final arcada = fdi.startsWith('1') || fdi.startsWith('2')
-              ? 'upper'
-              : 'lower';
-          final delDiente = condiciones
-              .where((c) => c['fdi_number'] == fdi)
-              .toList();
+        for (final fdi in piezas) {
+          final delDiente = todas.where((c) => c['fdi_number'] == fdi);
           final completa = delDiente
               .where((c) => c['surface'] == 'whole')
+              .map((c) => c['condition'] as String)
               .firstOrNull;
-          final codigo = completa?['condition'] as String?;
+          final ausente = esPiezaAusente(completa);
+          final indicada = completa == 'extraccion_indicada';
           dientes[fdi] = Diente(
             fdi: fdi,
-            arcada: arcada,
-            ausente: codigo == 'ausente' || codigo == 'extraccion_realizada',
-            relleno: codigo != null ? _colorCondicion(codigo) : null,
+            arcada: '15'.contains(fdi[0]) || '26'.contains(fdi[0])
+                ? 'upper'
+                : 'lower',
+            ausente: ausente,
+            aspa: indicada ? condicionDe(completa!).color : null,
+            relleno: completa == null || ausente || indicada
+                ? null
+                : condicionDe(completa).color,
+            caras: {
+              for (final c in delDiente.where((c) => c['surface'] != 'whole'))
+                c['surface'] as String: condicionDe(
+                  c['condition'] as String,
+                ).color,
+            },
           );
         }
 
+        // Hallazgos agrupados por condición, igual que el resumen de la web.
+        final visibles = todas.where((c) => piezas.contains(c['fdi_number']));
+        final hallazgos = <String, Set<String>>{};
+        for (final c in visibles) {
+          hallazgos
+              .putIfAbsent(c['condition'] as String, () => <String>{})
+              .add(c['fdi_number'] as String);
+        }
+        final afectadas = visibles.map((c) => c['fdi_number']).toSet().length;
+
         return ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
           children: [
             if (datos == null)
               const Padding(
@@ -230,15 +269,42 @@ class _Odontograma extends ConsumerWidget {
               )
             else
               Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Versión del ${DateFormat('dd/MM/yyyy').format(DateTime.parse(datos['created_at']).toLocal())}',
+                        style: TextStyle(fontSize: 12.5, color: tenue),
+                      ),
+                    ),
+                    Text(
+                      afectadas == 0
+                          ? 'Sin hallazgos'
+                          : '$afectadas ${afectadas == 1 ? 'pieza' : 'piezas'} con hallazgos',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: afectadas == 0 ? tenue : scheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (hayTemporales || _temporal)
+              Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  'Versión del ${DateFormat('dd/MM/yyyy').format(DateTime.parse(datos['created_at']).toLocal())}',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.55),
-                  ),
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Permanente')),
+                    ButtonSegment(value: true, label: Text('Temporal')),
+                  ],
+                  selected: {_temporal},
+                  onSelectionChanged: (v) => setState(() {
+                    _temporal = v.first;
+                    _seleccionado = null;
+                  }),
                 ),
               ),
             GlassCard(
@@ -256,21 +322,12 @@ class _Odontograma extends ConsumerWidget {
                   ),
                   child: OdontogramaWidget(
                     dientes: dientes,
-                    onTocarDiente: (fdi) {
-                      final delDiente = condiciones
-                          .where((c) => c['fdi_number'] == fdi)
-                          .toList();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          duration: const Duration(seconds: 3),
-                          content: Text(
-                            delDiente.isEmpty
-                                ? 'Pieza $fdi · sana'
-                                : 'Pieza $fdi · ${delDiente.map((c) => c['condition']).join(', ')}',
-                          ),
-                        ),
-                      );
-                    },
+                    temporal: _temporal,
+                    seleccionado: _seleccionado,
+                    onTocarDiente: (fdi) => _verPieza(
+                      fdi,
+                      todas.where((c) => c['fdi_number'] == fdi).toList(),
+                    ),
                   ),
                 ),
               ),
@@ -281,73 +338,261 @@ class _Odontograma extends ConsumerWidget {
                 'Pellizque para ampliar · toque una pieza para ver su detalle',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  color: scheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            // El color nunca va solo: cada uno se nombra en la leyenda.
-            Wrap(
-              spacing: 14,
-              runSpacing: 8,
-              children: [
-                for (final (codigo, etiqueta) in _leyenda)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 16),
+            if (hallazgos.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                child: Text(
+                  'Hallazgos',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              GlassCard(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  child: Column(
                     children: [
-                      Container(
-                        width: 11,
-                        height: 11,
-                        decoration: BoxDecoration(
-                          color: codigo == 'sano'
-                              ? Colors.transparent
-                              : (codigo == 'ausente'
-                                    ? Colors.grey
-                                    : _colorCondicion(codigo)),
-                          borderRadius: BorderRadius.circular(3),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.3),
+                      for (final entrada in hallazgos.entries)
+                        _FilaHallazgo(
+                          condicion: condicionDe(entrada.key),
+                          piezas: entrada.value.toList()..sort(),
+                          seleccionado: _seleccionado,
+                          onTocar: (fdi) => _verPieza(
+                            fdi,
+                            todas.where((c) => c['fdi_number'] == fdi).toList(),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(etiqueta, style: const TextStyle(fontSize: 12.5)),
                     ],
                   ),
-              ],
-            ),
+                ),
+              ),
+            ] else
+              // Sin hallazgos no hay colores que explicar, pero quien abre la
+              // pestaña por primera vez necesita saber qué significan.
+              Wrap(
+                spacing: 14,
+                runSpacing: 8,
+                children: [
+                  for (final c in condiciones.take(8)) _Leyenda(condicion: c),
+                ],
+              ),
           ],
         );
       },
     );
   }
 
-  static const _leyenda = [
-    ('sano', 'Sano'),
-    ('caries', 'Caries'),
-    ('restauracion', 'Restauración'),
-    ('corona', 'Corona'),
-    ('endodoncia', 'Endodoncia'),
-    ('implante', 'Implante'),
-    ('sellante', 'Sellante'),
-    ('ausente', 'Ausente'),
-  ];
+  /// Detalle de una pieza en una hoja inferior: en un teléfono es más cómodo
+  /// que un aviso que desaparece solo.
+  Future<void> _verPieza(
+    String fdi,
+    List<Map<String, dynamic>> delDiente,
+  ) async {
+    setState(() => _seleccionado = fdi);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pieza $fdi',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  delDiente.isEmpty
+                      ? 'Sana, sin hallazgos registrados.'
+                      : '${delDiente.length} ${delDiente.length == 1 ? 'hallazgo' : 'hallazgos'}',
+                  style: TextStyle(
+                    color: scheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final c in delDiente)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: _Punto(
+                            color: condicionDe(c['condition'] as String).color,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                condicionDe(c['condition'] as String).etiqueta,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                etiquetasSuperficie[c['surface']] ??
+                                    '${c['surface']}',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                              ),
+                              if ((c['notes'] as String?)?.isNotEmpty ?? false)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    c['notes'] as String,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (mounted) setState(() => _seleccionado = null);
+  }
+}
 
-  /// Mismos colores que el catálogo de condiciones de la web.
-  Color? _colorCondicion(String codigo) => switch (codigo) {
-    'caries' => const Color(0xFFE53935),
-    'restauracion' => const Color(0xFF1E88E5),
-    'corona' => const Color(0xFFFDD835),
-    'endodoncia' => const Color(0xFF6D4C41),
-    'implante' => const Color(0xFF00897B),
-    'sellante' => const Color(0xFF7CB342),
-    'protesis' => const Color(0xFF3949AB),
-    _ => null,
-  };
+class _Punto extends StatelessWidget {
+  const _Punto({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 12,
+    height: 12,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+      ),
+    ),
+  );
+}
+
+// El color nunca va solo: cada uno se nombra.
+class _Leyenda extends StatelessWidget {
+  const _Leyenda({required this.condicion});
+
+  final Condicion condicion;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _Punto(color: condicion.color),
+      const SizedBox(width: 6),
+      Text(condicion.etiqueta, style: const TextStyle(fontSize: 12.5)),
+    ],
+  );
+}
+
+class _FilaHallazgo extends StatelessWidget {
+  const _FilaHallazgo({
+    required this.condicion,
+    required this.piezas,
+    required this.onTocar,
+    this.seleccionado,
+  });
+
+  final Condicion condicion;
+  final List<String> piezas;
+  final String? seleccionado;
+  final void Function(String fdi) onTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _Punto(color: condicion.color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  condicion.etiqueta,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                '${piezas.length}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface.withValues(alpha: 0.6),
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final fdi in piezas)
+                Material(
+                  color: fdi == seleccionado
+                      ? scheme.primary.withValues(alpha: 0.2)
+                      : scheme.primary.withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () => onTocar(fdi),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        fdi,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Cuenta extends ConsumerWidget {

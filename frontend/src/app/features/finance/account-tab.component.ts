@@ -8,7 +8,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
+
+import { Credit } from '../../core/models/credit.models';
+import { CreditsService } from '../../core/services/credits.service';
+import { openCreditCreate } from '../../shared/credits/credit-create-dialog.component';
+import { openCreditDetail } from '../../shared/credits/credit-detail-dialog.component';
 
 import { AuthService } from '../../core/auth/auth.service';
 import {
@@ -123,6 +129,7 @@ export class AccountTabComponent implements OnInit {
     this.loading.set(true);
     try {
       this.account.set(await firstValueFrom(this.finance.getAccount(this.patientId)));
+      this.credits.set(await firstValueFrom(this.creditsService.listForPatient(this.patientId)));
     } finally {
       this.loading.set(false);
     }
@@ -180,6 +187,33 @@ export class AccountTabComponent implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  private readonly dialog = inject(MatDialog);
+  private readonly creditsService = inject(CreditsService);
+  readonly credits = signal<Credit[]>([]);
+
+  /** El crédito vigente que financia este cargo (o su cargo de intereses). */
+  creditFor(chargeId: string): Credit | undefined {
+    return this.credits().find(
+      (c) => c.status !== 'anulado' && (c.charge_id === chargeId || c.interest_charge_id === chargeId),
+    );
+  }
+
+  async financeCharge(charge: Charge): Promise<void> {
+    const created = await openCreditCreate(this.dialog, {
+      patientId: this.patientId,
+      charge: { id: charge.id, description: charge.description, pending: charge.pending },
+    });
+    if (created) {
+      await this.reload();
+      await this.openCredit(created.id);
+    }
+  }
+
+  async openCredit(id: string): Promise<void> {
+    await openCreditDetail(this.dialog, id);
+    await this.reload();
   }
 
   openPlan(charge: Charge): void {

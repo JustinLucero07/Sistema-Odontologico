@@ -135,6 +135,10 @@
         </button>
         <mat-menu #userMenu="matMenu">
           <div class="user-menu-roles">{{ user.roles.join(', ') || 'Sin roles' }}</div>
+          <button mat-menu-item (click)="changePassword()">
+            <mat-icon>key</mat-icon>
+            <span>Cambiar contraseña</span>
+          </button>
           <a mat-menu-item routerLink="/legal">
             <mat-icon>policy</mat-icon>
             <span>Privacidad y legal</span>

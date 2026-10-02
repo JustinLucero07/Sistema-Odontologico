@@ -276,3 +276,56 @@
     transition: none;
   }
 }
+
+// ---- Símbolos clínicos y selección ---------------------------------------
+
+.mark-extract {
+  stroke: #e8590c;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.mark-endo {
+  stroke: #6d4c41;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.mark-implant {
+  stroke: #00695c;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.mark-fracture {
+  stroke: #212121;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.mark-mobility {
+  stroke: #d81b60;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.tooth-cell.is-selected {
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+// Respuesta al tocar: la superficie se ilumina antes de aplicar el cambio.
+.tooth-cell:not(.readonly) .surface {
+  transition: filter 0.12s ease, opacity 0.12s ease;
+
+  &:hover {
+    filter: brightness(0.92) drop-shadow(0 0 2px var(--color-primary));
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}

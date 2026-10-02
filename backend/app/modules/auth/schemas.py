@@ -36,3 +36,10 @@ class MeResponse(BaseModel):
     # True mientras no haya aceptado la versión vigente del acuerdo de
     # confidencialidad: la web no le deja trabajar hasta entonces.
     confidentiality_required: bool = False
+    # La contraseña actual es temporal (la puso un administrador).
+    must_change_password: bool = False
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str

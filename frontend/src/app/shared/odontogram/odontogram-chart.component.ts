@@ -44,6 +44,8 @@ export class OdontogramChartComponent {
   }
 
   @Input() readonly = false;
+  /** Pieza resaltada (la última tocada o la elegida en el resumen). */
+  @Input() selectedFdi: string | null = null;
 
   @Output() surfaceClicked = new EventEmitter<{ fdi: string; surface: ToothSurface }>();
   @Output() toothClicked = new EventEmitter<{ fdi: string }>();

@@ -36,11 +36,16 @@ class _Metrica {
   static const separacion = 4.0;
 
   double get altoDiente => 64 * escala;
+
+  /// Diagrama de caras bajo cada pieza, como en la web.
+  double get altoCaras => 24 * escala;
   double get ySuperior => margen;
-  double get yNumerosSuperior => ySuperior + altoDiente + separacion;
+  double get yCarasSuperior => ySuperior + altoDiente + separacion;
+  double get yNumerosSuperior => yCarasSuperior + altoCaras + separacion;
   double get lineaMedia => yNumerosSuperior + altoNumero + separacion;
   double get yNumerosInferior => lineaMedia + separacion;
-  double get yInferior => yNumerosInferior + altoNumero + separacion;
+  double get yCarasInferior => yNumerosInferior + altoNumero + separacion;
+  double get yInferior => yCarasInferior + altoCaras + separacion;
   double get altoTotal => yInferior + altoDiente + margen;
 }
 
@@ -50,6 +55,8 @@ class Diente {
     required this.arcada,
     this.relleno,
     this.ausente = false,
+    this.aspa,
+    this.caras = const {},
   });
 
   final String fdi;
@@ -58,6 +65,12 @@ class Diente {
   /// Color de la corona cuando hay una condición registrada; nulo = sano.
   final Color? relleno;
   final bool ausente;
+
+  /// Aspa de color sobre la pieza sin atenuarla: extracción indicada.
+  final Color? aspa;
+
+  /// Color por cara (mesial, distal, vestibular, lingual, oclusal).
+  final Map<String, Color> caras;
 }
 
 /// El odontograma.
@@ -71,7 +84,11 @@ class OdontogramaWidget extends StatelessWidget {
     required this.dientes,
     this.onTocarDiente,
     this.temporal = false,
+    this.seleccionado,
   });
+
+  /// Pieza resaltada (la que se acaba de tocar).
+  final String? seleccionado;
 
   final Map<String, Diente> dientes;
   final void Function(String fdi)? onTocarDiente;
@@ -97,6 +114,10 @@ class OdontogramaWidget extends StatelessWidget {
       lineaMedia: Theme.of(
         context,
       ).colorScheme.onSurface.withValues(alpha: 0.2),
+      caraVacia: oscuro
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.white.withValues(alpha: 0.85),
+      acento: Theme.of(context).colorScheme.primary,
     );
 
     final superior = filaArcada('upper', temporal: temporal);
@@ -133,6 +154,7 @@ class OdontogramaWidget extends StatelessWidget {
               dientes: dientes,
               paleta: paleta,
               metrica: metrica,
+              seleccionado: seleccionado,
             ),
           ),
         );
@@ -171,6 +193,8 @@ class _Paleta {
     required this.sombra,
     required this.numero,
     required this.lineaMedia,
+    required this.caraVacia,
+    required this.acento,
   });
 
   final Color esmalte,
@@ -180,7 +204,9 @@ class _Paleta {
       brillo,
       sombra,
       numero,
-      lineaMedia;
+      lineaMedia,
+      caraVacia,
+      acento;
 }
 
 class _OdontogramaPainter extends CustomPainter {
@@ -190,8 +216,10 @@ class _OdontogramaPainter extends CustomPainter {
     required this.dientes,
     required this.paleta,
     required this.metrica,
+    this.seleccionado,
   });
 
+  final String? seleccionado;
   final List<String> superior;
   final List<String> inferior;
   final Map<String, Diente> dientes;
@@ -209,6 +237,7 @@ class _OdontogramaPainter extends CustomPainter {
       superior,
       'upper',
       metrica.ySuperior,
+      metrica.yCarasSuperior,
       metrica.yNumerosSuperior,
       invertir: false,
     );
@@ -217,6 +246,7 @@ class _OdontogramaPainter extends CustomPainter {
       inferior,
       'lower',
       metrica.yInferior,
+      metrica.yCarasInferior,
       metrica.yNumerosInferior,
       invertir: true,
     );
@@ -235,6 +265,7 @@ class _OdontogramaPainter extends CustomPainter {
     List<String> fila,
     String arcada,
     double y,
+    double yCaras,
     double yNumeros, {
     required bool invertir,
   }) {
@@ -243,6 +274,28 @@ class _OdontogramaPainter extends CustomPainter {
       final a = anatomiaDe(fdi, arcada);
       final ancho = (a.width + 2) * escala;
       final diente = dientes[fdi];
+
+      if (fdi == seleccionado) {
+        final arriba = y < yNumeros ? y : yNumeros;
+        final abajo = y < yNumeros
+            ? yNumeros + _Metrica.altoNumero
+            : y + metrica.altoDiente;
+        final marco = RRect.fromRectAndRadius(
+          Rect.fromLTRB(x, arriba - 3, x + ancho, abajo + 3),
+          Radius.circular(5 * escala + 2),
+        );
+        canvas.drawRRect(
+          marco,
+          Paint()..color = paleta.acento.withValues(alpha: 0.12),
+        );
+        canvas.drawRRect(
+          marco,
+          Paint()
+            ..color = paleta.acento
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2,
+        );
+      }
 
       canvas.save();
       canvas.translate(x, y);
@@ -257,6 +310,13 @@ class _OdontogramaPainter extends CustomPainter {
       _pintarDiente(canvas, a, diente);
       canvas.restore();
 
+      _pintarCaras(
+        canvas,
+        fdi,
+        diente,
+        Offset(x + ancho / 2, yCaras + metrica.altoCaras / 2),
+        (ancho < metrica.altoCaras ? ancho : metrica.altoCaras) / 2 - 1,
+      );
       _pintarNumero(canvas, fdi, x + ancho / 2, yNumeros);
       x += ancho;
     }
@@ -308,6 +368,24 @@ class _OdontogramaPainter extends CustomPainter {
       return;
     }
 
+    final marca = diente?.aspa;
+    if (marca != null) {
+      final aspa = Paint()
+        ..color = marca
+        ..strokeWidth = 2.4 * escala
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        Offset(9 * escala, 16 * escala),
+        Offset(31 * escala, 54 * escala),
+        aspa,
+      );
+      canvas.drawLine(
+        Offset(31 * escala, 16 * escala),
+        Offset(9 * escala, 54 * escala),
+        aspa,
+      );
+    }
+
     final trazoDetalle = Paint()
       ..color = paleta.detalle
       ..style = PaintingStyle.stroke
@@ -335,6 +413,50 @@ class _OdontogramaPainter extends CustomPainter {
     );
   }
 
+  /// Diagrama de cinco caras: vestibular arriba, lingual abajo, mesial hacia
+  /// la línea media, distal hacia fuera y oclusal en el centro.
+  void _pintarCaras(
+    Canvas canvas,
+    String fdi,
+    Diente? diente,
+    Offset centro,
+    double radio,
+  ) {
+    final caras = diente?.caras ?? const <String, Color>{};
+    final atenuar = diente?.ausente ?? false;
+    final borde = Paint()
+      ..color = paleta.contorno.withValues(alpha: atenuar ? 0.25 : 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    // Cuadrantes 1, 4, 5 y 8 se dibujan a la izquierda: su mesial mira a la
+    // derecha, hacia la línea media.
+    final mesialDerecha = '1458'.contains(fdi[0]);
+    final caja = Rect.fromCircle(center: centro, radius: radio);
+    const cuarto = 3.141592653589793 / 2;
+    final porLado = <(double, String)>[
+      (-3 * cuarto / 2, 'vestibular'),
+      (-cuarto / 2, mesialDerecha ? 'mesial' : 'distal'),
+      (cuarto / 2, 'lingual'),
+      (3 * cuarto / 2, mesialDerecha ? 'distal' : 'mesial'),
+    ];
+    for (final (inicio, cara) in porLado) {
+      final sector = Path()
+        ..moveTo(centro.dx, centro.dy)
+        ..arcTo(caja, inicio, cuarto, false)
+        ..close();
+      canvas.drawPath(sector, Paint()..color = caras[cara] ?? paleta.caraVacia);
+      canvas.drawPath(sector, borde);
+    }
+    canvas.drawCircle(
+      centro,
+      radio * 0.45,
+      Paint()..color = caras['oclusal'] ?? paleta.caraVacia,
+    );
+    // Sobre un color, el centro necesita fondo opaco para no mezclarse con
+    // los sectores que tiene debajo.
+    canvas.drawCircle(centro, radio * 0.45, borde);
+  }
+
   void _pintarNumero(Canvas canvas, String fdi, double cx, double y) {
     final pintor = TextPainter(
       text: TextSpan(
@@ -342,7 +464,9 @@ class _OdontogramaPainter extends CustomPainter {
         style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
-          color: paleta.numero,
+          color: fdi == seleccionado || _tieneHallazgo(fdi)
+              ? paleta.acento
+              : paleta.numero,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
@@ -351,7 +475,18 @@ class _OdontogramaPainter extends CustomPainter {
     pintor.paint(canvas, Offset(cx - pintor.width / 2, y));
   }
 
+  bool _tieneHallazgo(String fdi) {
+    final d = dientes[fdi];
+    return d != null &&
+        (d.relleno != null ||
+            d.ausente ||
+            d.aspa != null ||
+            d.caras.isNotEmpty);
+  }
+
   @override
   bool shouldRepaint(_OdontogramaPainter old) =>
-      old.dientes != dientes || old.metrica.escala != metrica.escala;
+      old.dientes != dientes ||
+      old.seleccionado != seleccionado ||
+      old.metrica.escala != metrica.escala;
 }

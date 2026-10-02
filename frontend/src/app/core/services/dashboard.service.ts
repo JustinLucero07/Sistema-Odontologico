@@ -29,6 +29,7 @@ export interface DashboardAttention {
   stock_alerts: number | null;
   lab_overdue: number | null;
   budgets_awaiting: number | null;
+  credits_overdue?: number | null;
   birthdays: BirthdayEntry[] | null;
 }
 

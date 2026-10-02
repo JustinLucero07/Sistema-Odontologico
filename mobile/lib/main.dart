@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/auth/auth_controller.dart';
 import 'core/theme/app_theme.dart';
+import 'features/cuenta/cambiar_clave_page.dart';
 import 'features/login/login_page.dart';
 import 'shell.dart';
 import 'features/legal/confidencialidad_page.dart';
@@ -46,6 +47,10 @@ class _OdontoAppState extends ConsumerState<OdontoApp> {
       themeMode: ThemeMode.system,
       home: switch (auth.estado) {
         EstadoSesion.cargando => const _Arranque(),
+        // Primero la contraseña propia; después el acuerdo. Mismo orden que
+        // en la web.
+        EstadoSesion.autenticado when auth.usuario?.debeCambiarClave ?? false =>
+          const CambiarClavePage(obligatorio: true),
         EstadoSesion.autenticado
             when auth.usuario?.confidencialidadPendiente ?? false =>
           const ConfidencialidadPage(),

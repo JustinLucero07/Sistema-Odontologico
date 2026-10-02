@@ -152,3 +152,27 @@ async def revoke_refresh_token(db: AsyncSession, raw_token: str) -> None:
         await db.execute(
             update(RefreshToken).where(RefreshToken.user_id == stored.user_id).values(rotated_at=None)
         )
+
+
+async def change_own_password(db: AsyncSession, user: User, current_password: str, new_password: str) -> User:
+    from app.core.password_policy import enforce
+    from app.core.security import hash_password
+    from app.modules.users.service import _revoke_sessions
+
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta")
+    if verify_password(new_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="La nueva contraseña debe ser distinta de la actual."
+        )
+    enforce(new_password, email=user.email, names=(user.first_name, user.last_name))
+    user.hashed_password = hash_password(new_password)
+    user.must_change_password = False
+    user.password_changed_at = datetime.now(timezone.utc)
+    # Quien tuviera la contraseña anterior queda fuera en todos los dispositivos.
+    await _revoke_sessions(db, user.id)
+    await record_audit(
+        db, clinic_id=user.clinic_id, user_id=user.id, action="change_password", entity_type="user",
+        entity_id=str(user.id),
+    )
+    return user

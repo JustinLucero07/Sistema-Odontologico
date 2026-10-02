@@ -19,4 +19,6 @@ export interface CurrentUser {
   permissions: string[];
   /** Falta aceptar la versión vigente del acuerdo de confidencialidad. */
   confidentiality_required?: boolean;
+  /** La contraseña actual es temporal: hay que cambiarla antes de seguir. */
+  must_change_password?: boolean;
 }

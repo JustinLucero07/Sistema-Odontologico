@@ -122,14 +122,17 @@
                 </span>
                 @if (canWrite && charge.status !== 'anulada') {
                   <div class="charge-buttons">
-                    <button
-                      mat-icon-button
-                      matTooltip="Plan de cuotas"
-                      aria-label="Plan de cuotas"
-                      (click)="openPlan(charge)"
-                    >
-                      <mat-icon>event_repeat</mat-icon>
-                    </button>
+                    @if (creditFor(charge.id); as credit) {
+                      <button mat-stroked-button (click)="openCredit(credit.id)">
+                        <mat-icon>credit_score</mat-icon>
+                        Ver crédito
+                      </button>
+                    } @else if (+charge.pending > 0) {
+                      <button mat-stroked-button (click)="financeCharge(charge)">
+                        <mat-icon>credit_score</mat-icon>
+                        Financiar
+                      </button>
+                    }
                     <button
                       mat-icon-button
                       matTooltip="Anular cargo"

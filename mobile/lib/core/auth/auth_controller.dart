@@ -127,6 +127,33 @@ class AuthController extends StateNotifier<AuthState> {
     await _cargarUsuario();
   }
 
+  /// Cambia la contraseña propia. El servidor cierra las demás sesiones y
+  /// devuelve tokens nuevos para esta. Devuelve el mensaje de error, o nulo
+  /// si salió bien.
+  Future<String?> cambiarClave(String actual, String nueva) async {
+    try {
+      final response = await _api.dio.post(
+        '/auth/change-password',
+        data: {'current_password': actual, 'new_password': nueva},
+      );
+      if (response.statusCode != 200) {
+        return messageFrom(
+          response,
+          response.statusCode == 429
+              ? 'Demasiados intentos. Espere un minuto.'
+              : 'No se pudo cambiar la contraseña. Revise que cumpla las reglas.',
+        );
+      }
+      _tokens.accessToken = response.data['access_token'] as String;
+      final refresh = response.data['refresh_token'] as String?;
+      if (refresh != null) await _tokens.saveRefreshToken(refresh);
+      await _cargarUsuario();
+      return null;
+    } on DioException {
+      return 'No se pudo conectar con el servidor de la clínica.';
+    }
+  }
+
   Future<void> cerrarSesion() async {
     final refresh = await _tokens.readRefreshToken();
     try {

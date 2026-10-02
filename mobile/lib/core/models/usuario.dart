@@ -9,6 +9,7 @@ class Usuario {
     required this.roles,
     required this.permisos,
     this.confidencialidadPendiente = false,
+    this.debeCambiarClave = false,
   });
 
   final String id;
@@ -23,6 +24,10 @@ class Usuario {
   /// Falta aceptar la versión vigente del acuerdo de confidencialidad: hasta
   /// entonces la app no muestra datos de pacientes.
   final bool confidencialidadPendiente;
+
+  /// Entró con una contraseña temporal puesta por el administrador: tiene que
+  /// elegir la suya antes de usar la app.
+  final bool debeCambiarClave;
 
   String get nombreCompleto => '$nombre $apellido';
   String get iniciales {
@@ -47,5 +52,6 @@ class Usuario {
     permisos: (json['permissions'] as List? ?? []).cast<String>(),
     confidencialidadPendiente:
         json['confidentiality_required'] as bool? ?? false,
+    debeCambiarClave: json['must_change_password'] as bool? ?? false,
   );
 }

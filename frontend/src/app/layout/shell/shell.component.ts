@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs';
@@ -23,6 +24,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
 import { openPatientCreateDialog } from '../../shared/patient-dialog/patient-create-dialog.component';
 import { ConfidentialityDialogComponent } from '../../shared/legal/confidentiality-dialog.component';
+import { openChangePassword } from '../../shared/legal/change-password-dialog.component';
 
 interface NavItem {
   label: string;
@@ -68,6 +70,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly dialog = inject(MatDialog);
+  private readonly snack = inject(MatSnackBar);
 
   readonly collapsed = signal(this.readCollapsed());
 
@@ -98,6 +101,7 @@ export class ShellComponent {
       items: [
         { label: 'Caja del día', icon: 'point_of_sale', route: '/cash', permission: 'payments:read' },
         { label: 'Finanzas', icon: 'account_balance', route: '/finance', permission: 'payments:read' },
+        { label: 'Créditos', icon: 'credit_score', route: '/credits', permission: 'payments:read' },
         { label: 'Reportes', icon: 'insights', route: '/reports', permission: 'reports:read' },
         { label: 'Inventario', icon: 'inventory_2', route: '/inventory', permission: 'inventory:read' },
         {
@@ -155,12 +159,21 @@ export class ShellComponent {
   readonly searchOpen = signal(false);
 
   private confidentialityOpen = false;
+  private passwordOpen = false;
 
   constructor() {
     // Nadie trabaja con datos de pacientes sin haber aceptado el acuerdo
     // vigente: si falta, se pide antes de cualquier otra cosa.
     effect(() => {
       const user = this.auth.currentUser();
+      // Primero la contraseña temporal; el acuerdo viene después.
+      if (user?.must_change_password) {
+        if (!this.passwordOpen) {
+          this.passwordOpen = true;
+          void openChangePassword(this.dialog, true).finally(() => (this.passwordOpen = false));
+        }
+        return;
+      }
       if (user?.confidentiality_required && !this.confidentialityOpen) {
         this.confidentialityOpen = true;
         this.dialog
@@ -263,6 +276,12 @@ export class ShellComponent {
 
   newAppointment(): void {
     this.router.navigate(['/agenda'], { queryParams: { nueva: 1 } });
+  }
+
+  async changePassword(): Promise<void> {
+    if (await openChangePassword(this.dialog)) {
+      this.snack.open('Contraseña actualizada. Las demás sesiones se cerraron.', 'Cerrar', { duration: 4000 });
+    }
   }
 
   async logout(): Promise<void> {

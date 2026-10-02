@@ -53,6 +53,18 @@ export class AuthService {
     return this.refreshInFlight;
   }
 
+  /** Cambia la contraseña propia. El servidor cierra las demás sesiones y
+   *  devuelve un pase nuevo para esta. */
+  changePassword(current: string, next: string): Observable<AccessTokenResponse> {
+    return this.http
+      .post<AccessTokenResponse>(
+        `${environment.apiUrl}/auth/change-password`,
+        { current_password: current, new_password: next },
+        { withCredentials: true },
+      )
+      .pipe(tap((response) => (this.accessToken = response.access_token)));
+  }
+
   async loadCurrentUser(): Promise<CurrentUser | null> {
     try {
       const user = await firstValueFrom(this.http.get<CurrentUser>(`${environment.apiUrl}/auth/me`));

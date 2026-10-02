@@ -41,6 +41,12 @@ class User(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     # historias clínicas se compromete a guardar el secreto de lo que ve.
     confidentiality_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     confidentiality_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # La contraseña la puso un administrador (alta o restablecimiento): es
+    # temporal y el usuario debe cambiarla al entrar, para que solo él la sepa.
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     roles: Mapped[list["Role"]] = relationship(secondary=user_roles, back_populates="users")
 

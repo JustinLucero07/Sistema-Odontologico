@@ -7,8 +7,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .spacer {
@@ -180,6 +178,246 @@
   .actions,
   .versions-panel,
   .version-banner button {
+    display: none !important;
+  }
+}
+
+// ---- Paleta de pincel -----------------------------------------------------
+
+.palette {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.palette-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.palette-title {
+  width: 108px;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--glass-chip-bg);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform 0.14s var(--ease-spring), background 0.15s ease, box-shadow 0.15s ease;
+
+  i {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: var(--glass-field-hover-bg);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.on {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+    box-shadow: 0 6px 16px -8px var(--color-primary);
+  }
+}
+
+.palette-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--color-primary);
+  }
+}
+
+.chart-wrap {
+  padding: 16px 12px;
+  overflow-x: auto;
+
+  // Con un pincel activo el cursor lo dice.
+  &.painting ::ng-deep .surface,
+  &.painting ::ng-deep .tooth-figure,
+  &.painting ::ng-deep .tooth-number {
+    cursor: crosshair;
+  }
+}
+
+// ---- Hallazgos ---------------------------------------------------------------
+
+.findings {
+  padding: 16px 18px;
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    span {
+      font-size: 0.78rem;
+      color: var(--color-ink-faint);
+    }
+  }
+}
+
+.finding {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--color-border);
+
+  i {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  }
+
+  strong {
+    width: 190px;
+    flex-shrink: 0;
+    font-size: 0.86rem;
+  }
+}
+
+.teeth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tooth-tag {
+  padding: 2px 9px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &.on {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+}
+
+.empty,
+.hint {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--color-ink-faint);
+}
+
+.versions-panel {
+  padding: 16px 18px;
+
+  h3 {
+    margin: 0 0 2px;
+    font-size: 0.95rem;
+  }
+
+  .version-row.on {
+    background: var(--color-primary-soft);
+  }
+}
+
+// ---- Barra de guardado ------------------------------------------------------
+
+.save-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 999px;
+  background: var(--glass-overlay-bg);
+  backdrop-filter: var(--glass-card-blur);
+  -webkit-backdrop-filter: var(--glass-card-blur);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-specular), var(--shadow-lg);
+  animation: page-enter 0.3s var(--ease-spring) both;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: auto;
+    font-size: 0.86rem;
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--color-accent);
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  .palette-title,
+  .finding strong {
+    width: 100%;
+  }
+
+  .finding {
+    flex-wrap: wrap;
+  }
+}
+
+@media print {
+  .toolbar,
+  .palette,
+  .save-bar,
+  .versions-panel {
     display: none !important;
   }
 }

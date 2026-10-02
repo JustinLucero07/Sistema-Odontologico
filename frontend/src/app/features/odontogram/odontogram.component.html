@@ -1,68 +1,127 @@
 <div class="odontogram-page">
   <div class="toolbar">
     <mat-button-toggle-group [value]="denture()" (change)="denture.set($event.value)">
-      <mat-button-toggle value="permanent">Dentición permanente</mat-button-toggle>
-      <mat-button-toggle value="temporary">Dentición temporal</mat-button-toggle>
+      <mat-button-toggle value="permanent">Permanente</mat-button-toggle>
+      <mat-button-toggle value="temporary">Temporal</mat-button-toggle>
     </mat-button-toggle-group>
 
     <span class="spacer"></span>
 
-    <button mat-button (click)="print()">
-      <mat-icon>print</mat-icon>
-      Imprimir
-    </button>
-    <button mat-button (click)="loadVersions()">
-      <mat-icon>history</mat-icon>
-      Historial de versiones
-    </button>
+    @if (canWrite && !viewingVersion()) {
+      <button mat-icon-button (click)="undo()" [disabled]="!canUndo()" matTooltip="Deshacer (Ctrl+Z)" aria-label="Deshacer">
+        <mat-icon>undo</mat-icon>
+      </button>
+    }
+    <button mat-button (click)="print()"><mat-icon>print</mat-icon>Imprimir</button>
+    <button mat-button (click)="loadVersions()"><mat-icon>history</mat-icon>Versiones</button>
   </div>
 
   @if (viewingVersion(); as version) {
     <div class="version-banner">
       <mat-icon>visibility</mat-icon>
-      Viendo versión del {{ version.created_at | date: 'medium' }} (solo lectura)
-      <button mat-button (click)="backToCurrent()">Volver a la versión actual</button>
+      Viendo la versión del {{ version.created_at | date: 'd MMM y, HH:mm' }} (solo lectura)
+      <button mat-button (click)="backToCurrent()">Volver a la actual</button>
     </div>
   }
 
-  <app-odontogram-chart
-    [conditions]="viewingVersion() ? viewingVersion()!.conditions : draftConditions()"
-    [denture]="denture()"
-    [readonly]="!!viewingVersion()"
-    (surfaceClicked)="onSurfaceClicked($event)"
-    (toothClicked)="onToothClicked($event)"
-  ></app-odontogram-chart>
+  <!-- Pincel: se elige la condición una vez y se va tocando. -->
+  @if (canWrite && !viewingVersion()) {
+    <section class="glass-card palette">
+      <div class="palette-group">
+        <span class="palette-title">Modo</span>
+        <button type="button" class="tool" [class.on]="tool() === null" (click)="tool.set(null)"
+                matTooltip="Pregunta la condición en cada toque">
+          <mat-icon>touch_app</mat-icon>Elegir al tocar
+        </button>
+        <button type="button" class="tool" [class.on]="tool() === 'sano'" (click)="selectTool('sano')"
+                matTooltip="Deja la superficie o la pieza como sana">
+          <mat-icon>auto_fix_normal</mat-icon>Borrador
+        </button>
+      </div>
+      <div class="palette-group">
+        <span class="palette-title">Por superficie</span>
+        @for (t of surfaceTools; track t.code) {
+          <button type="button" class="tool" [class.on]="tool() === t.code" (click)="selectTool(t.code)">
+            <i [style.background]="t.color"></i>{{ t.label }}
+          </button>
+        }
+      </div>
+      <div class="palette-group">
+        <span class="palette-title">Pieza completa</span>
+        @for (t of toothTools; track t.code) {
+          <button type="button" class="tool" [class.on]="tool() === t.code" (click)="selectTool(t.code)">
+            <i [style.background]="t.color"></i>{{ t.label }}
+          </button>
+        }
+      </div>
+      <p class="palette-hint">
+        @if (tool(); as code) {
+          <mat-icon>brush</mat-icon>
+          Pincel: <b>{{ code === 'sano' ? 'Borrador' : byCode[code].label }}</b>. Toque una
+          {{ byCode[code].wholeToothOnly ? 'pieza' : 'cara o el número de la pieza' }}; tocar de nuevo lo quita.
+        } @else {
+          <mat-icon>touch_app</mat-icon>
+          Toque una cara o una pieza y elija la condición.
+        }
+      </p>
+    </section>
+  }
 
-  <div class="legend">
-    @for (item of legendItems; track item.code) {
-      <span class="legend-item">
-        <span class="legend-swatch" [style.background]="item.color === 'transparent' ? '#fff' : item.color"></span>
-        {{ item.label }}
-      </span>
+  <section class="glass-card chart-wrap" [class.painting]="tool() !== null && canWrite && !viewingVersion()">
+    <app-odontogram-chart
+      [conditions]="shown()"
+      [denture]="denture()"
+      [readonly]="!!viewingVersion() || !canWrite"
+      [selectedFdi]="selectedFdi()"
+      (surfaceClicked)="onSurfaceClicked($event)"
+      (toothClicked)="onToothClicked($event)"
+    ></app-odontogram-chart>
+  </section>
+
+  <section class="glass-card findings">
+    <header>
+      <h3>Hallazgos</h3>
+      <span>{{ affectedTeeth() }} {{ affectedTeeth() === 1 ? 'pieza con registro' : 'piezas con registro' }}</span>
+    </header>
+    @for (f of findings(); track f.def.code) {
+      <div class="finding">
+        <i [style.background]="f.def.color"></i>
+        <strong>{{ f.def.label }}</strong>
+        <span class="teeth">
+          @for (fdi of f.teeth; track fdi) {
+            <button type="button" class="tooth-tag numeric" [class.on]="selectedFdi() === fdi" (click)="selectedFdi.set(fdi)">
+              {{ fdi }}
+            </button>
+          }
+        </span>
+      </div>
+    } @empty {
+      <p class="empty">Sin hallazgos registrados: todas las piezas figuran como sanas.</p>
     }
-  </div>
-
-  @if (!viewingVersion()) {
-    <div class="actions">
-      <button mat-flat-button color="primary" *appHasPermission="'odontogram:write'" [disabled]="!dirty() || saving()" (click)="save()">
-        <mat-icon>save</mat-icon>
-        Guardar odontograma (nueva versión)
-      </button>
-      @if (dirty()) {
-        <button mat-button (click)="discardChanges()">Descartar cambios</button>
-      }
-    </div>
-  }
+  </section>
 
   @if (showVersions()) {
-    <div class="versions-panel">
+    <section class="glass-card versions-panel">
       <h3>Historial de versiones</h3>
+      <p class="hint">Cada guardado crea una versión nueva; las anteriores no se modifican.</p>
       @for (v of versions(); track v.id) {
-        <button type="button" class="version-row" (click)="viewVersion(v.id)">
-          <span>{{ v.created_at | date: 'medium' }}</span>
+        <button type="button" class="version-row" [class.on]="viewingVersion()?.id === v.id" (click)="viewVersion(v.id)">
+          <span>{{ v.created_at | date: 'd MMM y, HH:mm' }}</span>
           <span class="version-type">{{ v.type === 'initial' ? 'Inicial' : 'Seguimiento' }}</span>
         </button>
+      } @empty {
+        <p class="empty">Todavía no hay versiones guardadas.</p>
       }
+    </section>
+  }
+
+  @if (canWrite && !viewingVersion() && dirty()) {
+    <div class="save-bar">
+      <span><mat-icon>edit</mat-icon>Cambios sin guardar</span>
+      <button mat-button (click)="discardChanges()" [disabled]="saving()">Descartar</button>
+      <button mat-flat-button (click)="save()" [disabled]="saving()">
+        <mat-icon>save</mat-icon>{{ saving() ? 'Guardando…' : 'Guardar nueva versión' }}
+      </button>
     </div>
   }
 </div>
@@ -71,7 +130,7 @@
   <div class="picker-overlay" (click)="closePicker()">
     <div class="picker-panel" (click)="$event.stopPropagation()">
       <h3>Pieza {{ target.fdi }} · {{ surfaceLabels[target.surface] }}</h3>
-      <p class="picker-hint">Selecciona la condición para esta superficie.</p>
+      <p class="picker-hint">Elija la condición.</p>
       <div class="picker-options">
         @for (option of pickerOptions(); track option.code) {
           <button type="button" class="picker-option" (click)="chooseCondition(option.code)">

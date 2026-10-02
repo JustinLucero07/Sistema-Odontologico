@@ -9,6 +9,7 @@ from app.modules.privacy import service as privacy_service
 from app.modules.auth import service
 from app.modules.auth.schemas import (
     AccessTokenResponse,
+    ChangePasswordRequest,
     LoginRequest,
     MeResponse,
     RefreshRequest,
@@ -115,6 +116,29 @@ async def me(current_user: CurrentUser = Depends(get_current_user)):
         roles=[role.name for role in user.roles],
         permissions=sorted(current_user.permissions),
         confidentiality_required=privacy_service.confidentiality_required(user),
+        must_change_password=user.must_change_password,
+    )
+
+
+@router.post("/change-password", response_model=AccessTokenResponse)
+@limiter.limit("5/minute")
+async def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """El propio usuario cambia su contraseña. Cierra todas sus demás sesiones
+    y deja abierta solo esta, con un token nuevo."""
+    ip_address = request.client.host if request.client else None
+    user = await service.change_own_password(db, current_user.user, payload.current_password, payload.new_password)
+    raw_refresh_token = await service.issue_refresh_token(db, user, request.headers.get("user-agent"), ip_address)
+    await db.commit()
+    _set_refresh_cookie(response, raw_refresh_token)
+    return AccessTokenResponse(
+        access_token=service.build_access_token(user),
+        refresh_token=raw_refresh_token if _wants_token_in_body(request) else None,
     )
 
 

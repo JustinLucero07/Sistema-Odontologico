@@ -1,0 +1,113 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Créditos</h1>
+      <p class="page-sub">Tratamientos financiados en cuotas: quién va al día y quién tiene atrasos</p>
+    </div>
+    @if (canWrite) {
+      <button mat-flat-button (click)="startNew()"><mat-icon>add</mat-icon>Nuevo crédito</button>
+    }
+  </header>
+
+  @if (summary(); as s) {
+    <section class="kpis">
+      <article class="glass-card kpi"><span>Créditos activos</span><strong class="numeric">{{ s.active_count }}</strong></article>
+      <article class="glass-card kpi">
+        <span>Cartera por cobrar</span><strong class="numeric"><small>$</small>{{ money(s.outstanding) }}</strong>
+      </article>
+      <article class="glass-card kpi" [class.alert]="s.overdue_count > 0">
+        <span>Vencido</span>
+        <strong class="numeric"><small>$</small>{{ money(s.overdue_amount) }}</strong>
+        <em>{{ s.overdue_count }} {{ s.overdue_count === 1 ? 'crédito con atraso' : 'créditos con atraso' }}</em>
+      </article>
+      <article class="glass-card kpi">
+        <span>Cobrado en cuotas este mes</span>
+        <strong class="numeric ok"><small>$</small>{{ money(s.collected_this_month) }}</strong>
+      </article>
+    </section>
+  }
+
+  <div class="toolbar">
+    <div class="chips">
+      @for (f of filters; track f.code) {
+        <button type="button" [class.on]="filter() === f.code" (click)="filter.set(f.code)">
+          {{ f.label }} <span>{{ count(f.code) }}</span>
+        </button>
+      }
+    </div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Buscar paciente o tratamiento</mat-label>
+      <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
+    </mat-form-field>
+  </div>
+
+  <section class="list">
+    @for (c of visible(); track c.id) {
+      <button type="button" class="glass-card credit" [attr.data-status]="c.status" (click)="openDetail(c)">
+        <span class="avatar">{{ c.patient_name.charAt(0) }}</span>
+        <span class="who">
+          <strong>{{ c.patient_name }}</strong>
+          <span>{{ c.charge_description }} · {{ c.installment_count }} cuotas · {{ c.frequency_label }}</span>
+          <span class="bar"><span [style.width.%]="progress(c)"></span></span>
+        </span>
+        <span class="money">
+          <em>Pendiente</em>
+          <b class="numeric">$ {{ money(c.pending) }}</b>
+          <small>de $ {{ money(c.total) }}</small>
+        </span>
+        <span class="next">
+          @if (c.status === 'vencido') {
+            <em>Atraso</em><b class="bad">{{ c.days_late }} días</b><small>$ {{ money(c.overdue) }}</small>
+          } @else if (c.next_due_on) {
+            <em>Próxima</em><b>{{ c.next_due_on | date: 'd MMM' }}</b><small>$ {{ money(c.next_amount!) }}</small>
+          } @else {
+            <em>&nbsp;</em><b>—</b>
+          }
+        </span>
+        <span class="state" [attr.data-status]="c.status">{{ labels[c.status] }}</span>
+      </button>
+    } @empty {
+      <div class="glass-card empty">
+        <mat-icon>credit_score</mat-icon>
+        @if (loading()) {
+          <p>Cargando…</p>
+        } @else if (credits().length === 0) {
+          <p>Todavía no hay créditos. Financie un tratamiento desde la cuenta del paciente o con «Nuevo crédito».</p>
+        } @else {
+          <p>Ningún crédito coincide con el filtro.</p>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+<ng-template #newDialog>
+  <h2 mat-dialog-title>Nuevo crédito</h2>
+  <mat-dialog-content>
+    @if (!pickedPatient()) {
+      <app-patient-picker hint="Busque al paciente que va a financiar su tratamiento." (selected)="pickPatient($event)" />
+    } @else {
+      <p class="picked">
+        <mat-icon>person</mat-icon>
+        <b>{{ pickedPatient()!.first_name }} {{ pickedPatient()!.last_name }}</b>
+        <button mat-button (click)="pickedPatient.set(null)">Cambiar</button>
+      </p>
+      <p class="dialog-note">Elija el cargo a financiar:</p>
+      @for (ch of openCharges(); track ch.id) {
+        <button type="button" class="charge-option" (click)="financeCharge(ch)">
+          <span><b>{{ ch.description }}</b><small>{{ ch.issued_on | date: 'dd/MM/yyyy' }}</small></span>
+          <b class="numeric">$ {{ money(ch.pending) }}</b>
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      } @empty {
+        <p class="dialog-error">
+          Este paciente no tiene cargos pendientes sin financiar. Registre primero el cargo del tratamiento en su cuenta.
+        </p>
+      }
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancelar</button>
+  </mat-dialog-actions>
+</ng-template>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/auth/auth_controller.dart';
+import 'features/cuenta/cambiar_clave_page.dart';
 import 'features/agenda/agenda_page.dart';
 import 'features/pacientes/pacientes_page.dart';
 import 'features/panel/panel_page.dart';
@@ -94,6 +95,14 @@ class _ShellState extends ConsumerState<Shell> {
                 ),
                 const PopupMenuDivider(),
                 const PopupMenuItem(
+                  value: 'clave',
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.lock_reset),
+                    title: Text('Cambiar contraseña'),
+                  ),
+                ),
+                const PopupMenuItem(
                   value: 'salir',
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -103,6 +112,13 @@ class _ShellState extends ConsumerState<Shell> {
                 ),
               ],
               onSelected: (value) {
+                if (value == 'clave') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CambiarClavePage(),
+                    ),
+                  );
+                }
                 if (value == 'salir') {
                   ref.read(authProvider.notifier).cerrarSesion();
                 }
