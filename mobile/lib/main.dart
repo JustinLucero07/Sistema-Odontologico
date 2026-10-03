@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -46,6 +47,10 @@ class _OdontoAppState extends ConsumerState<OdontoApp> {
       theme: lightTheme(),
       darkTheme: darkTheme(),
       themeMode: ThemeMode.system,
+      // Calendarios, relojes y textos de Material en español.
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: switch (auth.estado) {
         EstadoSesion.cargando => const _Arranque(),
         // Primero la contraseña propia; después el acuerdo. Mismo orden que

@@ -94,6 +94,7 @@ export class ShellComponent {
         { label: 'Panel principal', icon: 'space_dashboard', route: '/dashboard' },
         { label: 'Agenda', icon: 'event', route: '/agenda', permission: 'appointments:read' },
         { label: 'Pacientes', icon: 'groups', route: '/patients', permission: 'patients:read' },
+        { label: 'Oportunidades', icon: 'tips_and_updates', route: '/opportunities', permission: 'patients:read' },
       ],
     },
     {

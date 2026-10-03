@@ -9,6 +9,10 @@ import '../../shared/widgets/estado_vacio.dart';
 import '../pacientes/paciente_detalle_page.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/carga.dart';
+import '../../shared/widgets/boton_flotante.dart';
+import '../../core/auth/auth_controller.dart';
+import 'cita_form.dart';
+import 'huecos_page.dart';
 
 final diaAgendaProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -24,54 +28,66 @@ class AgendaPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dia = ref.watch(diaAgendaProvider);
     final citas = ref.watch(citasDelDiaProvider);
+    final puedeAgendar =
+        ref.watch(authProvider).usuario?.puede('appointments:write') ?? false;
 
-    return Column(
-      children: [
-        _BarraDia(dia: dia),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async => ref.invalidate(citasDelDiaProvider),
-            child: citas.when(
-              loading: () => const EsqueletoLista(),
-              error: (e, _) => ListView(
-                children: [
-                  EstadoError(
-                    mensaje: e is ErrorApi
-                        ? e.mensaje
-                        : 'Revise la conexión con la clínica.',
-                    onReintentar: () => ref.invalidate(citasDelDiaProvider),
-                  ),
-                ],
-              ),
-              data: (lista) {
-                if (lista.isEmpty) {
-                  return ListView(
-                    children: const [
-                      EstadoVacio(
-                        icono: Icons.event_available,
-                        titulo: 'Sin citas este día',
-                        detalle:
-                            'Desliza hacia abajo para actualizar, o cambia de día arriba.',
-                      ),
-                    ],
+    return BotonFlotante(
+      visible: puedeAgendar,
+      icono: Icons.event_available,
+      texto: 'Nueva cita',
+      alTocar: () async {
+        if (await editarCita(context, ref, dia: dia)) {
+          ref.invalidate(citasDelDiaProvider);
+        }
+      },
+      child: Column(
+        children: [
+          _BarraDia(dia: dia),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => ref.invalidate(citasDelDiaProvider),
+              child: citas.when(
+                loading: () => const EsqueletoLista(),
+                error: (e, _) => ListView(
+                  children: [
+                    EstadoError(
+                      mensaje: e is ErrorApi
+                          ? e.mensaje
+                          : 'Revise la conexión con la clínica.',
+                      onReintentar: () => ref.invalidate(citasDelDiaProvider),
+                    ),
+                  ],
+                ),
+                data: (lista) {
+                  if (lista.isEmpty) {
+                    return ListView(
+                      children: const [
+                        EstadoVacio(
+                          icono: Icons.event_available,
+                          titulo: 'Sin citas este día',
+                          detalle:
+                              'Desliza hacia abajo para actualizar, o cambia de día arriba.',
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView.separated(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      8,
+                      16,
+                      110 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    itemCount: lista.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) => _TarjetaCita(cita: lista[i]),
                   );
-                }
-                return ListView.separated(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    8,
-                    16,
-                    24 + MediaQuery.paddingOf(context).bottom,
-                  ),
-                  itemCount: lista.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) => _TarjetaCita(cita: lista[i]),
-                );
-              },
+                },
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -143,6 +159,13 @@ class _BarraDia extends ConsumerWidget {
             icon: const Icon(Icons.chevron_right),
             tooltip: 'Día siguiente',
           ),
+          IconButton.filledTonal(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const HuecosPage())),
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Huecos libres',
+          ),
         ],
       ),
     );
@@ -165,11 +188,54 @@ class _TarjetaCita extends ConsumerWidget {
     return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PacienteDetallePage(
-              pacienteId: cita.pacienteId,
-              nombre: cita.pacienteNombre,
+        onTap: () => showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          builder: (hoja) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text('Ver ficha de ${cita.pacienteNombre}'),
+                  onTap: () {
+                    Navigator.pop(hoja);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PacienteDetallePage(
+                          pacienteId: cita.pacienteId,
+                          nombre: cita.pacienteNombre,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.edit_calendar),
+                  title: const Text('Reprogramar'),
+                  onTap: () async {
+                    Navigator.pop(hoja);
+                    if (await editarCita(context, ref, citaId: cita.id)) {
+                      ref.invalidate(citasDelDiaProvider);
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.flag_outlined),
+                  title: const Text('Cambiar estado / cancelar'),
+                  onTap: () async {
+                    Navigator.pop(hoja);
+                    if (await cambiarEstadoCita(
+                      context,
+                      ref,
+                      cita.id,
+                      cita.estado,
+                    )) {
+                      ref.invalidate(citasDelDiaProvider);
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         ),

@@ -73,6 +73,15 @@ export const routes: Routes = [
       // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
       { path: 'budgets', redirectTo: 'patients' },
       {
+        path: 'opportunities',
+        canActivate: [permissionGuard],
+        data: { permission: 'patients:read' },
+        loadComponent: () =>
+          import('./features/opportunities/opportunities-page.component').then(
+            (m) => m.OpportunitiesPageComponent,
+          ),
+      },
+      {
         path: 'cash',
         canActivate: [permissionGuard],
         data: { permission: 'payments:read' },

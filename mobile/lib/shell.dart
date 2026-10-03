@@ -6,6 +6,7 @@ import 'features/cuenta/cambiar_clave_page.dart';
 import 'features/agenda/agenda_page.dart';
 import 'features/pacientes/pacientes_page.dart';
 import 'features/panel/panel_page.dart';
+import 'features/mas/mas_page.dart';
 import 'shared/widgets/glass.dart';
 import 'shared/widgets/carga.dart';
 
@@ -24,7 +25,12 @@ class Shell extends ConsumerStatefulWidget {
 class _ShellState extends ConsumerState<Shell> {
   int _indice = 0;
 
-  static const _paginas = [PanelPage(), AgendaPage(), PacientesPage()];
+  static const _paginas = [
+    PanelPage(),
+    AgendaPage(),
+    PacientesPage(),
+    MasPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +54,8 @@ class _ShellState extends ConsumerState<Shell> {
                 child: Text(switch (_indice) {
                   0 => 'Panel',
                   1 => 'Agenda',
-                  _ => 'Pacientes',
+                  2 => 'Pacientes',
+                  _ => 'Más',
                 }),
               ),
             ],
@@ -146,6 +153,11 @@ class _ShellState extends ConsumerState<Shell> {
               icon: Icons.groups_outlined,
               selectedIcon: Icons.groups,
               label: 'Pacientes',
+            ),
+            GlassNavItem(
+              icon: Icons.apps_outlined,
+              selectedIcon: Icons.apps,
+              label: 'Más',
             ),
           ],
         ),

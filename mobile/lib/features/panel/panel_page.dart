@@ -9,6 +9,7 @@ import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/carga.dart';
+import '../oportunidades/oportunidades_page.dart';
 
 final resumenProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(panelRepoProvider).resumen(),
@@ -55,7 +56,15 @@ class PanelPage extends ConsumerWidget {
               ).colorScheme.onSurface.withValues(alpha: 0.55),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          if (usuario?.puede('patients:read') ?? false)
+            ref
+                .watch(oportunidadesProvider)
+                .maybeWhen(
+                  data: (d) => _BannerOportunidades(datos: d),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+          const SizedBox(height: 4),
           resumen.when(
             loading: () => const EsqueletoLista(
               filas: 3,
@@ -242,6 +251,93 @@ class _Kpi extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Aviso del día: cuántas personas conviene contactar hoy.
+class _BannerOportunidades extends StatelessWidget {
+  const _BannerOportunidades({required this.datos});
+
+  final Map<String, dynamic> datos;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = totalOportunidades(datos);
+    if (total == 0) return const SizedBox.shrink();
+    int n(String k) => (datos[k] as List?)?.length ?? 0;
+    final partes = [
+      if (n('unconfirmed') > 0) '${n('unconfirmed')} por confirmar',
+      if (n('birthdays') > 0) '${n('birthdays')} cumpleaños',
+      if (n('pending_treatments') > 0)
+        '${n('pending_treatments')} tratamientos sin cita',
+      if (n('recall') > 0) '${n('recall')} por recuperar',
+      if (n('debtors') > 0) '${n('debtors')} con saldo',
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const OportunidadesPage()),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1FB3A4), Color(0xFF0D7F76), Color(0xFF074A45)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D7F76).withValues(alpha: 0.35),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+                spreadRadius: -8,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.tips_and_updates, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$total ${total == 1 ? 'oportunidad' : 'oportunidades'} hoy',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      partes.join(' · '),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white),
+            ],
+          ),
         ),
       ),
     );

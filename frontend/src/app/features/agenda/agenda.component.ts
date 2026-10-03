@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +11,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+
+import { environment } from '../../../environments/environment';
 
 import { AuthService } from '../../core/auth/auth.service';
 import {
@@ -101,6 +104,50 @@ export class AgendaComponent implements OnInit {
   readonly formError = signal<string | null>(null);
   /** Cita que se reprograma; null cuando el formulario agenda una nueva. */
   readonly editingAppointment = signal<Appointment | null>(null);
+
+  // ---- Huecos libres ------------------------------------------------------
+  private readonly http = inject(HttpClient);
+  readonly freeSlots = signal<{ starts_at: string; ends_at: string }[] | null>(null);
+  readonly searchingSlots = signal(false);
+
+  /** Los próximos horarios en que el profesional elegido tiene sitio para una
+   *  cita de la duración indicada, a partir de la fecha del formulario. */
+  async findFreeSlots(): Promise<void> {
+    const v = this.form.getRawValue();
+    if (!v.professional_id) {
+      this.formError.set('Elija primero el profesional.');
+      return;
+    }
+    this.searchingSlots.set(true);
+    try {
+      const params: Record<string, string> = {
+        professional_id: v.professional_id,
+        duration: String(v.duration || 30),
+        days: '14',
+        limit: '12',
+      };
+      if (v.date) params['date_from'] = v.date;
+      this.freeSlots.set(
+        await firstValueFrom(
+          this.http.get<{ starts_at: string; ends_at: string }[]>(`${environment.apiUrl}/insights/free-slots`, {
+            params,
+          }),
+        ),
+      );
+    } finally {
+      this.searchingSlots.set(false);
+    }
+  }
+
+  pickSlot(slot: { starts_at: string }): void {
+    const d = new Date(slot.starts_at);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    this.form.patchValue({
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+    });
+    this.freeSlots.set(null);
+  }
 
   readonly form = this.fb.nonNullable.group({
     professional_id: ['', Validators.required],

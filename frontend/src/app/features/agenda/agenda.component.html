@@ -227,6 +227,26 @@
             <input matInput type="number" formControlName="duration" min="5" step="5" />
           </mat-form-field>
 
+          <div class="free-slots full-width">
+            <button mat-stroked-button type="button" (click)="findFreeSlots()" [disabled]="searchingSlots()">
+              <mat-icon>auto_awesome</mat-icon>
+              {{ searchingSlots() ? 'Buscando…' : 'Buscar huecos libres' }}
+            </button>
+            @if (freeSlots(); as slots) {
+              @if (slots.length === 0) {
+                <span class="slots-empty">Sin huecos en las próximas dos semanas.</span>
+              }
+              <div class="slot-chips">
+                @for (slot of slots; track slot.starts_at) {
+                  <button type="button" class="slot-chip" (click)="pickSlot(slot)">
+                    <strong>{{ slot.starts_at | date: 'EEE d' }}</strong>
+                    {{ slot.starts_at | date: 'HH:mm' }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Notas</mat-label>
             <input matInput formControlName="notes" />

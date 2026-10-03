@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/api/api.dart';
+import '../../core/api/catalogos.dart';
 import '../../core/api/repositorios.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/odontograma/condiciones.dart';
 import '../../shared/widgets/carga.dart';
 import '../../shared/odontograma/odontograma_widget.dart';
-import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
+import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
+import '../../shared/widgets/ui.dart';
+import '../agenda/cita_form.dart';
+import 'pestanas.dart';
+import '../../shared/contacto.dart';
 
 final _fichaProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>(
@@ -22,12 +27,34 @@ final _odontogramaProvider = FutureProvider.autoDispose
       (ref, id) => ref.watch(pacientesRepoProvider).odontograma(id),
     );
 
-final _cuentaProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>(
-      (ref, id) => ref.watch(pacientesRepoProvider).cuenta(id),
-    );
+const _soloPiezaCompleta = {
+  'corona',
+  'puente',
+  'implante',
+  'ausente',
+  'extraccion_indicada',
+  'extraccion_realizada',
+  'endodoncia',
+  'protesis',
+  'movilidad',
+  'diente_retenido',
+};
 
-class PacienteDetallePage extends ConsumerWidget {
+const _pestanas = [
+  'Ficha',
+  'Historia',
+  'Odontograma',
+  'Tratamientos',
+  'Clínico',
+  'Imágenes',
+  'Citas',
+  'Cuenta',
+];
+
+/// La ficha del paciente con todo lo que tiene la web: datos, historia
+/// clínica, odontograma, tratamientos, evoluciones y recetas, imágenes, citas
+/// y cuenta. El botón flotante cambia según la pestaña.
+class PacienteDetallePage extends ConsumerStatefulWidget {
   const PacienteDetallePage({
     super.key,
     required this.pacienteId,
@@ -38,33 +65,133 @@ class PacienteDetallePage extends ConsumerWidget {
   final String nombre;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usuario = ref.watch(authProvider).usuario;
+  ConsumerState<PacienteDetallePage> createState() =>
+      _PacienteDetallePageState();
+}
 
-    return DefaultTabController(
-      length: 3,
-      child: AmbientBackground(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            flexibleSpace: const GlassAppBarBackground(),
-            title: Text(nombre, overflow: TextOverflow.ellipsis),
-            bottom: const PreferredSize(
-              preferredSize: Size.fromHeight(56),
-              child: _PestanasVidrio(),
-            ),
+class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(
+    length: _pestanas.length,
+    vsync: this,
+  )..addListener(() => setState(() {}));
+
+  String get _id => widget.pacienteId;
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Widget? _boton() {
+    final u = ref.watch(authProvider).usuario;
+    bool puede(String p) => u?.puede(p) ?? false;
+    FloatingActionButton fab(IconData i, String t, VoidCallback f) =>
+        FloatingActionButton.extended(
+          heroTag: 'fab-paciente',
+          onPressed: f,
+          icon: Icon(i),
+          label: Text(t),
+        );
+    switch (_tabs.index) {
+      case 0 when puede('patients:write'):
+        return fab(Icons.edit_outlined, 'Editar datos', () async {
+          final p = await cargarOAvisar(
+            context,
+            ref.read(_fichaProvider(_id).future),
+          );
+          if (p == null) return;
+          if (!mounted) return;
+          if (await editarPaciente(context, ref, paciente: p) != null) {
+            ref.invalidate(_fichaProvider(_id));
+          }
+        });
+      case 1 when puede('medical_history:write'):
+        return fab(Icons.note_add_outlined, 'Nueva versión', () async {
+          final h = await cargarOAvisar(
+            context,
+            ref.read(historiaProvider(_id).future),
+          );
+          if (h == null) return;
+          if (mounted) await nuevaVersionHistoria(context, ref, _id, h);
+        });
+      case 3 when puede('treatment_plans:write'):
+        return fab(
+          Icons.assignment_add,
+          'Nuevo plan',
+          () => editarPlan(context, ref, _id),
+        );
+      case 4:
+        return fab(
+          Icons.edit_note,
+          'Registrar',
+          () => menuClinico(context, ref, _id),
+        );
+      case 5 when puede('imaging:write'):
+        return fab(
+          Icons.add_a_photo_outlined,
+          'Subir',
+          () => menuImagen(context, ref, _id),
+        );
+      case 6 when puede('appointments:write'):
+        return fab(Icons.event_available, 'Agendar', () async {
+          if (await editarCita(
+            context,
+            ref,
+            pacienteId: _id,
+            pacienteNombre: widget.nombre,
+          )) {
+            ref.invalidate(citasPacienteProvider(_id));
+          }
+        });
+      case 7 when puede('payments:write'):
+        return fab(Icons.payments_outlined, 'Cobrar', () async {
+          final d = await cargarOAvisar(
+            context,
+            ref.read(cuentaProvider(_id).future),
+          );
+          if (d == null) return;
+          if (!mounted) return;
+          menuCuenta(
+            context,
+            ref,
+            _id,
+            (d.cuenta['charges'] as List? ?? []).cast<Map<String, dynamic>>(),
+          );
+        });
+      default:
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AmbientBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          flexibleSpace: const GlassAppBarBackground(),
+          title: Text(widget.nombre, overflow: TextOverflow.ellipsis),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: _PestanasVidrio(controlador: _tabs),
           ),
-          body: TabBarView(
-            children: [
-              _Ficha(pacienteId: pacienteId),
-              _Odontograma(pacienteId: pacienteId),
-              _Cuenta(pacienteId: pacienteId),
-            ],
-          ),
-          floatingActionButton: (usuario?.puede('imaging:write') ?? false)
-              ? _BotonAcciones(pacienteId: pacienteId, nombre: nombre)
-              : null,
         ),
+        body: TabBarView(
+          controller: _tabs,
+          children: [
+            _Ficha(pacienteId: _id),
+            PestanaHistoria(pacienteId: _id),
+            _Odontograma(pacienteId: _id),
+            PestanaTratamientos(pacienteId: _id),
+            PestanaClinica(pacienteId: _id),
+            PestanaImagenes(pacienteId: _id),
+            PestanaCitas(pacienteId: _id),
+            PestanaCuenta(pacienteId: _id),
+          ],
+        ),
+        floatingActionButton: _boton(),
       ),
     );
   }
@@ -78,6 +205,9 @@ class _Ficha extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ficha = ref.watch(_fichaProvider(pacienteId));
+    final puedeBaja =
+        ref.watch(authProvider).usuario?.puede('patients:delete') ?? false;
+    final scheme = Theme.of(context).colorScheme;
 
     return ficha.when(
       loading: () => const EsqueletoLista(filas: 4, conTarjetas: true),
@@ -85,93 +215,233 @@ class _Ficha extends ConsumerWidget {
         mensaje: e is ErrorApi ? e.mensaje : 'No se pudo cargar la ficha.',
         onReintentar: () => ref.invalidate(_fichaProvider(pacienteId)),
       ),
-      data: (p) => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          GlassCard(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _dato(context, 'Cédula', p['national_id']),
-                  _dato(context, 'Teléfono', p['phone']),
-                  _dato(context, 'WhatsApp', p['whatsapp']),
-                  _dato(context, 'Correo', p['email']),
-                  _dato(context, 'Dirección', p['address']),
-                  _dato(
-                    context,
-                    'Fecha de nacimiento',
-                    p['birth_date'] != null
-                        ? DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(DateTime.parse(p['birth_date']))
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (p['notes'] != null && '${p['notes']}'.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            GlassCard(
-              child: Padding(
+      data: (p) {
+        final nombre = '${p['first_name']} ${p['last_name']}';
+        final iniciales =
+            '${'${p['first_name']}'.characters.firstOrNull ?? ''}${'${p['last_name']}'.characters.firstOrNull ?? ''}'
+                .toUpperCase();
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(_fichaProvider(pacienteId)),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              GlassPanel(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      'Notas',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: scheme.primary,
+                      child: Text(
+                        iniciales,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    Text('${p['notes']}', style: const TextStyle(height: 1.5)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            nombre,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            [
+                              if (p['age'] != null) '${p['age']} años',
+                              if (p['sex'] != null) etiquetaDe(sexos, p['sex']),
+                              if (p['national_id'] != null)
+                                'Cédula ${p['national_id']}',
+                            ].join(' · '),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: scheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    BotonesContacto(
+                      telefono: p['phone'] as String?,
+                      whatsapp: p['whatsapp'] as String?,
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
-        ],
-      ),
+              const SizedBox(height: 12),
+              _Bloque(
+                titulo: 'Contacto',
+                icono: Icons.call_outlined,
+                datos: [
+                  ('Teléfono', p['phone']),
+                  ('WhatsApp', p['whatsapp']),
+                  ('Correo', p['email']),
+                ],
+              ),
+              _Bloque(
+                titulo: 'Domicilio y trabajo',
+                icono: Icons.home_outlined,
+                datos: [
+                  ('Dirección', p['address']),
+                  ('Ciudad', p['city']),
+                  ('Ocupación', p['occupation']),
+                  (
+                    'Nacimiento',
+                    p['birth_date'] == null
+                        ? null
+                        : fechaCorta(p['birth_date']),
+                  ),
+                ],
+              ),
+              _Bloque(
+                titulo: 'Emergencia',
+                icono: Icons.contact_emergency_outlined,
+                color: Tonos.rojo,
+                datos: [
+                  ('Contacto', p['emergency_contact_name']),
+                  ('Teléfono', p['emergency_contact_phone']),
+                ],
+              ),
+              if (p['notes'] != null && '${p['notes']}'.isNotEmpty)
+                _Bloque(
+                  titulo: 'Observaciones',
+                  icono: Icons.sticky_note_2_outlined,
+                  color: Tonos.ambar,
+                  datos: [('', p['notes'])],
+                ),
+              if (puedeBaja) ...[
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  style: TextButton.styleFrom(foregroundColor: scheme.error),
+                  onPressed: () async {
+                    final ok = await confirmar(
+                      context,
+                      titulo: '¿Dar de baja a $nombre?',
+                      mensaje:
+                          'Dejará de aparecer en la lista y la agenda. Su historia clínica no se borra.',
+                      textoConfirmar: 'Dar de baja',
+                      peligro: true,
+                    );
+                    if (!ok || !context.mounted) return;
+                    if (await intentar(
+                      context,
+                      () =>
+                          ref.read(apiProvider).delete('/patients/$pacienteId'),
+                      exito: 'Paciente dado de baja',
+                    )) {
+                      if (context.mounted) Navigator.of(context).pop();
+                    }
+                  },
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('Dar de baja'),
+                ),
+              ],
+              finDeLista,
+            ],
+          ),
+        );
+      },
     );
   }
+}
 
-  Widget _dato(BuildContext context, String etiqueta, dynamic valor) {
-    final texto = valor == null || '$valor'.isEmpty ? '—' : '$valor';
-    final vacio = texto == '—';
+class _Bloque extends StatelessWidget {
+  const _Bloque({
+    required this.titulo,
+    required this.icono,
+    required this.datos,
+    this.color,
+  });
+
+  final String titulo;
+  final IconData icono;
+  final List<(String, dynamic)> datos;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final c = color ?? scheme.primary;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 130,
-            child: Text(
-              etiqueta,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.55),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: c.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icono, size: 17, color: c),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    titulo.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              for (final (etiqueta, valor) in datos)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: etiqueta.isEmpty
+                      ? Text(
+                          '${valor ?? '—'}',
+                          style: const TextStyle(height: 1.45),
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                etiqueta,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                valor == null || '$valor'.isEmpty
+                                    ? '—'
+                                    : '$valor',
+                                style: TextStyle(
+                                  color: valor == null || '$valor'.isEmpty
+                                      ? scheme.onSurface.withValues(alpha: 0.35)
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+            ],
           ),
-          Expanded(
-            child: Text(
-              texto,
-              style: TextStyle(
-                fontSize: 14.5,
-                // Un campo vacío se ve vacío: escribirlo en el mismo tono que
-                // un dato real hace que parezca que hay información.
-                color: vacio
-                    ? Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.35)
-                    : null,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -265,7 +535,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                   icono: Icons.healing,
                   titulo: 'Sin odontograma registrado',
                   detalle:
-                      'Se muestra la boca sana. Regístrelo desde la versión de escritorio.',
+                      'Se muestra la boca sana. Toque una pieza para registrar un hallazgo.',
                 ),
               )
             else
@@ -357,10 +627,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                     dientes: dientes,
                     temporal: _temporal,
                     seleccionado: _seleccionado,
-                    onTocarDiente: (fdi) => _verPieza(
-                      fdi,
-                      todas.where((c) => c['fdi_number'] == fdi).toList(),
-                    ),
+                    onTocarDiente: (fdi) => _verPieza(fdi, todas),
                   ),
                 ),
               ),
@@ -397,10 +664,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                           condicion: condicionDe(entrada.key),
                           piezas: entrada.value.toList()..sort(),
                           seleccionado: _seleccionado,
-                          onTocar: (fdi) => _verPieza(
-                            fdi,
-                            todas.where((c) => c['fdi_number'] == fdi).toList(),
-                          ),
+                          onTocar: (fdi) => _verPieza(fdi, todas),
                         ),
                     ],
                   ),
@@ -431,16 +695,85 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
 
   /// Detalle de una pieza en una hoja inferior: en un teléfono es más cómodo
   /// que un aviso que desaparece solo.
-  Future<void> _verPieza(
+  /// Guarda una versión nueva del odontograma (nunca se sobrescribe).
+  Future<void> _guardar(List<Map<String, dynamic>> condiciones) async {
+    await ref.read(apiProvider).post('/patients/$pacienteId/odontogram', {
+      'conditions': [
+        for (final c in condiciones)
+          {
+            'fdi_number': c['fdi_number'],
+            'surface': c['surface'],
+            'condition': c['condition'],
+            'notes': c['notes'],
+          },
+      ],
+    });
+    ref.invalidate(_odontogramaProvider(pacienteId));
+  }
+
+  Future<void> _agregarHallazgo(
     String fdi,
-    List<Map<String, dynamic>> delDiente,
+    List<Map<String, dynamic>> todas,
   ) async {
+    await mostrarFormulario(
+      context,
+      titulo: 'Hallazgo en la pieza $fdi',
+      subtitulo: 'Se guarda como versión nueva del odontograma.',
+      icono: Icons.healing,
+      campos: [
+        Campo(
+          'condition',
+          'Condición',
+          tipo: TipoCampo.seleccion,
+          requerido: true,
+          opciones: [for (final c in condiciones) (c.codigo, c.etiqueta)],
+        ),
+        Campo(
+          'surface',
+          'Superficie',
+          tipo: TipoCampo.seleccion,
+          requerido: true,
+          opciones: [
+            for (final e in etiquetasSuperficie.entries) (e.key, e.value),
+          ],
+          inicial: 'whole',
+          ayuda: 'Corona, implante, ausente… se aplican a la pieza completa.',
+        ),
+        const Campo('notes', 'Notas', tipo: TipoCampo.multilinea),
+      ],
+      alGuardar: (v) async {
+        final codigo = '${v['condition']}';
+        final superficie = _soloPiezaCompleta.contains(codigo)
+            ? 'whole'
+            : '${v['surface']}';
+        final resto = todas.where((c) {
+          if (c['fdi_number'] != fdi) return true;
+          if (superficie == 'whole') return false;
+          return c['surface'] != 'whole' && c['surface'] != superficie;
+        }).toList();
+        await _guardar([
+          ...resto,
+          {
+            'fdi_number': fdi,
+            'surface': superficie,
+            'condition': codigo,
+            'notes': v['notes'],
+          },
+        ]);
+      },
+    );
+  }
+
+  Future<void> _verPieza(String fdi, List<Map<String, dynamic>> todas) async {
+    final delDiente = todas.where((c) => c['fdi_number'] == fdi).toList();
+    final puedeEditar =
+        ref.read(authProvider).usuario?.puede('odontogram:write') ?? false;
     setState(() => _seleccionado = fdi);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) {
-        final scheme = Theme.of(context).colorScheme;
+      builder: (hoja) {
+        final scheme = Theme.of(hoja).colorScheme;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -448,10 +781,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Pieza $fdi',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text('Pieza $fdi', style: Theme.of(hoja).textTheme.titleLarge),
                 const SizedBox(height: 2),
                 Text(
                   delDiente.isEmpty
@@ -506,9 +836,35 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                             ],
                           ),
                         ),
+                        if (puedeEditar)
+                          IconButton(
+                            tooltip: 'Quitar',
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            onPressed: () async {
+                              Navigator.pop(hoja);
+                              await intentar(
+                                context,
+                                () => _guardar(
+                                  todas.where((x) => x != c).toList(),
+                                ),
+                                exito: 'Hallazgo quitado (nueva versión)',
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),
+                if (puedeEditar) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(hoja);
+                      _agregarHallazgo(fdi, todas);
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Agregar hallazgo'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -687,412 +1043,12 @@ class _FilaHallazgo extends StatelessWidget {
   }
 }
 
-class _Cuenta extends ConsumerWidget {
-  const _Cuenta({required this.pacienteId});
-
-  final String pacienteId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cuenta = ref.watch(_cuentaProvider(pacienteId));
-
-    return cuenta.when(
-      loading: () => const EsqueletoLista(filas: 4, conTarjetas: true),
-      error: (e, _) => EstadoError(
-        mensaje: e is ErrorApi
-            ? e.mensaje
-            : 'No se pudo cargar el estado de cuenta.',
-        onReintentar: () => ref.invalidate(_cuentaProvider(pacienteId)),
-      ),
-      data: (datos) {
-        final saldo = double.tryParse('${datos['balance']}') ?? 0;
-        final cargos = (datos['charges'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            GlassCard(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Saldo',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      dinero(saldo),
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -1,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    Text(
-                      saldo > 0
-                          ? 'El paciente debe'
-                          : (saldo < 0
-                                ? 'Saldo a favor del paciente'
-                                : 'Cuenta saldada'),
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (cargos.isEmpty)
-              const EstadoVacio(
-                icono: Icons.receipt_long,
-                titulo: 'Sin cargos registrados',
-              )
-            else ...[
-              Text('Cargos', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              for (final c in cargos)
-                GlassCard(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    title: Text('${c['description']}'),
-                    subtitle: Text(
-                      '${DateFormat('dd/MM/yyyy').format(DateTime.parse(c['issued_on']))}'
-                      ' · pagado ${dinero(double.tryParse('${c['paid']}') ?? 0)}',
-                    ),
-                    trailing: Text(
-                      dinero(double.tryParse('${c['pending']}') ?? 0),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Lo que el móvil aporta y el escritorio no puede: la cámara en la mano.
-class _BotonAcciones extends ConsumerWidget {
-  const _BotonAcciones({required this.pacienteId, required this.nombre});
-
-  final String pacienteId;
-  final String nombre;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FloatingActionButton.extended(
-      onPressed: () => _abrirHoja(context, ref),
-      icon: const Icon(Icons.add_a_photo),
-      label: const Text('Registrar'),
-    );
-  }
-
-  void _abrirHoja(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (hoja) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Tomar foto o radiografía'),
-              subtitle: const Text('Se sube a la ficha del paciente'),
-              onTap: () {
-                Navigator.pop(hoja);
-                _capturar(context, ref, ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Elegir de la galería'),
-              onTap: () {
-                Navigator.pop(hoja);
-                _capturar(context, ref, ImageSource.gallery);
-              },
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.edit_note),
-              title: const Text('Registrar evolución'),
-              onTap: () {
-                Navigator.pop(hoja);
-                _registrarEvolucion(context, ref);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _capturar(
-    BuildContext context,
-    WidgetRef ref,
-    ImageSource origen,
-  ) async {
-    final archivo = await ImagePicker().pickImage(
-      source: origen,
-      // Una foto de 12 MP son ~6 MB por la red móvil de la clínica. 2000 px de
-      // lado basta de sobra para mirar una radiografía en pantalla.
-      maxWidth: 2000,
-      imageQuality: 88,
-    );
-    if (archivo == null || !context.mounted) return;
-
-    final datos = await showDialog<(String, String, String)>(
-      context: context,
-      builder: (_) => const _DialogoImagen(),
-    );
-    if (datos == null || !context.mounted) return;
-
-    final (titulo, tipo, piezas) = datos;
-    try {
-      await ref
-          .read(pacientesRepoProvider)
-          .subirImagen(
-            pacienteId: pacienteId,
-            rutaArchivo: archivo.path,
-            titulo: titulo,
-            tipo: tipo,
-            piezas: piezas,
-          );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagen subida a la ficha')),
-        );
-      }
-    } on ErrorApi catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.mensaje)));
-      }
-    }
-  }
-
-  Future<void> _registrarEvolucion(BuildContext context, WidgetRef ref) async {
-    final datos = await showDialog<(String, String, String)>(
-      context: context,
-      builder: (_) => const _DialogoEvolucion(),
-    );
-    if (datos == null || !context.mounted) return;
-
-    final (procedimiento, piezas, indicaciones) = datos;
-    try {
-      await ref
-          .read(pacientesRepoProvider)
-          .registrarEvolucion(
-            pacienteId: pacienteId,
-            procedimiento: procedimiento,
-            piezas: piezas,
-            indicaciones: indicaciones,
-          );
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Evolución registrada')));
-      }
-    } on ErrorApi catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.mensaje)));
-      }
-    }
-  }
-}
-
-class _DialogoImagen extends StatefulWidget {
-  const _DialogoImagen();
-
-  @override
-  State<_DialogoImagen> createState() => _DialogoImagenState();
-}
-
-class _DialogoImagenState extends State<_DialogoImagen> {
-  final _titulo = TextEditingController();
-  final _piezas = TextEditingController();
-  // Lo que sale de la cámara de un teléfono es casi siempre una foto de la
-  // boca; una radiografía viene del sensor, no del móvil.
-  String _tipo = 'foto_intraoral';
-
-  static const _tipos = {
-    'panoramica': 'Radiografía panorámica',
-    'periapical': 'Radiografía periapical',
-    'bitewing': 'Bitewing',
-    'foto_intraoral': 'Fotografía intraoral',
-    'foto_extraoral': 'Fotografía extraoral',
-    'otro': 'Otra imagen',
-  };
-
-  @override
-  void dispose() {
-    _titulo.dispose();
-    _piezas.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Datos de la imagen'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titulo,
-              autofocus: true,
-              // Sin esto el botón decide si está activo al abrir el diálogo y
-              // no vuelve a mirar: queda gris aunque ya haya un título escrito.
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(labelText: 'Título'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _tipo,
-              decoration: const InputDecoration(labelText: 'Tipo de estudio'),
-              items: [
-                for (final e in _tipos.entries)
-                  DropdownMenuItem(value: e.key, child: Text(e.value)),
-              ],
-              onChanged: (v) => setState(() => _tipo = v ?? 'otro'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _piezas,
-              decoration: const InputDecoration(
-                labelText: 'Piezas (FDI)',
-                hintText: '16, 17',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          style: _botonDialogo,
-          onPressed: _titulo.text.trim().isEmpty
-              ? null
-              : () => Navigator.pop(context, (
-                  _titulo.text.trim(),
-                  _tipo,
-                  _piezas.text.replaceAll(' ', ''),
-                )),
-          child: const Text('Subir'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DialogoEvolucion extends StatefulWidget {
-  const _DialogoEvolucion();
-
-  @override
-  State<_DialogoEvolucion> createState() => _DialogoEvolucionState();
-}
-
-class _DialogoEvolucionState extends State<_DialogoEvolucion> {
-  final _procedimiento = TextEditingController();
-  final _piezas = TextEditingController();
-  final _indicaciones = TextEditingController();
-
-  @override
-  void dispose() {
-    _procedimiento.dispose();
-    _piezas.dispose();
-    _indicaciones.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Registrar evolución'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _procedimiento,
-              autofocus: true,
-              onChanged: (_) => setState(() {}),
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Procedimiento realizado',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _piezas,
-              decoration: const InputDecoration(
-                labelText: 'Piezas (FDI)',
-                hintText: '46',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _indicaciones,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Indicaciones al paciente',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, (
-            _procedimiento.text.trim(),
-            _piezas.text.replaceAll(' ', ''),
-            _indicaciones.text.trim(),
-          )),
-          child: const Text('Guardar'),
-        ),
-      ],
-    );
-  }
-}
-
-/// El tema da a los botones rellenos el ancho completo, pensado para el login.
-/// Dentro de un diálogo eso empuja «Cancelar» a otra línea.
-final _botonDialogo = FilledButton.styleFrom(minimumSize: const Size(96, 44));
-
 /// Pestañas como selector segmentado de vidrio: una cápsula con la opción
 /// activa iluminada, en vez de la línea subrayada de Material.
 class _PestanasVidrio extends StatelessWidget {
-  const _PestanasVidrio();
+  const _PestanasVidrio({required this.controlador});
+
+  final TabController controlador;
 
   @override
   Widget build(BuildContext context) {
@@ -1105,6 +1061,9 @@ class _PestanasVidrio extends StatelessWidget {
         elevated: false,
         padding: const EdgeInsets.all(4),
         child: TabBar(
+          controller: controlador,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           dividerColor: Colors.transparent,
           indicatorSize: TabBarIndicatorSize.tab,
           splashBorderRadius: BorderRadius.circular(20),
@@ -1127,11 +1086,7 @@ class _PestanasVidrio extends StatelessWidget {
                     ),
                   ],
           ),
-          tabs: const [
-            Tab(height: 36, text: 'Ficha'),
-            Tab(height: 36, text: 'Odontograma'),
-            Tab(height: 36, text: 'Cuenta'),
-          ],
+          tabs: [for (final t in _pestanas) Tab(height: 36, text: t)],
         ),
       ),
     );

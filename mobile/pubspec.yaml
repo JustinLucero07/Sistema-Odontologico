@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Textos de Material (calendario, horas, botones) en español.
+  flutter_localizations:
+    sdk: flutter
 
   # Estado. Riverpod en lugar de un singleton global: cada pantalla declara de
   # qué depende, y eso hace que se pueda probar sin levantar la app entera.
@@ -31,6 +34,7 @@ dependencies:
   image_picker: ^1.1.2
 
   cached_network_image: ^3.4.1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

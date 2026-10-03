@@ -35,7 +35,14 @@ async def list_plans(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UU
 
 
 async def get_plan_or_404(db: AsyncSession, clinic_id: uuid.UUID, plan_id: uuid.UUID) -> TreatmentPlan:
-    result = await db.execute(_plan_query().where(TreatmentPlan.id == plan_id, TreatmentPlan.clinic_id == clinic_id))
+    # populate_existing: tras agregar o editar un ítem, el plan ya está en la
+    # sesión con su lista de ítems vieja; sin esto la respuesta no mostraba el
+    # ítem recién creado. Los cambios pendientes se vuelcan antes (autoflush).
+    result = await db.execute(
+        _plan_query()
+        .where(TreatmentPlan.id == plan_id, TreatmentPlan.clinic_id == clinic_id)
+        .execution_options(populate_existing=True)
+    )
     plan = result.scalar_one_or_none()
     if plan is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan de tratamiento no encontrado")

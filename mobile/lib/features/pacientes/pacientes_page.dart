@@ -7,6 +7,9 @@ import '../../core/api/repositorios.dart';
 import '../../core/models/paciente.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import 'paciente_detalle_page.dart';
+import 'pestanas.dart';
+import '../../core/auth/auth_controller.dart';
+import '../../shared/widgets/boton_flotante.dart';
 import '../../shared/widgets/carga.dart';
 
 final busquedaProvider = StateProvider<String>((ref) => '');
@@ -48,114 +51,136 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
   @override
   Widget build(BuildContext context) {
     final pacientes = ref.watch(pacientesProvider);
+    final puedeCrear =
+        ref.watch(authProvider).usuario?.puede('patients:write') ?? false;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-          child: TextField(
-            controller: _controlador,
-            onChanged: _buscar,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Buscar por nombre o cédula',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _controlador.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      tooltip: 'Limpiar',
-                      onPressed: () {
-                        _controlador.clear();
-                        _buscar('');
-                        setState(() {});
-                      },
-                    ),
+    return BotonFlotante(
+      visible: puedeCrear,
+      icono: Icons.person_add_alt,
+      texto: 'Nuevo paciente',
+      alTocar: () async {
+        final id = await editarPaciente(context, ref);
+        if (id == null || !context.mounted) return;
+        ref.invalidate(pacientesProvider);
+        final ficha = await ref.read(pacientesRepoProvider).ficha(id);
+        if (!context.mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PacienteDetallePage(
+              pacienteId: id,
+              nombre: '${ficha['first_name']} ${ficha['last_name']}',
             ),
           ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async => ref.invalidate(pacientesProvider),
-            child: pacientes.when(
-              loading: () => const EsqueletoLista(filas: 8),
-              error: (e, _) => ListView(
-                children: [
-                  EstadoError(
-                    mensaje: e is ErrorApi
-                        ? e.mensaje
-                        : 'Revise la conexión con la clínica.',
-                    onReintentar: () => ref.invalidate(pacientesProvider),
-                  ),
-                ],
+        );
+      },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+            child: TextField(
+              controller: _controlador,
+              onChanged: _buscar,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre o cédula',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _controlador.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Limpiar',
+                        onPressed: () {
+                          _controlador.clear();
+                          _buscar('');
+                          setState(() {});
+                        },
+                      ),
               ),
-              data: (lista) {
-                if (lista.isEmpty) {
-                  return ListView(
-                    children: [
-                      EstadoVacio(
-                        icono: Icons.person_search,
-                        titulo: ref.watch(busquedaProvider).isEmpty
-                            ? 'Todavía no hay pacientes'
-                            : 'Ningún paciente coincide',
-                        detalle: ref.watch(busquedaProvider).isEmpty
-                            ? null
-                            : 'Pruebe con otro nombre o con la cédula.',
-                      ),
-                    ],
-                  );
-                }
-                return ListView.separated(
-                  padding: EdgeInsets.only(
-                    bottom: 24 + MediaQuery.paddingOf(context).bottom,
-                  ),
-                  itemCount: lista.length,
-                  separatorBuilder: (_, __) =>
-                      const Divider(height: 1, indent: 72),
-                  itemBuilder: (context, i) {
-                    final p = lista[i];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.14),
-                        child: Text(
-                          p.iniciales,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        p.nombreCompleto,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        [
-                          if (p.edad != null) '${p.edad} años',
-                          if (p.cedula != null) 'Cédula ${p.cedula}',
-                          if (p.telefono != null) p.telefono!,
-                        ].join(' · '),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PacienteDetallePage(
-                            pacienteId: p.id,
-                            nombre: p.nombreCompleto,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
             ),
           ),
-        ),
-      ],
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => ref.invalidate(pacientesProvider),
+              child: pacientes.when(
+                loading: () => const EsqueletoLista(filas: 8),
+                error: (e, _) => ListView(
+                  children: [
+                    EstadoError(
+                      mensaje: e is ErrorApi
+                          ? e.mensaje
+                          : 'Revise la conexión con la clínica.',
+                      onReintentar: () => ref.invalidate(pacientesProvider),
+                    ),
+                  ],
+                ),
+                data: (lista) {
+                  if (lista.isEmpty) {
+                    return ListView(
+                      children: [
+                        EstadoVacio(
+                          icono: Icons.person_search,
+                          titulo: ref.watch(busquedaProvider).isEmpty
+                              ? 'Todavía no hay pacientes'
+                              : 'Ningún paciente coincide',
+                          detalle: ref.watch(busquedaProvider).isEmpty
+                              ? null
+                              : 'Pruebe con otro nombre o con la cédula.',
+                        ),
+                      ],
+                    );
+                  }
+                  return ListView.separated(
+                    padding: EdgeInsets.only(
+                      bottom: 110 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    itemCount: lista.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, indent: 72),
+                    itemBuilder: (context, i) {
+                      final p = lista[i];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.14),
+                          child: Text(
+                            p.iniciales,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          p.nombreCompleto,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          [
+                            if (p.edad != null) '${p.edad} años',
+                            if (p.cedula != null) 'Cédula ${p.cedula}',
+                            if (p.telefono != null) p.telefono!,
+                          ].join(' · '),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PacienteDetallePage(
+                              pacienteId: p.id,
+                              nombre: p.nombreCompleto,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -20,6 +20,7 @@ from app.modules.documents.router import patient_router as patient_documents_rou
 from app.modules.documents.router import router as documents_router
 from app.modules.prescriptions.router import router as prescriptions_router
 from app.modules.dashboard.router import router as dashboard_router
+from app.modules.insights.router import router as insights_router
 from app.modules.diagnoses.router import router as diagnoses_router
 from app.modules.imaging.router import patient_router as patient_images_router
 from app.modules.imaging.router import router as images_router
@@ -115,6 +116,7 @@ app.include_router(portal_manage_router)
 app.include_router(portal_public_router)
 app.include_router(privacy_patient_router)
 app.include_router(legal_router)
+app.include_router(insights_router)
 app.include_router(expenses_router)
 app.include_router(credits_router)
 app.include_router(patient_credits_router)
