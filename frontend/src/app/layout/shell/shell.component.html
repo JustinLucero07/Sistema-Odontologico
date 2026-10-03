@@ -1,12 +1,13 @@
 <!-- autosize: el contenido se reajusta cuando el menú cambia de ancho al
      plegarse, no solo cuando se abre. -->
-<mat-sidenav-container class="shell-container" autosize>
+<mat-sidenav-container #container class="shell-container" autosize>
   <mat-sidenav
     #sidenav
     [mode]="compact() ? 'over' : 'side'"
     [opened]="!compact()"
     class="shell-sidenav"
     [class.collapsed]="collapsed() && !compact()"
+    (transitionend)="container.updateContentMargins()"
   >
     <div class="shell-brand">
       <span class="brand-mark"><app-tooth-mark [size]="20" [filled]="true" /></span>

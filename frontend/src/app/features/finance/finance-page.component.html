@@ -260,6 +260,7 @@
       </section>
     }
   } @else if (loading()) {
-    <p class="muted">Cargando…</p>
+    <app-skeleton variant="cards" [rows]="4" />
+    <app-skeleton variant="chart" />
   }
 </div>

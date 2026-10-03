@@ -1,5 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 
 import { ToothCondition, ToothSurface } from '../../core/models/odontogram.models';
 import { SURFACE_WHEEL_SEGMENT, ToothAnatomy, anatomyFor, toothTypeFor } from './tooth-anatomy';
@@ -52,6 +63,21 @@ export class OdontogramChartComponent {
 
   readonly wheelSegment = SURFACE_WHEEL_SEGMENT;
 
+  /** Ancho disponible: el gráfico se encoge para caber entero en vez de
+   *  obligar a desplazarse de lado, que parte la boca en dos. */
+  private readonly hostWidth = signal(0);
+
+  constructor() {
+    const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(([entry]) => this.hostWidth.set(entry.contentRect.width));
+      observer.observe(host);
+      destroyRef.onDestroy(() => observer.disconnect());
+    });
+  }
+
   private readonly conditionsByFdi = computed(() => {
     const map = new Map<string, ToothCondition[]>();
     for (const c of this.conditionsSignal()) {
@@ -68,6 +94,15 @@ export class OdontogramChartComponent {
   readonly lowerRow = computed(() =>
     this.buildRow(this.dentureSignal() === 'permanent' ? PERMANENT_LOWER : TEMPORARY_LOWER),
   );
+
+  readonly zoom = computed(() => {
+    const available = this.hostWidth() - 36; // relleno del gráfico
+    if (available <= 0) return 1;
+    const rowWidth = (row: RenderedTooth[]) =>
+      row.reduce((sum, t) => sum + t.anatomy.width + 2 + 2, 0); // celda + separación
+    const natural = Math.max(rowWidth(this.upperRow()), rowWidth(this.lowerRow()));
+    return Math.max(0.6, Math.min(1, available / natural));
+  });
 
   /** Quadrant captions name the side as the *patient's* left and right, which
    *  is the mirror of the viewer's — the convention every dental chart uses. */
@@ -139,7 +174,7 @@ export class OdontogramChartComponent {
   }
 
   colorFor(condition: ToothCondition | undefined): string {
-    if (!condition) return 'transparent';
+    if (!condition) return 'var(--wheel-fill)';
     return TOOTH_CONDITION_BY_CODE[condition.condition]?.color ?? '#bdbdbd';
   }
 

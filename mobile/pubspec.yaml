@@ -39,3 +39,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Icono de la ventana en Linux (el mismo logo de Android y la web).
+  assets:
+    - assets/icon.png

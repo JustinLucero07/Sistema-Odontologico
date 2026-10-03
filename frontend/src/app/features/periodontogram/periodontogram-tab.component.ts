@@ -16,11 +16,12 @@ import {
 } from '../../core/models/periodontogram.models';
 import { PeriodontogramService } from '../../core/services/periodontogram.service';
 import { PeriodontogramChartComponent } from '../../shared/periodontogram/periodontogram-chart.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-periodontogram-tab',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     MatButtonModule,

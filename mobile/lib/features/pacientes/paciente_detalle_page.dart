@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/api/repositorios.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/odontograma/condiciones.dart';
+import '../../shared/widgets/carga.dart';
 import '../../shared/odontograma/odontograma_widget.dart';
 import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
@@ -79,7 +80,7 @@ class _Ficha extends ConsumerWidget {
     final ficha = ref.watch(_fichaProvider(pacienteId));
 
     return ficha.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const EsqueletoLista(filas: 4, conTarjetas: true),
       error: (e, _) => EstadoError(
         mensaje: e is ErrorApi ? e.mensaje : 'No se pudo cargar la ficha.',
         onReintentar: () => ref.invalidate(_fichaProvider(pacienteId)),
@@ -198,7 +199,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
     final tenue = scheme.onSurface.withValues(alpha: 0.55);
 
     return odontograma.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const EsqueletoBloque(),
       error: (e, _) => EstadoError(
         mensaje: e is ErrorApi
             ? e.mensaje
@@ -287,6 +288,38 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                         fontWeight: FontWeight.w600,
                         color: afectadas == 0 ? tenue : scheme.primary,
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            if (datos != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _Cifra(
+                      valor: _piezasCon(visibles, const [
+                        'caries',
+                        'restauracion_defectuosa',
+                        'tratamiento_pendiente',
+                        'extraccion_indicada',
+                        'fractura',
+                      ]),
+                      etiqueta: 'por tratar',
+                      alerta: true,
+                    ),
+                    _Cifra(
+                      valor: _piezasCon(visibles, const ['caries']),
+                      etiqueta: 'caries',
+                    ),
+                    _Cifra(
+                      valor: _piezasCon(visibles, const [
+                        'ausente',
+                        'extraccion_realizada',
+                      ]),
+                      etiqueta: 'ausentes',
                     ),
                   ],
                 ),
@@ -389,6 +422,13 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
     );
   }
 
+  int _piezasCon(Iterable<Map<String, dynamic>> filas, List<String> codigos) =>
+      filas
+          .where((c) => codigos.contains(c['condition']))
+          .map((c) => c['fdi_number'])
+          .toSet()
+          .length;
+
   /// Detalle de una pieza en una hoja inferior: en un teléfono es más cómodo
   /// que un aviso que desaparece solo.
   Future<void> _verPieza(
@@ -476,6 +516,58 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
       },
     );
     if (mounted) setState(() => _seleccionado = null);
+  }
+}
+
+/// Cifra en cápsula de vidrio, igual que en la web.
+class _Cifra extends StatelessWidget {
+  const _Cifra({
+    required this.valor,
+    required this.etiqueta,
+    this.alerta = false,
+  });
+
+  final int valor;
+  final String etiqueta;
+  final bool alerta;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final rojo = alerta && valor > 0;
+    final color = rojo ? scheme.error : scheme.onSurface;
+    return Opacity(
+      opacity: valor == 0 ? 0.6 : 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: rojo
+              ? scheme.error.withValues(alpha: 0.1)
+              : scheme.surface.withValues(alpha: 0.5),
+          border: Border.all(
+            color: rojo
+                ? Colors.transparent
+                : scheme.onSurface.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$valor ',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              TextSpan(text: etiqueta),
+            ],
+          ),
+          style: TextStyle(fontSize: 12.5, color: color),
+        ),
+      ),
+    );
   }
 }
 
@@ -605,7 +697,7 @@ class _Cuenta extends ConsumerWidget {
     final cuenta = ref.watch(_cuentaProvider(pacienteId));
 
     return cuenta.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const EsqueletoLista(filas: 4, conTarjetas: true),
       error: (e, _) => EstadoError(
         mensaje: e is ErrorApi
             ? e.mensaje

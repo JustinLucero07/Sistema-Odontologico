@@ -14,11 +14,12 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CashSession, DailyCashReport, formatMoney } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
 import { openExpenseDialog } from '../../shared/finance/expense-dialog.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-cash-page',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     MatButtonModule,

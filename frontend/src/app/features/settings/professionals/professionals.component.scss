@@ -32,13 +32,7 @@
 }
 
 .specialty-add {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  mat-form-field {
-    width: 240px;
-  }
+  border-radius: 999px;
 }
 
 table {

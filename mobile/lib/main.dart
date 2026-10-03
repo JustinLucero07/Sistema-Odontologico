@@ -8,6 +8,7 @@ import 'features/cuenta/cambiar_clave_page.dart';
 import 'features/login/login_page.dart';
 import 'shell.dart';
 import 'features/legal/confidencialidad_page.dart';
+import 'shared/widgets/carga.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,6 +67,6 @@ class _Arranque extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const PantallaArranque();
   }
 }

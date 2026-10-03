@@ -22,7 +22,8 @@
   </header>
 
   @if (loading()) {
-    <p class="account-empty">Cargando estado de cuenta…</p>
+    <app-skeleton variant="cards" [rows]="3" label="Cargando estado de cuenta" />
+    <app-skeleton variant="table" [rows]="4" />
   } @else {
     @if (account(); as acc) {
     <section class="totals">

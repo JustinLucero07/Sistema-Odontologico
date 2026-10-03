@@ -351,3 +351,8 @@ tr.inactive td {
     }
   }
 }
+
+// Una ventana sobre otra (proveedor sobre la lista de proveedores).
+.overlay.stacked {
+  z-index: 1010;
+}

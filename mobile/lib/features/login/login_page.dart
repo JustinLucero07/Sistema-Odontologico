@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/tooth_mark.dart';
+import '../../shared/widgets/carga.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -54,166 +54,160 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: AppColors.mint.withValues(alpha: 0.18),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                child: AutofillGroup(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Center(child: LogoApp(tamano: 72)),
+                        const SizedBox(height: 22),
+                        const Text(
+                          'Sistema Odontológico',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Ingresa con la cuenta de tu clínica.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _campo(
+                          controller: _email,
+                          label: 'Correo electrónico',
+                          icon: Icons.alternate_email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [
+                            AutofillHints.email,
+                            AutofillHints.username,
+                          ],
+                          textInputAction: TextInputAction.next,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'El correo es obligatorio';
+                            }
+                            if (!v.contains('@')) {
+                              return 'Ingresa un correo válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        _campo(
+                          controller: _password,
+                          label: 'Contraseña',
+                          icon: Icons.lock_outline,
+                          obscure: _ocultar,
+                          autofillHints: const [AutofillHints.password],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _enviar(),
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'La contraseña es obligatoria'
+                              : null,
+                          suffix: IconButton(
+                            icon: Icon(
+                              _ocultar
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white.withValues(alpha: 0.6),
                             ),
+                            onPressed: () =>
+                                setState(() => _ocultar = !_ocultar),
+                            tooltip: _ocultar
+                                ? 'Mostrar contraseña'
+                                : 'Ocultar contraseña',
                           ),
-                          child: const Center(
-                            child: ToothMark(
-                              size: 32,
-                              color: Color(0xFF8BF0DE),
-                              filled: true,
+                        ),
+                        if (error != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      const Text(
-                        'Sistema Odontológico',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Ingresa con la cuenta de tu clínica.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      _campo(
-                        controller: _email,
-                        label: 'Correo electrónico',
-                        icon: Icons.alternate_email,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'El correo es obligatorio';
-                          }
-                          if (!v.contains('@')) {
-                            return 'Ingresa un correo válido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      _campo(
-                        controller: _password,
-                        label: 'Contraseña',
-                        icon: Icons.lock_outline,
-                        obscure: _ocultar,
-                        validator: (v) => (v == null || v.isEmpty)
-                            ? 'La contraseña es obligatoria'
-                            : null,
-                        suffix: IconButton(
-                          icon: Icon(
-                            _ocultar ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.white.withValues(alpha: 0.6),
-                          ),
-                          onPressed: () => setState(() => _ocultar = !_ocultar),
-                          tooltip: _ocultar
-                              ? 'Mostrar contraseña'
-                              : 'Ocultar contraseña',
-                        ),
-                      ),
-                      if (error != null) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFFF8A80,
-                            ).withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
+                            decoration: BoxDecoration(
                               color: const Color(
                                 0xFFFF8A80,
-                              ).withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                size: 19,
-                                color: Color(0xFFFFC7C2),
+                              ).withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFFF8A80,
+                                ).withValues(alpha: 0.3),
                               ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  error,
-                                  style: const TextStyle(
-                                    color: Color(0xFFFFC7C2),
-                                    fontSize: 13,
-                                    height: 1.35,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  size: 19,
+                                  color: Color(0xFFFFC7C2),
+                                ),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Text(
+                                    error,
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFC7C2),
+                                      fontSize: 13,
+                                      height: 1.35,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: _enviando ? null : _enviar,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.mint,
-                          foregroundColor: const Color(0xFF04231F),
-                        ),
-                        child: _enviando
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.4,
-                                  color: Color(0xFF04231F),
-                                ),
-                              )
-                            : const Text('Ingresar'),
-                      ),
-                      const SizedBox(height: 22),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.shield_outlined,
-                            size: 15,
-                            color: Colors.white.withValues(alpha: 0.45),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Acceso auditado.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.45),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _enviando ? null : _enviar,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.mint,
+                            foregroundColor: const Color(0xFF04231F),
+                          ),
+                          child: _enviando
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: Color(0xFF04231F),
+                                  ),
+                                )
+                              : const Text('Ingresar'),
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              size: 15,
+                              color: Colors.white.withValues(alpha: 0.45),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Acceso auditado.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.45),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -232,6 +226,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     bool obscure = false,
     Widget? suffix,
     String? Function(String?)? validator,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     // Los campos de Material están pensados para una página clara; sobre el
     // degradado oscuro hay que darles tinta propia o desaparecen.
@@ -241,6 +238,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onSubmitted,
+      // Un correo no se autocorrige ni se capitaliza: el teclado lo
+      // «arreglaría» y el acceso fallaría.
+      autocorrect: !obscure && keyboardType != TextInputType.emailAddress,
+      enableSuggestions: !obscure && keyboardType != TextInputType.emailAddress,
+      textCapitalization: TextCapitalization.none,
       style: const TextStyle(color: blanco),
       cursorColor: AppColors.mint,
       validator: validator,

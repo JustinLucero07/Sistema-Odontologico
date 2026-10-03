@@ -66,7 +66,7 @@
   }
 
   @if (loading()) {
-    <p class="perio-empty">Cargando…</p>
+    <app-skeleton variant="chart" label="Cargando periodontograma" />
   } @else {
     @if (current(); as exam) {
       @if (!editing()) {

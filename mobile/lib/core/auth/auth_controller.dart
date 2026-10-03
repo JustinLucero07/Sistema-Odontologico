@@ -75,7 +75,10 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<bool> iniciarSesion(String email, String password) async {
-    state = state.copyWith(estado: EstadoSesion.cargando, error: null);
+    // No se pasa a «cargando»: eso reemplazaría el login por la pantalla de
+    // arranque y, si falla, se perdería lo escrito. El botón ya muestra la
+    // espera.
+    state = state.copyWith(error: null);
     try {
       final response = await _api.dio.post(
         '/auth/login',

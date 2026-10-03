@@ -27,7 +27,7 @@
 
   <section class="list-card">
     @if (loading() && patients().length === 0) {
-      <p class="empty">Cargando pacientes…</p>
+      <app-skeleton variant="list" [rows]="7" label="Cargando pacientes" />
     } @else if (patients().length === 0) {
       <div class="empty">
         <mat-icon>{{ searching() ? 'person_search' : 'group_add' }}</mat-icon>

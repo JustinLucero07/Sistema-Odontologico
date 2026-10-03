@@ -86,6 +86,39 @@ export class OdontogramComponent implements OnChanges {
 
   readonly affectedTeeth = computed(() => new Set(this.shown().map((c) => c.fdi_number)).size);
 
+  /** Cifras de cabecera: cuántas piezas tienen algo, cuántas hay que tratar. */
+  readonly stats = computed(() => {
+    const teethWith = (codes: string[]) =>
+      new Set(this.shown().filter((c) => codes.includes(c.condition)).map((c) => c.fdi_number)).size;
+    return {
+      affected: this.affectedTeeth(),
+      caries: teethWith(['caries']),
+      toTreat: teethWith([
+        'caries',
+        'restauracion_defectuosa',
+        'tratamiento_pendiente',
+        'extraccion_indicada',
+        'fractura',
+      ]),
+      absent: teethWith(['ausente', 'extraccion_realizada']),
+    };
+  });
+
+  /** Lo registrado en la pieza seleccionada, para verlo y corregirlo sin buscar. */
+  readonly selectedDetail = computed(() => {
+    const fdi = this.selectedFdi();
+    if (!fdi) return null;
+    const items = this.shown()
+      .filter((c) => c.fdi_number === fdi)
+      .map((c) => ({
+        condition: c,
+        def: TOOTH_CONDITION_BY_CODE[c.condition] ?? { code: c.condition, label: c.condition, color: '#bdbdbd' },
+      }));
+    return { fdi, items };
+  });
+
+  readonly editable = computed(() => this.canWrite && !this.viewingVersion());
+
   ngOnChanges(): void {
     if (this.patientId) void this.load();
   }
@@ -147,6 +180,18 @@ export class OdontogramComponent implements OnChanges {
       rest.push({ fdi_number: target.fdi, surface: target.surface, condition: code });
     }
     if (JSON.stringify(rest) === JSON.stringify(current)) return;
+    this.history.set([...this.history(), current]);
+    this.draftConditions.set(rest);
+  }
+
+  /** Quita un hallazgo concreto de la pieza seleccionada (se puede deshacer). */
+  removeCondition(target: ToothCondition): void {
+    const current = this.draftConditions();
+    const rest = current.filter(
+      (c) =>
+        !(c.fdi_number === target.fdi_number && c.surface === target.surface && c.condition === target.condition),
+    );
+    if (rest.length === current.length) return;
     this.history.set([...this.history(), current]);
     this.draftConditions.set(rest);
   }

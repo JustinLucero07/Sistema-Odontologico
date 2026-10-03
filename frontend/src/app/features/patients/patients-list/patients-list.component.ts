@@ -14,11 +14,12 @@ import { PatientsService } from '../../../core/services/patients.service';
 import { PatientListItem } from '../../../core/models/patient.models';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 import { openPatientCreateDialog } from '../../../shared/patient-dialog/patient-create-dialog.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-patients-list',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,

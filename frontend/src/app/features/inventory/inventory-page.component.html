@@ -78,7 +78,7 @@
   </div>
 
   @if (loading()) {
-    <p class="inv-empty">Cargando inventario…</p>
+    <app-skeleton variant="table" [rows]="6" label="Cargando inventario" />
   } @else if (visibleItems().length === 0) {
     <p class="inv-empty">
       <mat-icon>inventory_2</mat-icon>
@@ -341,34 +341,6 @@
         }
       </div>
 
-      @if (editingSupplier(); as target) {
-        <form class="supplier-form" [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
-          <p class="panel-hint">{{ target === 'new' ? 'Nuevo proveedor' : 'Editar proveedor' }}</p>
-          <div class="form-grid">
-            <mat-form-field appearance="outline" class="wide">
-              <mat-label>Nombre</mat-label>
-              <input matInput formControlName="name" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Contacto</mat-label>
-              <input matInput formControlName="contact_name" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Teléfono</mat-label>
-              <input matInput formControlName="phone" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="wide">
-              <mat-label>Correo</mat-label>
-              <input matInput type="email" formControlName="email" />
-            </mat-form-field>
-          </div>
-          <div class="panel-actions">
-            <button mat-flat-button type="submit" [disabled]="saving()">Guardar proveedor</button>
-            <button mat-stroked-button type="button" (click)="editingSupplier.set(null)">Cancelar</button>
-          </div>
-        </form>
-      }
-
       @if (suppliers().length === 0) {
         <p class="inv-empty">Aún no hay proveedores registrados.</p>
       } @else {
@@ -403,5 +375,37 @@
         <button mat-stroked-button (click)="showSuppliers.set(false)">Cerrar</button>
       </div>
     </div>
+  </div>
+}
+
+<!-- Alta / edición de proveedor: ventana propia sobre la lista. -->
+@if (editingSupplier(); as target) {
+  <div class="overlay stacked" (click)="editingSupplier.set(null)">
+    <form class="panel" (click)="$event.stopPropagation()" [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
+          <h3>{{ target === 'new' ? 'Nuevo proveedor' : 'Editar proveedor' }}</h3>
+          <p class="panel-hint">Quién le vende insumos y cómo contactarlo.</p>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Contacto</mat-label>
+              <input matInput formControlName="contact_name" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono</mat-label>
+              <input matInput formControlName="phone" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="wide">
+              <mat-label>Correo</mat-label>
+              <input matInput type="email" formControlName="email" />
+            </mat-form-field>
+          </div>
+          <div class="panel-actions">
+            <button mat-stroked-button type="button" (click)="editingSupplier.set(null)">Cancelar</button>
+            <button mat-flat-button type="submit" [disabled]="saving()">Guardar proveedor</button>
+          </div>
+        </form>
   </div>
 }

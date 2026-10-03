@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
+import { Component, OnInit, TemplateRef, ViewChild, inject, signal } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -12,9 +12,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { PatientsService } from '../../../core/services/patients.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
@@ -38,10 +39,12 @@ import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.com
   selector: 'app-patient-detail',
   standalone: true,
   imports: [
+    SkeletonComponent,
     DatePipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
+    MatDialogModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIconModule,
@@ -102,15 +105,16 @@ export class PatientDetailComponent implements OnInit {
   readonly patient = signal<Patient | null>(null);
   readonly latestHistory = signal<MedicalHistory | null>(null);
   readonly historyVersions = signal<MedicalHistory[]>([]);
-  readonly editingDemographics = signal(false);
-  readonly editingHistory = signal(false);
+  @ViewChild('demographicsDialog') demographicsDialog!: TemplateRef<unknown>;
+  @ViewChild('historyDialog') historyDialog!: TemplateRef<unknown>;
+  private dialogRef: MatDialogRef<unknown> | null = null;
   readonly showVersionHistory = signal(false);
   readonly saving = signal(false);
   readonly nextAppointment = signal<Appointment | null>(null);
 
   readonly demographicsForm = this.fb.nonNullable.group({
-    first_name: [''],
-    last_name: [''],
+    first_name: ['', Validators.required],
+    last_name: ['', Validators.required],
     national_id: [''],
     birth_date: [''],
     sex: [''],
@@ -158,7 +162,11 @@ export class PatientDetailComponent implements OnInit {
   private async loadPatient(id: string): Promise<void> {
     const patient = await firstValueFrom(this.patientsService.getPatient(id));
     this.patient.set(patient);
-    this.demographicsForm.patchValue({
+    this.patchDemographics(patient);
+  }
+
+  private patchDemographics(patient: Patient): void {
+    this.demographicsForm.reset({
       first_name: patient.first_name,
       last_name: patient.last_name,
       national_id: patient.national_id ?? '',
@@ -226,7 +234,26 @@ export class PatientDetailComponent implements OnInit {
       occlusion: latest?.occlusion ?? '',
       observations: latest?.observations ?? '',
     });
-    this.editingHistory.set(true);
+    this.openDialog(this.historyDialog, '880px');
+  }
+
+  openHistoryDialog(): void {
+    this.startEditingHistory();
+  }
+
+  openEditDemographics(): void {
+    const patient = this.patient();
+    if (patient) this.patchDemographics(patient);
+    this.openDialog(this.demographicsDialog, '820px');
+  }
+
+  private openDialog(template: TemplateRef<unknown>, width: string): void {
+    this.dialogRef = this.dialog.open(template, {
+      width,
+      maxWidth: '96vw',
+      panelClass: 'app-dialog',
+      autoFocus: 'first-tabbable',
+    });
   }
 
   async saveDemographics(): Promise<void> {
@@ -242,7 +269,7 @@ export class PatientDetailComponent implements OnInit {
         }),
       );
       this.patient.set(updated);
-      this.editingDemographics.set(false);
+      this.dialogRef?.close();
       this.snackBar.open('Datos del paciente actualizados', 'Cerrar', { duration: 3000 });
     } finally {
       this.saving.set(false);
@@ -258,7 +285,7 @@ export class PatientDetailComponent implements OnInit {
         this.patientsService.createMedicalHistoryVersion(patient.id, this.historyForm.getRawValue()),
       );
       this.latestHistory.set(entry);
-      this.editingHistory.set(false);
+      this.dialogRef?.close();
       this.snackBar.open('Nueva versión de la historia clínica guardada', 'Cerrar', { duration: 3000 });
     } finally {
       this.saving.set(false);

@@ -21,11 +21,12 @@ import {
 } from '../../core/models/clinical-image.models';
 import { ImagingService } from '../../core/services/imaging.service';
 import { promptText } from '../../shared/confirm-dialog/prompt-dialog.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-imaging-tab',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     ReactiveFormsModule,

@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import '../pacientes/paciente_detalle_page.dart';
 import '../../shared/widgets/glass.dart';
+import '../../shared/widgets/carga.dart';
 
 final diaAgendaProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -31,7 +32,7 @@ class AgendaPage extends ConsumerWidget {
           child: RefreshIndicator(
             onRefresh: () async => ref.invalidate(citasDelDiaProvider),
             child: citas.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const EsqueletoLista(),
               error: (e, _) => ListView(
                 children: [
                   EstadoError(

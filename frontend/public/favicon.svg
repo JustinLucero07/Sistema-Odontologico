@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1fb3a4"/><stop offset="0.55" stop-color="#0d7f76"/><stop offset="1" stop-color="#074a45"/></linearGradient>
+ <radialGradient id="glow" cx="0.3" cy="0.2" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="0.6" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="tooth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9f5f0"/></linearGradient>
+ <filter id="sh" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#022b28" flood-opacity="0.45"/></filter>
+</defs>
+<rect width="1024" height="1024" rx="230" fill="url(#bg)"/>
+<rect width="1024" height="1024" rx="230" fill="url(#glow)"/>
+<g transform="translate(232 212) scale(17.5)" filter="url(#sh)">
+<path d="M16 3.4c-6.1 0-10.6 3.3-10.6 8.9 0 3.9 1.1 6.9 1.9 10.9.6 3 1 5.8 3 5.8s2.4-2.7 3.1-5.5c.5-2 1.3-3.1 2.6-3.1s2.1 1.1 2.6 3.1c.7 2.8 1.1 5.5 3.1 5.5s2.4-2.8 3-5.8c.8-4 1.9-7 1.9-10.9 0-5.6-4.5-8.9-10.6-8.9Z" fill="url(#tooth)" stroke="url(#tooth)" stroke-width="1.7" stroke-linejoin="round"/>
+<path d="M10.4 9.1c1-1.6 2.9-2.6 5-2.6" stroke="#0d7f76" stroke-width="1.6" stroke-linecap="round" opacity="0.5" fill="none"/></g>
+</svg>

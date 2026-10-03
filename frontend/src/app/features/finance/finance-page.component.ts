@@ -23,6 +23,7 @@ import {
 import { FinanceService } from '../../core/services/finance.service';
 import { promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
 import { openExpenseDialog } from '../../shared/finance/expense-dialog.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 type View = 'resumen' | 'cobros' | 'egresos' | 'cajas';
 type Preset = 'mes' | 'mes_anterior' | 'trimestre' | 'anio' | 'personalizado';
@@ -36,7 +37,7 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
 @Component({
   selector: 'app-finance-page',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     RouterLink,

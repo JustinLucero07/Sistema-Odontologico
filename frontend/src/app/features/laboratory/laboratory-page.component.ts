@@ -22,11 +22,12 @@ import {
 } from '../../core/models/laboratory.models';
 import { LaboratoryService } from '../../core/services/laboratory.service';
 import { PatientsService } from '../../core/services/patients.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-laboratory-page',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     ReactiveFormsModule,

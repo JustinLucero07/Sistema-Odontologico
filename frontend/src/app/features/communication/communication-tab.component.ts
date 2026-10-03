@@ -22,11 +22,12 @@ import {
   SUGGESTION_STATUS_LABELS,
 } from '../../core/models/communication.models';
 import { CommunicationService } from '../../core/services/communication.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-communication-tab',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     MatButtonModule,

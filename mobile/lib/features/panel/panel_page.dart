@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/formato.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/glass.dart';
+import '../../shared/widgets/carga.dart';
 
 final resumenProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(panelRepoProvider).resumen(),
@@ -56,9 +57,10 @@ class PanelPage extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           resumen.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator()),
+            loading: () => const EsqueletoLista(
+              filas: 3,
+              conTarjetas: true,
+              dentroDeLista: true,
             ),
             error: (e, _) => EstadoError(
               mensaje: e is ErrorApi

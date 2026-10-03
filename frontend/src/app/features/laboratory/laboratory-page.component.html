@@ -46,7 +46,7 @@
   </div>
 
   @if (loading()) {
-    <p class="lab-empty">Cargando trabajos…</p>
+    <app-skeleton variant="list" [rows]="5" label="Cargando trabajos" />
   } @else if (orders().length === 0) {
     <p class="lab-empty">
       <mat-icon>precision_manufacturing</mat-icon>

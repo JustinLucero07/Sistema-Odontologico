@@ -7,7 +7,7 @@ import 'features/agenda/agenda_page.dart';
 import 'features/pacientes/pacientes_page.dart';
 import 'features/panel/panel_page.dart';
 import 'shared/widgets/glass.dart';
-import 'shared/widgets/tooth_mark.dart';
+import 'shared/widgets/carga.dart';
 
 /// Navegación inferior en lugar del menú lateral de la web.
 ///
@@ -42,7 +42,7 @@ class _ShellState extends ConsumerState<Shell> {
           titleSpacing: 16,
           title: Row(
             children: [
-              const ToothMark(size: 24),
+              const LogoApp(tamano: 30),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(switch (_indice) {

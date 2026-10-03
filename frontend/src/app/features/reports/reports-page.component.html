@@ -87,7 +87,8 @@
   </nav>
 
   @if (loading()) {
-    <p class="rep-empty">Calculando…</p>
+    <app-skeleton variant="cards" [rows]="4" label="Calculando" />
+    <app-skeleton variant="chart" />
   } @else {
 
     <!-- Financiero -->

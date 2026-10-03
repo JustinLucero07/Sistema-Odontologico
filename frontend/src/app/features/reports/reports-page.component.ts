@@ -20,6 +20,7 @@ import {
   formatRate,
 } from '../../core/models/report.models';
 import { ReportsService } from '../../core/services/reports.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /** Named ranges cover what a clinic actually asks for; the custom dates stay
  *  available for everything else. */
@@ -35,7 +36,7 @@ type PresetKey = (typeof PRESETS)[number]['key'];
 @Component({
   selector: 'app-reports-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [SkeletonComponent, DatePipe, FormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
   templateUrl: './reports-page.component.html',
   styleUrl: './reports-page.component.scss',
 })

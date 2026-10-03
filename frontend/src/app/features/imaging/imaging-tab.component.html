@@ -26,7 +26,7 @@
   </header>
 
   @if (loading()) {
-    <p class="imaging-empty">Cargando estudios…</p>
+    <app-skeleton variant="gallery" [rows]="6" label="Cargando estudios" />
   } @else if (images().length === 0) {
     <p class="imaging-empty">
       <mat-icon>image_not_supported</mat-icon>

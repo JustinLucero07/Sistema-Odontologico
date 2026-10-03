@@ -78,7 +78,6 @@ export class ProfessionalsComponent implements OnInit {
     color_hex: [PROFESSIONAL_COLORS[0]],
   });
 
-  readonly newSpecialtyName = signal('');
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -103,10 +102,15 @@ export class ProfessionalsComponent implements OnInit {
   }
 
   async addSpecialty(): Promise<void> {
-    const name = this.newSpecialtyName().trim();
+    const name = (
+      await promptText(this.dialog, {
+        title: 'Nueva especialidad',
+        label: 'Nombre de la especialidad',
+        confirmLabel: 'Agregar',
+      })
+    )?.trim();
     if (!name) return;
     await firstValueFrom(this.clinicService.createSpecialty(name));
-    this.newSpecialtyName.set('');
     this.snackBar.open(`Especialidad "${name}" agregada`, 'Cerrar', { duration: 2500 });
     await this.reload();
   }

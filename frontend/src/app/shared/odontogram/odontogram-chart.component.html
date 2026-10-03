@@ -1,4 +1,5 @@
 <div class="odontogram">
+  <div class="scaler" [style.zoom]="zoom()">
   <div class="arch-block">
     <div class="quadrant-captions">
       <span>{{ captions().upperRight }}</span>
@@ -14,7 +15,7 @@
   <div class="arch-midline"><span>Línea media</span></div>
 
   <div class="arch-block">
-    <div class="arch-row">
+    <div class="arch-row lower">
       @for (tooth of lowerRow(); track tooth.fdi) {
         <ng-container [ngTemplateOutlet]="toothCell" [ngTemplateOutletContext]="{ tooth: tooth }"></ng-container>
       }
@@ -23,6 +24,7 @@
       <span>{{ captions().lowerRight }}</span>
       <span>{{ captions().lowerLeft }}</span>
     </div>
+  </div>
   </div>
 </div>
 

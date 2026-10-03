@@ -73,22 +73,10 @@
         <h2>Especialidades</h2>
         <p class="page-sub">Para clasificar a los profesionales</p>
       </div>
-      <form class="specialty-add" (ngSubmit)="addSpecialty()">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-label>Nueva especialidad</mat-label>
-          <input
-            matInput
-            [ngModel]="newSpecialtyName()"
-            (ngModelChange)="newSpecialtyName.set($event)"
-            name="newSpecialty"
-            placeholder="Ej. Ortodoncia"
-          />
-        </mat-form-field>
-        <button mat-stroked-button type="submit" [disabled]="!newSpecialtyName().trim()">
-          <mat-icon>add</mat-icon>
-          Agregar
-        </button>
-      </form>
+      <button mat-stroked-button class="specialty-add" (click)="addSpecialty()">
+        <mat-icon>add</mat-icon>
+        Nueva especialidad
+      </button>
     </div>
     <mat-chip-set>
       @for (specialty of specialties(); track specialty.id) {

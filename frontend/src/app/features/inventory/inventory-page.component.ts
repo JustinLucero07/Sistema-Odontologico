@@ -21,11 +21,12 @@ import {
   formatQuantity,
 } from '../../core/models/inventory.models';
 import { InventoryService } from '../../core/services/inventory.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     ReactiveFormsModule,

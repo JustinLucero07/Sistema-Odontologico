@@ -3,26 +3,31 @@
   background: transparent;
 }
 
-// The sidebar is the heaviest material in the app: it separates a structural
-// region, so it gets the deepest blur and the darkest tint.
+// El menú es una lámina de vidrio flotante, del mismo material que la barra
+// superior: claro en tema claro, ahumado en oscuro. El único color fuerte es
+// la gota del destino activo, así el ojo encuentra dónde está sin buscar.
 .shell-sidenav {
-  width: 268px;
+  width: 264px;
   border-right: none;
   // El cajón de Material queda invisible: el panel de vidrio es su contenedor
-  // interior, separado 12 px de los bordes, para que flote sobre el fondo en
-  // vez de ser una losa pegada a la pantalla.
+  // interior, separado 12 px de los bordes, para que flote sobre el fondo.
   background: transparent;
   box-shadow: none;
-  color: #fff;
-  transition: width 0.26s var(--ease-spring);
+  overflow: hidden;
+  color: var(--nav-ink);
+  transition: width 0.28s var(--ease-spring);
 
   &.collapsed {
-    width: 84px;
+    width: 88px;
   }
 
   ::ng-deep .mat-drawer-inner-container {
+    position: relative;
     display: flex;
     flex-direction: column;
+    // border-box: sin esto el borde suma 2 px y el cajón muestra barras de
+    // desplazamiento grises a la derecha y abajo.
+    box-sizing: border-box;
     width: calc(100% - 12px);
     height: calc(100% - 24px);
     margin: 12px 0 12px 12px;
@@ -34,44 +39,49 @@
     &::-webkit-scrollbar {
       display: none;
     }
-    border-radius: var(--radius-lg);
+    border-radius: 24px;
     background: var(--glass-sidebar-bg);
     backdrop-filter: var(--glass-sidebar-blur);
     -webkit-backdrop-filter: var(--glass-sidebar-blur);
     border: 1px solid var(--glass-sidebar-edge);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 24px 50px -24px rgba(4, 30, 28, 0.7);
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+      var(--glass-sidebar-shadow);
   }
 }
 
 .shell-brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 20px 20px 14px;
+  gap: 12px;
+  margin: 10px 10px 6px;
+  padding: 12px 10px;
+  border-radius: 16px;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.95rem;
-  letter-spacing: -0.012em;
-  color: #fff;
+  letter-spacing: -0.015em;
+  color: var(--nav-ink);
   white-space: nowrap;
 }
 
-// The mark sits on its own lit tile so the tooth reads as a logo rather than
-// as one more nav icon.
+// La marca va sobre su propia gota de color para leerse como logo y no como
+// un icono más del menú.
 .brand-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: 11px;
-  color: var(--color-mint);
-  --tooth-mark-shine: rgba(6, 34, 32, 0.55);
-  background: linear-gradient(145deg, rgba(94, 224, 206, 0.26), rgba(47, 191, 174, 0.1));
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 13px;
+  color: #fff;
+  --tooth-mark-shine: rgba(6, 60, 56, 0.45);
+  background: var(--nav-active-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    var(--nav-active-glow);
 }
 
 .brand-name {
@@ -80,40 +90,41 @@
   line-height: 1.2;
 
   small {
-    font-size: 0.66rem;
+    font-family: var(--font-body);
+    font-size: 0.68rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.01em;
+    color: var(--nav-ink-faint);
   }
 }
 
 .collapsed .shell-brand {
   justify-content: center;
-  padding: 20px 0 14px;
+  margin: 10px auto 6px;
+  padding: 12px 0;
 }
 
 // ---- Sections ----------------------------------------------------------
 
 .nav-section {
-  padding: 4px 10px 8px;
+  padding: 2px 12px 6px;
 }
 
-// Over a translucent surface, flat grey text loses legibility — a touch more
-// weight and letter-spacing keeps these readable against whatever scrolls under.
 .nav-section-title {
   display: block;
-  padding: 8px 10px 4px;
-  font-size: 0.66rem;
+  padding: 12px 12px 6px;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nav-ink-faint);
 }
 
 .nav-section-rule {
   display: block;
   height: 1px;
-  margin: 8px 12px;
-  background: rgba(255, 255, 255, 0.1);
+  margin: 10px 14px;
+  background: var(--nav-rule);
 }
 
 .shell-sidenav mat-nav-list {
@@ -122,33 +133,75 @@
   flex-direction: column;
   gap: 2px;
 
-  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.82);
-  --mdc-list-list-item-leading-icon-color: rgba(255, 255, 255, 0.62);
-  --mdc-list-list-item-hover-label-text-color: #fff;
-  --mdc-list-list-item-hover-leading-icon-color: #fff;
-  --mdc-list-list-item-hover-state-layer-color: rgba(255, 255, 255, 0.1);
-  --mdc-list-list-item-focus-state-layer-color: rgba(255, 255, 255, 0.1);
-  --mdc-list-list-item-focus-label-text-color: #fff;
+  --mdc-list-list-item-one-line-container-height: 42px;
+  --mdc-list-list-item-label-text-color: var(--nav-ink-soft);
+  --mdc-list-list-item-label-text-size: 0.875rem;
+  --mdc-list-list-item-label-text-weight: 500;
+  --mdc-list-list-item-leading-icon-color: var(--nav-icon);
+  --mdc-list-list-item-hover-label-text-color: var(--nav-ink);
+  --mdc-list-list-item-hover-leading-icon-color: var(--color-primary);
+  --mdc-list-list-item-hover-state-layer-color: transparent;
+  --mdc-list-list-item-focus-state-layer-color: transparent;
+  --mdc-list-list-item-focus-label-text-color: var(--nav-ink);
 }
 
 .shell-sidenav a[mat-list-item] {
-  border-radius: 14px;
-  font-size: 0.86rem;
-  transition: background 0.2s ease, transform 0.16s var(--ease-spring);
+  height: 42px;
+  border-radius: 13px;
+  padding-left: 12px;
+  padding-right: 12px;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.16s var(--ease-spring);
+
+  ::ng-deep .mdc-list-item__start {
+    margin-right: 14px;
+    font-size: 21px;
+    width: 21px;
+    height: 21px;
+  }
+
+  &:hover {
+    background: var(--nav-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
 
   &:active {
     transform: scale(0.97);
   }
 }
 
+.shell-sidenav a.active-link {
+  // El destino activo es una gota de color con brillo en el canto superior.
+  background: var(--nav-active-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    var(--nav-active-glow);
+  --mdc-list-list-item-label-text-color: var(--nav-active-ink);
+  --mdc-list-list-item-hover-label-text-color: var(--nav-active-ink);
+  --mdc-list-list-item-leading-icon-color: var(--nav-active-ink);
+  --mdc-list-list-item-hover-leading-icon-color: var(--nav-active-ink);
+  --mdc-list-list-item-focus-label-text-color: var(--nav-active-ink);
+  --mdc-list-list-item-label-text-weight: 600;
+
+  &:hover {
+    background: var(--nav-active-bg);
+  }
+}
+
 .collapsed .nav-section {
-  padding: 2px 10px 4px;
+  padding: 2px 12px 4px;
 }
 
 // Plegado: cada destino es un botón cuadrado centrado solo con su icono.
 .collapsed a[mat-list-item] {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   margin: 0 auto;
   padding: 0 !important;
   justify-content: center;
@@ -162,50 +215,53 @@
   }
 }
 
-.collapsed .shell-sidenav mat-nav-list,
 .shell-sidenav.collapsed mat-nav-list {
   align-items: center;
 }
 
-.shell-sidenav a.active-link {
-  // El elemento activo es una gota de vidrio claro dentro del panel oscuro.
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 6px 16px -8px rgba(0, 0, 0, 0.5);
-  --mdc-list-list-item-label-text-color: #fff;
-  --mdc-list-list-item-leading-icon-color: var(--color-mint);
-  font-weight: 600;
-}
-
 .collapse-toggle {
+  // Siempre a mano al pie del panel, aunque la lista sea más alta que la
+  // pantalla; el contenido se desliza por debajo.
+  position: sticky;
+  bottom: 12px;
+  z-index: 1;
+  flex-shrink: 0;
   margin-top: auto;
-  border-radius: 14px !important;
   display: flex;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   align-items: center;
-  gap: 8px;
-  width: calc(100% - 20px);
-  margin-left: 10px;
+  gap: 10px;
+  width: calc(100% - 24px);
+  margin-left: 12px;
   margin-bottom: 12px;
   padding: 10px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--nav-rule);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: var(--nav-ink-faint);
+  font: inherit;
   font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
 
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
   &:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: var(--nav-hover);
+    color: var(--color-primary);
   }
 }
 
 .collapsed .collapse-toggle {
   justify-content: center;
-  width: 48px;
+  width: 46px;
   margin-left: auto;
   margin-right: auto;
   padding: 10px 0;
@@ -403,6 +459,14 @@ mat-sidenav-content {
 
 .shell-container ::ng-deep .mat-drawer-backdrop {
   z-index: 25;
+
+  // En pantallas estrechas el menú flota: un velo oscuro y desenfocado lo
+  // separa del contenido para que el vidrio claro no se confunda con él.
+  &.mat-drawer-shown {
+    background: rgba(6, 28, 27, 0.32);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
 }
 
 // ---- Content -----------------------------------------------------------

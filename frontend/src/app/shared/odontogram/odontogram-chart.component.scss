@@ -7,6 +7,8 @@
   --tooth-detail: rgba(15, 36, 39, 0.3);
   --tooth-gloss: rgba(255, 255, 255, 0.9);
   --tooth-shade: rgba(15, 36, 39, 0.15);
+  --wheel-stroke: rgba(15, 36, 39, 0.46);
+  --wheel-fill: rgba(255, 255, 255, 0.7);
 }
 
 :host-context([data-theme='dark']) {
@@ -16,6 +18,23 @@
   --tooth-detail: rgba(6, 18, 20, 0.45);
   --tooth-gloss: rgba(255, 255, 255, 0.55);
   --tooth-shade: rgba(6, 18, 20, 0.22);
+  // Las ruedas van sobre el panel, no sobre el diente: necesitan trazo claro.
+  --wheel-stroke: rgba(231, 241, 241, 0.42);
+  --wheel-fill: rgba(255, 255, 255, 0.04);
+}
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.scaler {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  margin-inline: auto;
 }
 
 .odontogram {
@@ -59,6 +78,13 @@
   display: flex;
   align-items: flex-end;
   gap: 2px;
+
+  // Abajo la columna va invertida (número arriba): se alinea por arriba para
+  // que números y ruedas de caras queden en una sola línea, como en la arcada
+  // superior, y las raíces largas o cortas cuelguen libres.
+  &.lower {
+    align-items: flex-start;
+  }
 }
 
 .arch-midline {
@@ -80,9 +106,14 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--color-base);
-    padding: 0 10px;
+    background: var(--glass-chip-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 1px 10px;
     font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--color-ink-faint);
   }
 }
@@ -93,8 +124,8 @@
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 2px 0;
-  border-radius: 6px;
+  padding: 4px 1px;
+  border-radius: 10px;
   transition: background 0.15s ease;
 
   &.is-lower {
@@ -206,8 +237,8 @@
 }
 
 .surface {
-  fill: transparent;
-  stroke: var(--tooth-outline);
+  fill: var(--wheel-fill);
+  stroke: var(--wheel-stroke);
   stroke-width: 0.8;
   cursor: pointer;
   transition: filter 0.15s ease;
@@ -223,7 +254,7 @@
 
 .wheel-outline {
   fill: none;
-  stroke: var(--tooth-outline);
+  stroke: var(--wheel-stroke);
   stroke-width: 1.2;
   pointer-events: none;
 }
@@ -314,7 +345,12 @@
 
 .tooth-cell.is-selected {
   background: var(--color-primary-soft);
-  box-shadow: 0 0 0 2px var(--color-primary);
+  box-shadow: 0 0 0 1.5px var(--color-primary), 0 10px 22px -14px var(--color-primary);
+
+  .tooth-number {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
 }
 
 // Respuesta al tocar: la superficie se ilumina antes de aplicar el cambio.

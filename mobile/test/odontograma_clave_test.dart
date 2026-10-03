@@ -5,6 +5,7 @@ import 'package:odonto_movil/core/theme/app_theme.dart';
 import 'package:odonto_movil/features/cuenta/cambiar_clave_page.dart';
 import 'package:odonto_movil/shared/odontograma/condiciones.dart';
 import 'package:odonto_movil/shared/odontograma/odontograma_widget.dart';
+import 'package:odonto_movil/shared/widgets/carga.dart';
 
 void main() {
   test('reglas de contraseña', () {
@@ -84,6 +85,35 @@ void main() {
       final caja = tester.getRect(find.byType(OdontogramaWidget));
       await tester.tapAt(caja.topLeft + const Offset(10, 20));
       expect(tocada, fila.first);
+    });
+  }
+
+  for (final tema in [lightTheme(), darkTheme()]) {
+    testWidgets('pantalla de arranque y esqueletos se dibujan', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(theme: tema, home: const PantallaArranque()),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Sistema Odontológico'), findsOneWidget);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: tema,
+          home: const Scaffold(body: EsqueletoLista(conTarjetas: true)),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: tema,
+          home: Scaffold(
+            body: ListView(
+              children: const [EsqueletoLista(filas: 2, dentroDeLista: true)],
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(tester.takeException(), isNull);
     });
   }
 }

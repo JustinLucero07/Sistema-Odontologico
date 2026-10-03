@@ -71,7 +71,7 @@
       <div class="glass-card empty">
         <mat-icon>credit_score</mat-icon>
         @if (loading()) {
-          <p>Cargando…</p>
+          <app-skeleton variant="list" [rows]="4" />
         } @else if (credits().length === 0) {
           <p>Todavía no hay créditos. Financie un tratamiento desde la cuenta del paciente o con «Nuevo crédito».</p>
         } @else {

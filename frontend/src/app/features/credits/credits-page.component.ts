@@ -18,13 +18,14 @@ import { FinanceService } from '../../core/services/finance.service';
 import { openCreditCreate } from '../../shared/credits/credit-create-dialog.component';
 import { openCreditDetail } from '../../shared/credits/credit-detail-dialog.component';
 import { PatientPickerComponent } from '../../shared/patient-picker/patient-picker.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 type Filter = 'todos' | CreditStatus;
 
 @Component({
   selector: 'app-credits-page',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     MatButtonModule,
     MatDialogModule,

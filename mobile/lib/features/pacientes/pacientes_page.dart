@@ -7,6 +7,7 @@ import '../../core/api/repositorios.dart';
 import '../../core/models/paciente.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import 'paciente_detalle_page.dart';
+import '../../shared/widgets/carga.dart';
 
 final busquedaProvider = StateProvider<String>((ref) => '');
 
@@ -77,7 +78,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
           child: RefreshIndicator(
             onRefresh: () async => ref.invalidate(pacientesProvider),
             child: pacientes.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const EsqueletoLista(filas: 8),
               error: (e, _) => ListView(
                 children: [
                   EstadoError(

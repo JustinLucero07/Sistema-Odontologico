@@ -27,13 +27,14 @@ import {
   formatMoney,
 } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 type Pending = { kind: 'payment'; item: Payment } | { kind: 'charge'; item: Charge };
 
 @Component({
   selector: 'app-account-tab',
   standalone: true,
-  imports: [
+  imports: [SkeletonComponent, 
     DatePipe,
     FormsModule,
     ReactiveFormsModule,
