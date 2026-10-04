@@ -2,8 +2,8 @@
 
 | Archivo | Uso |
 |---|---|
-| `video-promocional-horizontal.mp4` | 1920×1080, 40 s. Para YouTube, Facebook, la web y presentaciones |
-| `video-promocional-vertical.mp4` | 1080×1920, 40 s. Para Instagram Reels, TikTok y estados de WhatsApp |
+| `video-promocional-horizontal.mp4` | 1920×1080, 45 s. Para YouTube, Facebook, la web y presentaciones |
+| `video-promocional-vertical.mp4` | 1080×1920, 45 s. Para Instagram Reels, TikTok y estados de WhatsApp |
 | `escenas/` | Cada escena como imagen, para publicaciones sueltas o un carrusel |
 | `capturas/` | Capturas reales del sistema con datos de demostración |
 
@@ -17,7 +17,7 @@ El cierre dice «Escríbenos y agenda tu demo gratuita». Para poner su contacto
 cd docs/promocion/fuente
 CONTACTO="WhatsApp 099 123 4567" CHROME=~/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome node escenas.mjs
 ./armar.sh h && ./armar.sh v
-for F in h v; do ffmpeg -y -i sin_audio_$F.mp4 -i musica.wav -c:v copy -c:a aac -b:a 160k -t 40.6 promo_$F.mp4; done
+for F in h v; do ffmpeg -y -i sin_audio_$F.mp4 -i musica.wav -c:v copy -c:a aac -b:a 160k -t $(ffprobe -v error -show_entries format=duration -of csv=p=0 sin_audio_$F.mp4) promo_$F.mp4; done
 ```
 
 Requiere Node, ffmpeg y Playwright (ya instalados en esta máquina).

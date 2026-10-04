@@ -1,6 +1,6 @@
 # Sistema Odontológico
 
-Software de gestión para clínicas dentales: **web + app móvil (Android y Linux)**, con diseño Liquid Glass en modo claro y oscuro.
+Software de gestión dental para **odontólogos independientes, consultorios pequeños y clínicas**: **web + app móvil (Android y Linux)**, con diseño Liquid Glass en modo claro y oscuro.
 
 ## Qué incluye
 

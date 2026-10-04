@@ -1,10 +1,10 @@
 # Instalación en producción
 
-Guía para instalar el sistema para una clínica en un servidor propio o en la nube, con HTTPS y respaldos automáticos. Toma unos 20 minutos.
+Guía para instalar el sistema para un consultorio o una clínica, en un servidor propio o en la nube, con HTTPS y respaldos automáticos. Toma unos 20 minutos.
 
 ## Qué se necesita
 
-- Un servidor Linux con Docker y Docker Compose. Basta un VPS de 2 GB de RAM y 40 GB de disco para una clínica.
+- Un servidor Linux con Docker y Docker Compose. Basta un VPS de 2 GB de RAM y 40 GB de disco para una clínica o para varios consultorios pequeños.
 - Un dominio o subdominio (por ejemplo, `sonrisa.sudominio.com`) apuntando a la IP del servidor.
 - Los puertos 80 y 443 abiertos.
 
@@ -48,7 +48,22 @@ Al arrancar, el sistema hace solo lo siguiente:
 
 Compruebe que responde en `https://SU-DOMINIO/api/v1/health`, que debe devolver `{"status":"ok"}`.
 
-## 3. Crear la clínica del cliente
+## 3. Crear el consultorio o la clínica del cliente
+
+**Odontólogo independiente** (él mismo administra y atiende):
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend \
+  python nueva_clinica.py \
+    --nombre "Consultorio Dra. Lucía Paz" \
+    --admin-email lucia.paz@correo.ec \
+    --admin-nombre "Lucía" --admin-apellido "Paz" \
+    --odontologo --registro "MSP-12345"
+```
+
+Con `--odontologo`, la cuenta queda también como profesional: puede agendar citas y firmar recetas con su registro desde el primer ingreso.
+
+**Clínica con equipo:**
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend \
@@ -102,6 +117,6 @@ Sin configurar, los recordatorios quedan registrados como «simulado» y nada se
 
 Los botones de WhatsApp de *Oportunidades* y de la ficha no necesitan esta cuenta: abren WhatsApp en el equipo con el mensaje ya escrito.
 
-## 8. Varias clínicas en un servidor
+## 8. Varios consultorios o clínicas en un servidor
 
-Cada clínica es un inquilino aislado (`clinic_id`), así que pueden convivir varias en la misma instalación. Basta repetir `nueva_clinica.py`. Si prefiere aislamiento total por cliente, haga una instalación por clínica, con su propio dominio.
+Cada consultorio o clínica es un inquilino aislado (`clinic_id`), así que pueden convivir varios en la misma instalación, cada uno viendo solo sus datos. Basta repetir `nueva_clinica.py`. Es la forma más económica de atender a odontólogos independientes. Si prefiere aislamiento total por cliente, haga una instalación por clínica, con su propio dominio.

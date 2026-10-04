@@ -1,5 +1,6 @@
-"""Alta de una clínica nueva (cliente), lista para trabajar y SIN datos de
-demostración.
+"""Alta de un consultorio o clínica nueva (cliente), lista para trabajar y SIN
+datos de demostración. Sirve igual para un odontólogo que trabaja solo que para
+una clínica con equipo.
 
 Crea la clínica con su sede y consultorio, los roles base con todos los
 permisos, el usuario administrador (que deberá cambiar la contraseña temporal
@@ -13,7 +14,11 @@ Uso:
         --admin-nombre "Ana" --admin-apellido "Pérez" \\
         [--ruc 1790000000001] [--telefono "+593 99 999 9999"] \\
         [--direccion "Av. Amazonas N24"] [--zona America/Guayaquil] \\
-        [--sin-catalogo]
+        [--odontologo --registro "MSP-12345"] [--sin-catalogo]
+
+Con --odontologo, el administrador es también el profesional que atiende (el
+caso de un consultorio de una persona): queda listo para agendar citas y
+firmar recetas desde el primer día.
 
 Imprime la contraseña temporal UNA sola vez. Entréguela al cliente por un
 canal seguro; el sistema le obligará a cambiarla en su primer ingreso.
@@ -33,7 +38,7 @@ from app.core.password_policy import problems
 from app.core.permissions import DEFAULT_ROLES, PERMISSION_CATALOG
 from app.core.security import hash_password
 from app.modules.clinics.models import Branch, Clinic, Operatory
-from app.modules.professionals.models import Specialty
+from app.modules.professionals.models import Professional, Specialty
 from app.modules.treatments.models import Treatment
 from app.modules.users.models import Permission, Role, User
 
@@ -78,7 +83,7 @@ async def crear(args: argparse.Namespace) -> None:
         if await db.scalar(select(func.count(User.id)).where(func.lower(User.email) == email)):
             sys.exit(f"Ya existe un usuario con el correo {email}.")
         if await db.scalar(select(func.count(Clinic.id)).where(Clinic.name == args.nombre)):
-            sys.exit(f"Ya existe una clínica llamada «{args.nombre}».")
+            sys.exit(f"Ya existe un consultorio o clínica llamada «{args.nombre}».")
 
         clinic = Clinic(
             name=args.nombre,
@@ -119,25 +124,40 @@ async def crear(args: argparse.Namespace) -> None:
             roles[nombre_rol] = rol
         await db.flush()
 
-        db.add(Specialty(clinic_id=clinic.id, name="Odontología general"))
+        especialidad = Specialty(clinic_id=clinic.id, name="Odontología general")
+        db.add(especialidad)
+        await db.flush()
 
         clave = _clave_temporal()
         fallos = problems(clave, email=email, names=(args.admin_nombre, args.admin_apellido))
         if fallos:  # no debería pasar, pero nunca se entrega una clave que el sistema rechazaría
             sys.exit("No se pudo generar una contraseña válida: " + "; ".join(fallos))
 
-        db.add(
-            User(
-                clinic_id=clinic.id,
-                email=email,
-                hashed_password=hash_password(clave),
-                first_name=args.admin_nombre,
-                last_name=args.admin_apellido,
-                is_superadmin=False,
-                must_change_password=True,
-                roles=[roles["Administrador"]],
-            )
+        admin = User(
+            clinic_id=clinic.id,
+            email=email,
+            hashed_password=hash_password(clave),
+            first_name=args.admin_nombre,
+            last_name=args.admin_apellido,
+            is_superadmin=False,
+            must_change_password=True,
+            roles=[roles["Administrador"]],
         )
+        db.add(admin)
+        await db.flush()
+
+        if args.odontologo:
+            db.add(
+                Professional(
+                    clinic_id=clinic.id,
+                    user_id=admin.id,
+                    first_name=args.admin_nombre,
+                    last_name=args.admin_apellido,
+                    specialty_id=especialidad.id,
+                    license_number=args.registro,
+                    color_hex="#0D7F76",
+                )
+            )
 
         if not args.sin_catalogo:
             for nombre, precio in CATALOGO_INICIAL:
@@ -146,7 +166,9 @@ async def crear(args: argparse.Namespace) -> None:
         await db.commit()
 
     print()
-    print(f"  Clínica creada: {args.nombre}")
+    print(f"  Creado: {args.nombre}")
+    if args.odontologo:
+        print("  El administrador también quedó como profesional (listo para agendar).")
     print(f"  Usuario administrador: {email}")
     print(f"  Contraseña temporal:   {clave}")
     print()
@@ -156,8 +178,8 @@ async def crear(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Alta de una clínica nueva, sin datos de demostración.")
-    p.add_argument("--nombre", required=True, help="Nombre comercial de la clínica")
+    p = argparse.ArgumentParser(description="Alta de un consultorio o clínica, sin datos de demostración.")
+    p.add_argument("--nombre", required=True, help="Nombre comercial del consultorio o clínica")
     p.add_argument("--admin-email", required=True)
     p.add_argument("--admin-nombre", required=True)
     p.add_argument("--admin-apellido", required=True)
@@ -166,6 +188,8 @@ def main() -> None:
     p.add_argument("--telefono")
     p.add_argument("--direccion")
     p.add_argument("--zona", default="America/Guayaquil", help="Zona horaria (IANA)")
+    p.add_argument("--odontologo", action="store_true", help="El administrador también atiende pacientes")
+    p.add_argument("--registro", help="Registro profesional del odontólogo (sale en las recetas)")
     p.add_argument("--sin-catalogo", action="store_true", help="No cargar el catálogo inicial de tratamientos")
     asyncio.run(crear(p.parse_args()))
 

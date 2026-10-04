@@ -10,6 +10,18 @@ const CONTACTO = process.env.CONTACTO || 'Escríbenos y agenda tu demo gratuita'
 
 const TOOTH = `<svg viewBox="0 0 32 32" width="100%" height="100%"><path d="M16 3.4c-6.1 0-10.6 3.3-10.6 8.9 0 3.9 1.1 6.9 1.9 10.9.6 3 1 5.8 3 5.8s2.4-2.7 3.1-5.5c.5-2 1.3-3.1 2.6-3.1s2.1 1.1 2.6 3.1c.7 2.8 1.1 5.5 3.1 5.5s2.4-2.8 3-5.8c.8-4 1.9-7 1.9-10.9 0-5.6-4.5-8.9-10.6-8.9Z" fill="#fff" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><path d="M10.4 9.1c1-1.6 2.9-2.6 5-2.6" stroke="#0d7f76" stroke-width="1.6" stroke-linecap="round" opacity=".5" fill="none"/></svg>`;
 
+
+// Íconos (trazos de Material Icons) en una gota de color, como en el sistema.
+const ICONOS = {
+  candado: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
+  escudo: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z',
+  respaldo: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17 15.18 9l1.41 1.41L10 17z',
+  equipo: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+  persona: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+  clinica: 'M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z',
+};
+const icono = (n, t = 76) => `<span style="flex-shrink:0;width:${t}px;height:${t}px;border-radius:${Math.round(t * 0.3)}px;display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1fb3a4,#0d7f76 60%,#074a45);box-shadow:0 14px 30px -14px rgba(7,74,69,.7), inset 0 1px 0 rgba(255,255,255,.35)"><svg viewBox="0 0 24 24" width="${Math.round(t * 0.52)}" height="${Math.round(t * 0.52)}"><path fill="#fff" d="${ICONOS[n]}"/></svg></span>`;
+
 const base = (w, h, dark) => `
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -43,7 +55,7 @@ const H = {
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:34px">
      <div class="logo" style="width:200px;height:200px"><div>${TOOTH}</div></div>
      <h1 style="font-size:112px">Sistema Odontológico</h1>
-     <p style="font-size:40px;color:#4a6266;max-width:1200px">La gestión de tu clínica dental, en una sola pantalla.</p>
+     <p style="font-size:42px;color:#4a6266;max-width:1300px">Tu consultorio dental, en una sola pantalla.</p><p style="font-size:30px;color:#0d7f76;font-weight:600">Para odontólogos independientes, consultorios y clínicas</p>
    </div>`,
   problema: () => `${base(1920,1080,true)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 200px;gap:28px">
@@ -63,25 +75,33 @@ const H = {
    <div style="position:absolute;left:110px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center;gap:26px">
      <span class="kicker" style="font-size:22px;color:#5ee0ce"><i></i>Donde estés</span>
      <h2 style="font-size:76px;color:#fff">Computadora, tablet y celular</h2>
-     <p style="font-size:32px;line-height:1.4;color:#9fb7b8">Modo claro y oscuro. Y app móvil para el sillón.</p>
+     <p style="font-size:32px;line-height:1.4;color:#9fb7b8">Si trabajas solo, llevas el consultorio en el bolsillo.</p>
    </div>
    <div style="position:absolute;left:720px;top:150px;width:1000px">${ventana('panel-oscuro', true)}</div>
    <div style="position:absolute;left:1500px;top:250px;width:330px;border-radius:52px;padding:12px;background:#0b1b1d;box-shadow:0 50px 90px -30px rgba(0,0,0,.8);border:2px solid rgba(255,255,255,.12)">
      <img src="${img('movil-oportunidades')}" style="width:100%;border-radius:42px;display:block"></div>`,
+  perfiles: () => `${base(1920,1080)}
+   <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:56px">
+     <span class="kicker" style="font-size:24px"><i></i>Hecho a tu medida</span>
+     <h2 style="font-size:84px;text-align:center;margin-top:-30px">Desde un consultorio de una persona</h2>
+     <div style="display:grid;grid-template-columns:repeat(3,520px);gap:28px">
+       ${[['persona','Trabajas solo','Agenda, fichas y cobros desde tu celular. Sin recepcionista.'],['equipo','Dos o tres odontólogos','Cada uno con su agenda, sin choques de horario.'],['clinica','Clínica con equipo','Roles, finanzas, créditos, inventario y laboratorio.']].map(([e,t,d])=>`<div class="glass" style="border-radius:32px;padding:40px 38px;display:grid;gap:14px">${icono(e, 84)}<strong style="font-family:'Plus Jakarta Sans';font-size:40px;letter-spacing:-.02em">${t}</strong><span style="font-size:28px;line-height:1.4;color:#4a6266">${d}</span></div>`).join('')}
+     </div>
+   </div>`,
   confianza: () => `${base(1920,1080)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:60px">
      <h2 style="font-size:80px;text-align:center">Tus datos, seguros y en regla</h2>
      <div style="display:grid;grid-template-columns:repeat(2,640px);gap:26px">
-       ${[['🔒','Conexión segura HTTPS'],['🛡️','Pensado para la LOPDP de Ecuador'],['💾','Respaldo automático diario'],['👥','Roles, permisos y registro de accesos']]
-         .map(([e,t])=>`<div class="glass" style="border-radius:28px;padding:34px 38px;display:flex;align-items:center;gap:26px;font-size:34px;font-weight:600"><span style="font-size:52px">${e}</span>${t}</div>`).join('')}
+       ${[['candado','Conexión segura HTTPS'],['escudo','Pensado para la LOPDP de Ecuador'],['respaldo','Respaldo automático diario'],['equipo','Roles, permisos y registro de accesos']]
+         .map(([e,t])=>`<div class="glass" style="border-radius:28px;padding:34px 38px;display:flex;align-items:center;gap:26px;font-size:34px;font-weight:600">${icono(e, 76)}${t}</div>`).join('')}
      </div>
    </div>`,
   cta: () => `${base(1920,1080,true)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:36px">
      <div class="logo" style="width:150px;height:150px"><div>${TOOTH}</div></div>
-     <h1 style="font-size:96px;color:#fff">Moderniza tu clínica hoy</h1>
+     <h1 style="font-size:96px;color:#fff">Moderniza tu consultorio hoy</h1>
      <div class="pill" style="font-size:40px;background:linear-gradient(135deg,#3ddcc8,#17a394);color:#04201d;padding:22px 46px;box-shadow:0 20px 50px -18px rgba(61,220,200,.7)">${CONTACTO}</div>
-     <p style="font-size:30px;color:#9fb7b8">Sistema Odontológico · Web y app móvil</p>
+     <p style="font-size:30px;color:#9fb7b8">Odontólogos independientes · Consultorios · Clínicas</p>
    </div>`,
 };
 
@@ -91,7 +111,7 @@ const V = {
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:40px;padding:0 70px">
      <div class="logo" style="width:240px;height:240px"><div>${TOOTH}</div></div>
      <h1 style="font-size:104px">Sistema Odontológico</h1>
-     <p style="font-size:46px;color:#4a6266">La gestión de tu clínica dental, en una sola pantalla.</p>
+     <p style="font-size:48px;color:#4a6266">Tu consultorio dental, en una sola pantalla.</p><p style="font-size:36px;color:#0d7f76;font-weight:600">Para odontólogos independientes, consultorios y clínicas</p>
    </div>`,
   problema: () => `${base(1080,1920,true)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 80px;gap:34px">
@@ -109,33 +129,40 @@ const V = {
    ${movil
      ? `<div style="position:absolute;left:250px;top:760px;width:580px;border-radius:70px;padding:16px;background:#0b1b1d;box-shadow:0 50px 90px -30px rgba(0,0,0,.6)"><img src="${img(movil)}" style="width:100%;border-radius:56px;display:block"></div>`
      : `<div style="position:absolute;left:-330px;top:700px;width:1750px">${ventana(cap, dark)}</div>`}`,
+  perfiles: () => `${base(1080,1920)}
+   <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:40px;padding:0 70px">
+     <span class="kicker" style="font-size:30px"><i></i>Hecho a tu medida</span>
+     <h2 style="font-size:88px">Desde un consultorio de una persona</h2>
+     ${[['persona','Trabajas solo','Agenda, fichas y cobros desde tu celular. Sin recepcionista.'],['equipo','Dos o tres odontólogos','Cada uno con su agenda, sin choques de horario.'],['clinica','Clínica con equipo','Roles, finanzas, créditos, inventario y laboratorio.']].map(([e,t,d])=>`<div class="glass" style="border-radius:34px;padding:38px 40px;display:flex;gap:30px;align-items:center">${icono(e, 96)}<div style="display:grid;gap:8px"><strong style="font-family:'Plus Jakarta Sans';font-size:46px;letter-spacing:-.02em">${t}</strong><span style="font-size:32px;line-height:1.35;color:#4a6266">${d}</span></div></div>`).join('')}
+   </div>`,
   confianza: () => `${base(1080,1920)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:60px;padding:0 70px">
      <h2 style="font-size:88px;text-align:center">Tus datos, seguros y en regla</h2>
      <div style="display:grid;gap:26px;width:100%">
-       ${[['🔒','Conexión segura HTTPS'],['🛡️','Pensado para la LOPDP'],['💾','Respaldo automático diario'],['👥','Roles, permisos y accesos']]
-         .map(([e,t])=>`<div class="glass" style="border-radius:30px;padding:36px 40px;display:flex;align-items:center;gap:28px;font-size:42px;font-weight:600"><span style="font-size:60px">${e}</span>${t}</div>`).join('')}
+       ${[['candado','Conexión segura HTTPS'],['escudo','Pensado para la LOPDP'],['respaldo','Respaldo automático diario'],['equipo','Roles, permisos y accesos']]
+         .map(([e,t])=>`<div class="glass" style="border-radius:30px;padding:36px 40px;display:flex;align-items:center;gap:28px;font-size:42px;font-weight:600">${icono(e, 88)}${t}</div>`).join('')}
      </div>
    </div>`,
   cta: () => `${base(1080,1920,true)}
    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:44px;padding:0 70px">
      <div class="logo" style="width:190px;height:190px"><div>${TOOTH}</div></div>
-     <h1 style="font-size:100px;color:#fff">Moderniza tu clínica hoy</h1>
+     <h1 style="font-size:100px;color:#fff">Moderniza tu consultorio hoy</h1>
      <div class="pill" style="font-size:44px;background:linear-gradient(135deg,#3ddcc8,#17a394);color:#04201d;padding:26px 50px">${CONTACTO}</div>
-     <p style="font-size:34px;color:#9fb7b8">Sistema Odontológico · Web y app móvil</p>
+     <p style="font-size:34px;color:#9fb7b8">Odontólogos independientes · Consultorios · Clínicas</p>
    </div>`,
 };
 
 const guion = [
   ['01-intro', (S) => S.intro()],
   ['02-problema', (S) => S.problema()],
+  ['02b-perfiles', (S) => S.perfiles()],
   ['03-panel', (S) => S.pantalla('panel', 'Panel del día', 'Todo tu día, de un vistazo', 'Citas de hoy, cobros del mes y lo que necesita tu atención.', false, 'movil-panel')],
-  ['04-agenda', (S) => S.pantalla('agenda', 'Agenda', 'Sin choques de horario', 'Y te sugiere los próximos huecos libres de cada profesional.')],
+  ['04-agenda', (S) => S.pantalla('agenda', 'Agenda', 'Sin choques de horario', 'Y te sugiere tus próximos huecos libres, solo o en equipo.')],
   ['05-odontograma', (S) => S.pantalla('odontograma', 'Odontograma digital', 'Marca, corrige y compara', 'Pincel por superficie, deshacer y versiones guardadas.')],
   ['06-historia', (S) => S.pantalla('historia', 'Historia clínica', 'Segura y versionada', 'Recetas, consentimientos y evoluciones. Nada se borra.')],
   ['07-oportunidades', (S) => S.pantalla('oportunidades', 'Oportunidades', 'Recupera pacientes por WhatsApp', 'Te dice a quién escribir hoy. El mensaje ya va escrito.', false, 'movil-oportunidades')],
   ['08-finanzas', (S) => S.pantalla('finanzas', 'Finanzas', 'Caja, cobros y créditos', 'Ingresos, egresos, utilidad y tratamientos en cuotas.')],
-  ['09-dispositivos', (S) => (S.dispositivos ? S.dispositivos() : S.pantalla('panel-oscuro', 'Donde estés', 'Computadora y celular', 'Modo claro y oscuro. Y app móvil para el sillón.', true, 'movil-panel'))],
+  ['09-dispositivos', (S) => (S.dispositivos ? S.dispositivos() : S.pantalla('panel-oscuro', 'Donde estés', 'Computadora y celular', 'Si trabajas solo, llevas el consultorio en el bolsillo.', true, 'movil-panel'))],
   ['10-confianza', (S) => S.confianza()],
   ['11-cta', (S) => S.cta()],
 ];

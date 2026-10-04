@@ -3,11 +3,11 @@
 > **PLANTILLA — revisar con un abogado antes de usarla.** Complete los campos entre corchetes. Está redactada para Ecuador y para dos modalidades de venta: servicio en la nube (suscripción) o instalación en el servidor de la clínica (licencia). Borre la modalidad que no aplique.
 
 **Proveedor:** [NOMBRE O RAZÓN SOCIAL], RUC [RUC], con domicilio en [DIRECCIÓN], correo [CORREO].
-**Cliente:** [RAZÓN SOCIAL DE LA CLÍNICA], RUC [RUC], representada por [NOMBRE], con domicilio en [DIRECCIÓN].
+**Cliente:** [NOMBRE DEL ODONTÓLOGO, CONSULTORIO O CLÍNICA], RUC [RUC], representada por [NOMBRE], con domicilio en [DIRECCIÓN].
 
 ## 1. Objeto
 
-El Proveedor concede al Cliente el derecho de uso del software de gestión odontológica **[NOMBRE COMERCIAL]** (aplicación web y aplicación móvil), en la modalidad indicada en la cláusula 3, para la gestión de su clínica: pacientes, historia clínica, odontograma, agenda, tratamientos, cobros y demás funciones de la versión contratada.
+El Proveedor concede al Cliente el derecho de uso del software de gestión odontológica **[NOMBRE COMERCIAL]** (aplicación web y aplicación móvil), en la modalidad indicada en la cláusula 3, para la gestión de su consulta odontológica: pacientes, historia clínica, odontograma, agenda, tratamientos, cobros y demás funciones de la versión contratada.
 
 ## 2. Naturaleza de la licencia
 

@@ -34,13 +34,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final nuevo = await showDialog<String>(
       context: context,
       builder: (dialogo) => AlertDialog(
-        title: const Text('Servidor de la clínica'),
+        title: const Text('Servidor del consultorio'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'La dirección web donde su clínica usa el sistema. '
+              'La dirección web donde su consultorio o clínica usa el sistema. '
               'Se configura una sola vez.',
             ),
             const SizedBox(height: 14),
@@ -129,7 +129,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Ingresa con la cuenta de tu clínica.',
+                          'Ingresa con tu cuenta del consultorio.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 14,
@@ -254,7 +254,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             label: Text(
                               ApiConfig.configurado
                                   ? 'Servidor: ${ApiConfig.servidorVisible}'
-                                  : 'Configurar servidor de la clínica',
+                                  : 'Configurar servidor del consultorio',
                             ),
                           ),
                         const SizedBox(height: 8),

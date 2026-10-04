@@ -5,7 +5,7 @@ F=$1
 if [ "$F" = h ]; then W=1920; H=1080; else W=1080; H=1920; fi
 FPS=30; T=0.7
 mkdir -p clips/$F
-DUR=(3.6 4.2 4.4 4.4 4.4 4.2 4.6 4.4 4.4 4.0 5.0)
+DUR=(3.8 4.2 4.8 4.4 4.4 4.4 4.2 4.6 4.4 4.4 4.0 5.0)
 i=0
 for img in escenas/$F/*.png; do
   d=${DUR[$i]}; frames=$(python3 -c "print(int($d*$FPS))")
