@@ -1,0 +1,133 @@
+# Instalación de PRODUCCIÓN.
+#
+#   cd infra
+#   cp .env.prod.example .env.prod   # complete DOMINIO, claves y correo
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Diferencias con el compose de desarrollo:
+#   - HTTPS automático con Caddy (certificado de Let's Encrypt para su dominio).
+#   - La base de datos, Redis y el backend NO se publican: solo Caddy (80/443).
+#   - Las migraciones y los permisos se aplican solos al arrancar el backend.
+#   - Respaldo diario automático de la base de datos y de los archivos clínicos.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odonto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD en .env.prod}
+      POSTGRES_DB: odonto
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odonto -d odonto"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      ENV: production
+      APP_NAME: Sistema Odontologico
+      DATABASE_URL: postgresql+asyncpg://odonto:${POSTGRES_PASSWORD}@postgres:5432/odonto
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?defina JWT_SECRET_KEY en .env.prod}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 15
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      CORS_ORIGINS: '["https://${DOMINIO}"]'
+      STORAGE_PROVIDER: local
+      STORAGE_LOCAL_PATH: /app/storage
+      REFRESH_TOKEN_COOKIE_SECURE: "true"
+      PORTAL_BASE_URL: https://${DOMINIO}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/api/v1/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  # Envía los recordatorios de citas (24 h y 2 h antes) cada 15 minutos.
+  # Sin WHATSAPP_TOKEN quedan registrados como «simulado».
+  recordatorios:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    entrypoint: ["python", "despachar_recordatorios.py", "--cada", "15"]
+    environment:
+      ENV: production
+      DATABASE_URL: postgresql+asyncpg://odonto:${POSTGRES_PASSWORD}@postgres:5432/odonto
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      CORS_ORIGINS: '["https://${DOMINIO}"]'
+      STORAGE_LOCAL_PATH: /app/storage
+      REFRESH_TOKEN_COOKIE_SECURE: "true"
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO en .env.prod}
+      CORREO_TLS: ${CORREO_TLS:?defina CORREO_TLS en .env.prod}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+  # Respaldo diario: volcado de la base + archivos clínicos, con retención.
+  # Los respaldos quedan en ./respaldos; cópielos además fuera del servidor
+  # (otro disco o la nube): un respaldo en la misma máquina no protege de que
+  # esa máquina se pierda.
+  respaldos:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      RETENCION_DIAS: ${RETENCION_DIAS:-30}
+      HORA_RESPALDO: ${HORA_RESPALDO:-02}
+    volumes:
+      - ./respaldos:/respaldos
+      - storage:/storage:ro
+      - ./respaldo-diario.sh:/respaldo-diario.sh:ro
+    entrypoint: ["sh", "/respaldo-diario.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  storage:
+  caddy_data:
+  caddy_config:

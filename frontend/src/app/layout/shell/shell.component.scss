@@ -513,12 +513,18 @@ mat-sidenav-content {
   // Solo el "+" en el botón de crear para que quepa el buscador.
   .create-button {
     min-width: 0;
-    padding: 0 10px;
+    width: 40px;
+    height: 40px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
     font-size: 0;
+    justify-content: center;
 
     mat-icon {
-      margin: 0;
-      font-size: 20px;
+      margin: 0 !important;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
     }
   }
 }

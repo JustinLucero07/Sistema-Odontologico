@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'core/api/api_config.dart';
 import 'core/auth/auth_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/cuenta/cambiar_clave_page.dart';
@@ -16,6 +17,7 @@ Future<void> main() async {
   // Sin esto, `DateFormat('EEEE', 'es')` lanza: los datos del idioma se cargan
   // aparte y no vienen en el binario por defecto.
   await initializeDateFormatting('es');
+  await ApiConfig.cargar();
   runApp(const ProviderScope(child: OdontoApp()));
 }
 

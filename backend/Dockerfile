@@ -11,6 +11,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Sin privilegios de root: si alguien llegara a ejecutar código en el
+# contenedor, no controlaría el sistema.
+RUN useradd --create-home --uid 10001 odonto \
+    && mkdir -p /app/storage && chown -R odonto:odonto /app/storage \
+    && chmod +x /app/docker-entrypoint.sh
+USER odonto
+
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

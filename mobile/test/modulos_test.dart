@@ -20,6 +20,7 @@ import 'package:odonto_movil/features/mas/mas_page.dart';
 import 'package:odonto_movil/features/oportunidades/oportunidades_page.dart';
 import 'package:odonto_movil/features/agenda/huecos_page.dart';
 import 'package:odonto_movil/shared/contacto.dart';
+import 'package:odonto_movil/core/api/api_config.dart';
 import 'package:odonto_movil/features/pacientes/paciente_detalle_page.dart';
 import 'package:odonto_movil/features/reportes/reportes_page.dart';
 
@@ -565,5 +566,17 @@ void main() {
     expect(find.text('Carlos Pérez'), findsOneWidget);
     // Sin autorización de comunicaciones: no hay botón de WhatsApp.
     expect(find.byTooltip('WhatsApp'), findsNothing);
+  });
+
+  test('dirección del servidor normalizada', () {
+    expect(
+      ApiConfig.normalizar('clinica.ejemplo.com/'),
+      'https://clinica.ejemplo.com',
+    );
+    expect(ApiConfig.normalizar('https://x.ec/api/v1'), 'https://x.ec');
+    expect(
+      ApiConfig.normalizar('192.168.1.50:8000'),
+      'http://192.168.1.50:8000',
+    );
   });
 }

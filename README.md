@@ -1,78 +1,54 @@
-# Sistema Odontológico — Fases 1 a 6
+# Sistema Odontológico
 
-Arquitectura completa en [este documento](https://claude.ai/code/artifact/8991af38-1531-4963-8933-c9094d25488a).
+Software de gestión para clínicas dentales: **web + app móvil (Android y Linux)**, con diseño Liquid Glass en modo claro y oscuro.
 
-- **Fase 1**: arquitectura base, autenticación (JWT + refresh rotativo), usuarios, roles y permisos (RBAC configurable), datos de la clínica, sucursales, consultorios y profesionales/especialidades.
-- **Fase 2**: pacientes (alta, búsqueda, baja) e historia clínica versionada — cada edición crea una nueva versión, nunca sobrescribe la anterior — con la ficha del paciente como expediente digital.
-- **Fase 3**: odontograma digital interactivo (SVG, no imagen estática) con numeración FDI, dentición permanente y temporal, 5 superficies por pieza más condición de diente completo, versionado por snapshots, historial de versiones, y acceso directo desde el menú con buscador de paciente.
-- **Fase 4**: diagnósticos, catálogo de tratamientos, planes de tratamiento (con ítems por pieza/diagnóstico, estados y progreso calculado automáticamente) y presupuestos generados desde un plan (subtotal, impuesto, total, y flujo de estados borrador → enviado → visto → aceptado/rechazado que no permite retroceder).
-- **Fase 5**: agenda y citas — vistas de día y semana, filtro por profesional, estados de cita (programada → confirmada → en atención → atendida, más cancelada/no asistió) y **prevención de doble reserva garantizada por la propia base de datos** (constraints de exclusión GiST, no solo validación en el servicio). Incluye recordatorios programados (24 h y 2 h antes) listos para conectar con WhatsApp/email en la Fase 11.
+## Qué incluye
 
-- **Fase 6**: evoluciones clínicas (append-only, con auditoría de cada corrección), recetas con varios medicamentos, consentimientos informados a partir de plantillas —el texto queda congelado tal como se firmó, editar la plantilla después no cambia lo aceptado— y gestión documental con subida/descarga real de archivos detrás de una capa `StorageProvider` (disco local hoy, S3 sin tocar el código de negocio).
+| Área | Funciones |
+|---|---|
+| Clínica | Panel del día, agenda semanal sin choques de horario, huecos libres, recordatorios automáticos |
+| Pacientes | Ficha, historia clínica versionada, odontograma digital, periodontograma, radiografías y fotos, documentos |
+| Clínico | Diagnósticos, planes de tratamiento con avance, presupuestos, evoluciones, recetas, consentimientos firmados |
+| Finanzas | Cuenta del paciente, caja diaria con arqueo, ingresos y egresos, créditos en cuotas, reportes |
+| Gestión | Inventario con alertas, laboratorio con seguimiento de órdenes, profesionales, usuarios, roles y permisos |
+| Crecimiento | **Oportunidades**: a quién escribir hoy por WhatsApp, con el mensaje ya escrito |
+| Legal | Herramientas para cumplir la LOPDP de Ecuador: aviso de privacidad, autorizaciones, registro de accesos, exportación de datos y confidencialidad del personal |
 
-Todo con frontend Angular funcional de extremo a extremo.
+## Documentación
 
-## Requisitos
+| Documento | Para qué |
+|---|---|
+| [docs/INSTALACION_PRODUCCION.md](docs/INSTALACION_PRODUCCION.md) | Instalar para un cliente: HTTPS, respaldos, alta de clínica |
+| [docs/PUBLICAR_APP.md](docs/PUBLICAR_APP.md) | Firmar y publicar la app en Google Play |
+| [docs/LANZAMIENTO.md](docs/LANZAMIENTO.md) | Lista de lanzamiento: qué está listo y qué falta |
+| [docs/VENTAS.md](docs/VENTAS.md) | Guía de venta, demostración y precios |
+| [docs/legal/](docs/legal/) | Plantillas de términos de servicio y de contrato de encargo de datos |
+| [LEGAL.md](LEGAL.md) | Qué obligaciones legales cubre el sistema y cuáles quedan a cargo de la clínica |
+| [OPERACIONES.md](OPERACIONES.md) | Operación diaria, respaldos manuales y variables de entorno |
 
-- Docker y Docker Compose
-- (Solo para desarrollo sin Docker) Python 3.12 y Node 20
+## Desarrollo
 
-## Levantar todo con Docker Compose (recomendado)
-
-```bash
-cd infra
-cp .env.example .env   # define JWT_SECRET_KEY con un valor largo y aleatorio
-docker compose up -d --build
-```
-
-- Frontend: http://localhost (vía Nginx) o http://localhost:4200 (contenedor del frontend directo)
-- API: http://localhost/api/v1 (vía Nginx) o http://localhost:8000/api/v1 directo
-- Documentación interactiva de la API: http://localhost:8000/docs
-
-La primera vez, aplique las migraciones y cargue los datos de demostración dentro del contenedor del backend:
-
-```bash
-docker compose exec backend alembic upgrade head
-docker compose exec backend python seed.py
-```
-
-## Desarrollo local sin Docker (backend)
+Requisitos: Docker, Python 3.12, Node 20 y Flutter 3.
 
 ```bash
+# Base de datos de desarrollo
+cd infra && docker compose up -d postgres redis
+
+# Backend
 cd backend
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # ajuste DATABASE_URL/REDIS_URL si no usa Docker para la base de datos
-alembic upgrade head
-python seed.py
+cp .env.example .env
+alembic upgrade head && python seed.py   # seed.py = datos de DEMOSTRACIÓN
 uvicorn app.main:app --reload
+
+# Web (http://localhost:4200)
+cd frontend && npm install && npm start
+
+# App
+cd mobile && flutter run -d linux        # o un emulador Android
 ```
 
-Tests: `pytest` (requiere una base `odonto_test` en el Postgres apuntado por `tests/conftest.py`).
+Credenciales de demostración (solo `seed.py`, nunca en producción): `admin@clinicademo.com` / `Admin123!`
 
-## Desarrollo local sin Docker (frontend)
-
-```bash
-cd frontend
-npm install
-npm start   # http://localhost:4200, apunta a http://localhost:8000/api/v1 (ver src/environments)
-```
-
-## Credenciales de desarrollo (seed.py)
-
-| Rol | Correo | Contraseña |
-| --- | --- | --- |
-| Administrador (superadmin) | admin@clinicademo.com | Admin123! |
-| Odontólogo | odontologo@clinicademo.com | Odonto123! |
-
-**No usar estas credenciales en producción.**
-
-## Estado del proyecto
-
-- ✅ Fase 1: arquitectura, base de datos, autenticación, usuarios, roles, permisos, clínica
-- ✅ Fase 2: pacientes, historia clínica versionada, ficha del paciente
-- ✅ Fase 3: odontograma digital interactivo versionado (dentición permanente y temporal)
-- ✅ Fase 4: diagnósticos, tratamientos, planes de tratamiento con progreso, presupuestos
-- ✅ Fase 5: agenda, citas, estados y recordatorios programados
-- ✅ Fase 6: evoluciones clínicas, recetas, consentimientos y documentos
-- ⬜ Fase 7 en adelante: ver el documento de arquitectura, sección "Plan de desarrollo por fases"
+Pruebas: `cd backend && pytest` y `cd mobile && flutter test`.

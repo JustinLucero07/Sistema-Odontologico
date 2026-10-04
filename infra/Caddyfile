@@ -1,0 +1,32 @@
+# HTTPS automático: Caddy obtiene y renueva el certificado de Let's Encrypt
+# para el dominio. Requisito: el dominio apunta a este servidor y los puertos
+# 80 y 443 están abiertos.
+{
+	email {$CORREO_TLS}
+}
+
+{$DOMINIO} {
+	encode zstd gzip
+
+	# Radiografías y documentos de hasta 25 MB.
+	request_body {
+		max_size 25MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}

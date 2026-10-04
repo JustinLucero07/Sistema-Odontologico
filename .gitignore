@@ -27,3 +27,12 @@ infra/backups/*
 backups/
 *.dump
 *.dump.SOSPECHOSO
+infra/.env.prod
+infra/respaldos/
+
+# Material de promoción pesado (se regenera con docs/promocion/fuente)
+docs/promocion/*.mp4
+docs/promocion/escenas/
+docs/promocion/capturas/
+docs/promocion/fuente/*.wav
+docs/promocion/fuente/clips/

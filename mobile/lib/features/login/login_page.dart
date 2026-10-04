@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api/api_config.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/carga.dart';
@@ -26,7 +27,60 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _cambiarServidor() async {
+    final control = TextEditingController(
+      text: ApiConfig.configurado ? ApiConfig.servidorVisible : '',
+    );
+    final nuevo = await showDialog<String>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: const Text('Servidor de la clínica'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'La dirección web donde su clínica usa el sistema. '
+              'Se configura una sola vez.',
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: control,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Dirección',
+                hintText: 'clinica.ejemplo.com',
+                prefixIcon: Icon(Icons.dns_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogo),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(100, 44)),
+            onPressed: () => Navigator.pop(dialogo, control.text),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    control.dispose();
+    if (nuevo == null || nuevo.trim().isEmpty) return;
+    await ApiConfig.guardar(nuevo);
+    if (mounted) setState(() {});
+  }
+
   Future<void> _enviar() async {
+    if (!ApiConfig.configurado) {
+      await _cambiarServidor();
+      if (!ApiConfig.configurado) return;
+    }
     if (!_formKey.currentState!.validate() || _enviando) return;
     setState(() => _enviando = true);
     await ref
@@ -187,7 +241,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 )
                               : const Text('Ingresar'),
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 14),
+                        if (!ApiConfig.esFijo)
+                          TextButton.icon(
+                            onPressed: _cambiarServidor,
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white.withValues(
+                                alpha: 0.75,
+                              ),
+                            ),
+                            icon: const Icon(Icons.dns_outlined, size: 18),
+                            label: Text(
+                              ApiConfig.configurado
+                                  ? 'Servidor: ${ApiConfig.servidorVisible}'
+                                  : 'Configurar servidor de la clínica',
+                            ),
+                          ),
+                        const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

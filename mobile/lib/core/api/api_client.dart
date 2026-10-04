@@ -32,6 +32,8 @@ class ApiClient {
           // token de refresco en el cuerpo. Un navegador nunca la envía.
           options.headers['X-Token-Delivery'] = 'body';
           final token = tokens.accessToken;
+          // La dirección del servidor puede cambiarse desde el login.
+          options.baseUrl = ApiConfig.apiUrl;
           if (token != null && !_isAuthEndpoint(options.path)) {
             options.headers['Authorization'] = 'Bearer $token';
           }

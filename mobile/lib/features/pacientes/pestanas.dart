@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api/api.dart';
+import '../../core/api/api_config.dart';
 import '../../core/api/catalogos.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/models/cita.dart';
@@ -1140,7 +1141,7 @@ class PestanaImagenes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final token = ref.watch(tokenStoreProvider).accessToken;
-    final base = ref.watch(apiClientProvider).dio.options.baseUrl;
+    final base = ApiConfig.apiUrl;
     final tipos = ref.watch(tiposImagenProvider).value ?? const <Opcion>[];
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(imagenesProvider(pacienteId)),

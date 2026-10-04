@@ -61,6 +61,8 @@ def check_production_config(settings: Settings) -> list[str]:
 
     if settings.DATABASE_URL.endswith("odonto:odonto@localhost:5432/odonto"):
         problems.append("DATABASE_URL sigue apuntando a la base de desarrollo con credenciales por defecto.")
+    elif ":odonto@" in settings.DATABASE_URL:
+        problems.append("La base de datos usa la contraseña por defecto «odonto». Defina POSTGRES_PASSWORD.")
 
     if settings.STORAGE_PROVIDER == "local" and settings.STORAGE_LOCAL_PATH.startswith("./"):
         problems.append(
