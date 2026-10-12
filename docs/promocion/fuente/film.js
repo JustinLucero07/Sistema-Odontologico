@@ -1,5 +1,7 @@
-// Película animada cuadro a cuadro. FILM.render(t) deja el escenario en el
-// instante t (segundos) y espera a que las imágenes estén decodificadas.
+// Montaje animado cuadro a cuadro. Estilo de anuncio para redes: bloques de
+// color sólido que cambian al ritmo, tipografía grande con resaltador, y las
+// pantallas reales COMPLETAS (laptop + celular), nunca recortadas.
+// FILM.render(t) deja el escenario en el instante t (segundos).
 // Parámetros: ?f=h|v (horizontal/vertical) &v=anuncio|teaser &c=contacto
 const Q = new URLSearchParams(location.search);
 const F = Q.get('f') || 'h';
@@ -11,6 +13,9 @@ const FPS = 30;
 const stage = document.getElementById('stage');
 stage.style.width = W + 'px'; stage.style.height = H + 'px';
 
+const C = { tinta: '#0f1a1c', papel: '#f4f3ef', verde: '#0d7f76', menta: '#d9efeb', amarillo: '#ffd23f', coral: '#ff5a4e', blanco: '#ffffff' };
+const OSCUROS = new Set(['tinta', 'verde', 'coral']);
+
 // ---------- utilidades ----------
 const cl = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -18,22 +23,18 @@ const E = {
   lin: (t) => t,
   out: (t) => 1 - Math.pow(1 - t, 3),
   out5: (t) => 1 - Math.pow(1 - t, 5),
-  expo: (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t)),
   inn: (t) => t * t * t,
   io: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
-  back: (t) => { const c = 1.5, c3 = c + 1; return 1 + c3 * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
-  // Muelle amortiguado: rebote suave al llegar.
-  spring: (t) => (t >= 1 ? 1 : 1 - Math.exp(-6.5 * t) * Math.cos(9 * t)),
+  firme: (t) => (t >= 1 ? 1 : 1 - (1 + 8 * t) * Math.exp(-8 * t)),          // llega firme
+  rebote: (t) => (t >= 1 ? 1 : 1 - Math.exp(-7 * t) * Math.cos(10 * t)),     // con un pequeño rebote
 };
 const pr = (lt, s, d, e = E.out) => e(cl((lt - s) / d));
 const h = (html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; };
 function pon(el, o = {}) {
-  const { x = 0, y = 0, s = 1, sx, sy, r = 0, rx = 0, ry = 0, o: op = 1, b = 0, z = 0 } = o;
-  el.style.transform = `translate3d(${x}px,${y}px,${z}px) perspective(2000px) rotateX(${rx}deg) rotateY(${ry}deg) rotate(${r}deg) scale(${sx ?? s},${sy ?? s})`;
+  const { x = 0, y = 0, s = 1, sx, sy, r = 0, o: op = 1 } = o;
+  el.style.transform = `translate3d(${x}px,${y}px,0) rotate(${r}deg) scale(${sx ?? s},${sy ?? s})`;
   el.style.opacity = op;
-  el.style.filter = b > 0.05 ? `blur(${b}px)` : 'none';
 }
-const ruido = (n) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x); };
 
 // ---------- íconos (Material) ----------
 const IC = {
@@ -43,12 +44,7 @@ const IC = {
   grafico: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z',
   recibo: 'M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z',
   paleta: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
-  celular: 'M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z',
-  papel: 'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z',
-  tabla: 'M10 10.02h5V21h-5zM17 21h3c1.1 0 2-.9 2-2v-9h-5v11zm3-18H5c-1.1 0-2 .9-2 2v3h19V5c0-1.1-.9-2-2-2zM3 19c0 1.1.9 2 2 2h3V10H3v9z',
-  dinero: 'M19 14V6c0-1.1-.9-2-2-2H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-9-1c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-6v11c0 1.1-.9 2-2 2H4v-2h17V7h2z',
   flecha: 'M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z',
-  cerrar: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
   ok: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
   persona: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
   equipo: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
@@ -58,389 +54,320 @@ const IC = {
   dispositivos: 'M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z',
   reloj: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
   diente: 'M12 2.6c-4.6 0-7.9 2.5-7.9 6.7 0 2.9.8 5.2 1.4 8.2.5 2.2.8 4.3 2.3 4.3s1.8-2 2.3-4.1c.4-1.5 1-2.3 1.9-2.3s1.5.8 1.9 2.3c.5 2.1.8 4.1 2.3 4.1s1.8-2.1 2.3-4.3c.6-3 1.4-5.3 1.4-8.2 0-4.2-3.3-6.7-7.9-6.7z',
-  candado: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
 };
-const svg = (n, t, color = '#fff') => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" style="fill:${color}"><path d="${IC[n]}"/></svg>`;
-const icono = (n, t = 72, fondo) => `<span class="icono" style="width:${t}px;height:${t}px;border-radius:${Math.round(t * 0.3)}px;${fondo ? `background:${fondo}` : ''}">${svg(n, Math.round(t * 0.52))}</span>`;
-const MARCA = (t) => `<span class="icono" style="width:${t}px;height:${t}px;border-radius:${Math.round(t * 0.3)}px">
-  <svg viewBox="0 0 24 24" width="${Math.round(t * 0.6)}" height="${Math.round(t * 0.6)}"><path fill="#fff" d="${IC.diente}"/><path d="M8.6 9.6q3.4 2.8 6.8 0" stroke="#0d7f76" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></span>`;
+const svg = (n, t, color = '#fff') => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" style="fill:${color};flex-shrink:0;display:block"><path d="${IC[n]}"/></svg>`;
+const icono = (n, t, fondo, color = '#fff') => `<span class="icono" style="width:${t}px;height:${t}px;border-radius:${Math.round(t * 0.28)}px;background:${fondo}">${svg(n, Math.round(t * 0.54), color)}</span>`;
+const MARCA = (t, fondo, tinta) => `<span class="icono" style="width:${t}px;height:${t}px;border-radius:${Math.round(t * 0.28)}px;background:${fondo}">
+  <svg viewBox="0 0 24 24" width="${Math.round(t * 0.6)}" height="${Math.round(t * 0.6)}"><path fill="${tinta}" d="${IC.diente}"/><path d="M8.6 9.6q3.4 2.8 6.8 0" stroke="${fondo}" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></span>`;
 
-// ---------- clips de video (secuencias de cuadros) ----------
+// ---------- clips (secuencias de cuadros) ----------
 const pendientes = [];
 class Clip {
-  constructor(nombre, total) { this.nombre = nombre; this.total = total; this.img = document.createElement('img'); this.n = 0; }
+  constructor(nombre, total) { this.nombre = nombre; this.total = total; this.imgs = []; this.n = 0; }
+  imagen() { const i = document.createElement('img'); this.imgs.push(i); return i; }
   ir(seg) {
     const n = cl(Math.floor(seg * FPS) + 1, 1, this.total);
     if (n !== this.n) {
       this.n = n;
-      this.img.src = `cuadros/${this.nombre}/${String(n).padStart(5, '0')}.jpg`;
-      pendientes.push(this.img.decode().catch(() => {}));
+      const src = `cuadros/${this.nombre}/${String(n).padStart(5, '0')}.jpg`;
+      for (const i of this.imgs) { i.src = src; pendientes.push(i.decode().catch(() => {})); }
     }
   }
 }
 const TOTALES = window.TOTALES || {};
 const clip = (n) => new Clip(n, TOTALES[n] || 300);
 
-function ventana(c, ancho, recorte) {
-  const el = h(`<div class="abs ventana vidrio" style="width:${ancho}px">
-    <div class="barra"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b>
-    <span class="url">${svg('candado', 13, '#9fd8cf')}app.tuconsultorio.com</span></div></div>`);
-  if (recorte) {
-    // Zoom a la zona importante: la pantalla se ve grande en el celular.
-    const { alto, zoom, fx, fy } = recorte;
-    const marco = h(`<div style="position:relative;height:${alto}px;overflow:hidden"></div>`);
-    const anchoImg = ancho * zoom, altoImg = anchoImg * 9 / 16;
-    c.img.style.cssText = `position:absolute;width:${anchoImg}px;height:${altoImg}px;max-width:none;left:${-(anchoImg - ancho) * fx}px;top:${-(altoImg - alto) * fy}px`;
-    marco.appendChild(c.img); el.appendChild(marco);
-  } else el.appendChild(c.img);
+// Laptop con la pantalla COMPLETA (16:9).
+function laptop(c, anchoPantalla) {
+  const el = h(`<div class="abs laptop" style="width:${anchoPantalla + 32}px"><div class="tapa" style="position:relative"><span class="camara"></span><div class="pantalla" style="height:${Math.round(anchoPantalla * 9 / 16)}px"></div></div><div class="base"></div></div>`);
+  el.querySelector('.pantalla').appendChild(c.imagen());
+  el.alto = Math.round(anchoPantalla * 9 / 16) + 34 + 18;
   return el;
 }
 function telefono(c, alto) {
   const ancho = Math.round(alto * 0.4618);
-  const el = h(`<div class="abs telefono" style="width:${ancho}px;height:${alto}px"><div class="pantalla" style="width:100%;height:100%"><div class="isla"></div></div></div>`);
-  el.firstElementChild.appendChild(c.img);
+  const el = h(`<div class="abs telefono" style="width:${ancho}px;height:${alto}px"><div class="pantalla"><div class="isla"></div></div></div>`);
+  el.firstElementChild.appendChild(c.imagen());
+  el.ancho = ancho;
+  return el;
+}
+// Lupa: zona ampliada de la misma pantalla (la laptop sigue completa al lado).
+function lupa(c, ancho, alto, { z, fx, fy }) {
+  const el = h(`<div class="abs lupa" style="width:${ancho}px;height:${alto}px"><div class="marco"></div></div>`);
+  const i = c.imagen(); const ai = (ancho - 10) * z, hi = ai * 9 / 16;
+  i.style.cssText = `position:absolute;max-width:none;width:${ai}px;height:${hi}px;left:${-(ai - ancho + 10) * fx}px;top:${-(hi - alto + 10) * fy}px`;
+  el.firstElementChild.appendChild(i);
   return el;
 }
 
-// Texto que entra palabra por palabra.
-function texto(html, clase, estilo) {
+// Texto palabra por palabra. <m>…</m> marca la frase con el resaltador.
+function texto(html, clase, estilo, { marca = C.amarillo, tintaMarca = C.tinta } = {}) {
   const el = h(`<div class="abs ${clase}" style="${estilo}"></div>`);
   const tmp = document.createElement('div'); tmp.innerHTML = html;
-  const piezas = [];
-  // El degradado (oro/menta) se pone en cada palabra: un background-clip:text
-  // del padre no alcanza a hijos transformados.
-  const recorrer = (nodo, destino, extra = '') => {
+  const piezas = []; const marcas = [];
+  const recorrer = (nodo, destino) => {
     for (const n of [...nodo.childNodes]) {
       if (n.nodeType === 3) {
         n.textContent.split(/(\s+)/).forEach((p) => {
           if (!p) return;
           if (/^\s+$/.test(p)) { destino.appendChild(document.createTextNode(' ')); return; }
-          const s = document.createElement('span'); s.className = 'palabra ' + extra; s.textContent = p; destino.appendChild(s); piezas.push(s);
+          const s = document.createElement('span'); s.className = 'palabra'; s.textContent = p; destino.appendChild(s); piezas.push(s);
         });
       } else if (n.nodeName === 'BR') destino.appendChild(document.createElement('br'));
-      else {
-        const grad = ['oro', 'menta'].filter((k) => n.classList?.contains(k));
-        const c = n.cloneNode(false); grad.forEach((k) => c.classList.remove(k));
-        destino.appendChild(c); recorrer(n, c, (extra + ' ' + grad.join(' ')).trim());
-      }
+      else if (n.nodeName === 'M') {
+        const m = h(`<span class="marca"><span class="fondo-marca" style="background:${marca}"></span><span class="marca-in" style="color:${tintaMarca}"></span></span>`);
+        destino.appendChild(m); marcas.push(m.firstElementChild); recorrer(n, m.lastElementChild);
+      } else { const c2 = n.cloneNode(false); destino.appendChild(c2); recorrer(n, c2); }
     }
   };
   recorrer(tmp, el);
-  el.piezas = piezas;
+  el.piezas = piezas; el.marcas = marcas;
   return el;
 }
-// Animación estándar de entrada/salida por palabras.
-function animarTexto(el, lt, ini, { paso = 0.06, dur = 0.55, dy = 60, blur = 14, salida = null, ds = 0 } = {}) {
+function animarTexto(el, lt, ini, { paso = 0.05, dur = 0.45, dy = 50, marcaEn = null, golpe = false } = {}) {
   el.piezas.forEach((p, i) => {
-    const k = pr(lt, ini + i * paso, dur, E.out5);
-    let o = k, y = (1 - k) * dy, b = (1 - k) * blur, s = 1 + (1 - k) * ds;
-    if (salida !== null) { const q = pr(lt, salida + i * 0.02, 0.3, E.inn); o *= 1 - q; y -= q * 40; b += q * 10; }
-    pon(p, { y, o, b, s });
+    const k = pr(lt, ini + i * paso, golpe ? 0.14 : dur, E.out5);
+    pon(p, golpe ? { s: lerp(1.25, 1, k), o: k } : { y: (1 - k) * dy, o: k });
   });
+  const mi = marcaEn ?? ini + el.piezas.length * paso + 0.1;
+  el.marcas.forEach((m) => { m.style.transform = `scaleX(${pr(lt, mi, 0.3, E.out5)})`; });
 }
 
-// ---------- fondo: luces que se mueven + grano ----------
-const fondo = h(`<div class="capa"></div>`);
-const luces = [
-  ['#0d7f76', 0.55], ['#1fb3a4', 0.35], ['#e2b155', 0.18], ['#0a4f6a', 0.4],
-].map(([c, a]) => { const d = h(`<div class="abs" style="width:${W * 0.9}px;height:${W * 0.9}px;border-radius:50%;background:radial-gradient(circle,${c} 0%,transparent 62%);opacity:${a}"></div>`); fondo.appendChild(d); return d; });
-stage.appendChild(fondo);
-const tono = h(`<div class="capa" style="background:radial-gradient(70% 60% at 50% 50%,transparent,rgba(2,12,13,.6))"></div>`); stage.appendChild(tono);
+// ---------- escenario ----------
 const capaEscenas = h(`<div class="capa"></div>`); stage.appendChild(capaEscenas);
-const cvs = document.createElement('canvas'); cvs.width = cvs.height = 256;
-{ const g = cvs.getContext('2d'); const d = g.createImageData(256, 256); for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; } g.putImageData(d, 0, 0); }
-const grano = h(`<div class="grano" style="background-image:url(${cvs.toDataURL()})"></div>`); stage.appendChild(grano);
-stage.appendChild(h(`<div class="vineta"></div>`));
-const destello = h(`<div class="destello"></div>`); stage.appendChild(destello);
-const rojo = h(`<div class="capa" style="background:radial-gradient(60% 60% at 50% 50%,rgba(255,80,60,.0),rgba(160,20,10,.55));opacity:0;pointer-events:none"></div>`); stage.appendChild(rojo);
-
-function fondoEn(t, calor = 0) {
-  luces.forEach((d, i) => {
-    const a = t * (0.12 + i * 0.05) + i * 1.7;
-    pon(d, { x: W * (0.5 + 0.38 * Math.cos(a)) - W * 0.45, y: H * (0.5 + 0.34 * Math.sin(a * 1.3)) - W * 0.45, s: 1 + 0.15 * Math.sin(a * 0.7), o: 1 });
-  });
-  grano.style.transform = `translate(${Math.floor(ruido(Math.floor(t * FPS)) * 120)}px,${Math.floor(ruido(Math.floor(t * FPS) + 7) * 120)}px)`;
-  rojo.style.opacity = calor;
-}
-
-// ---------- escenas ----------
+const negro = h(`<div class="capa" style="background:#000;opacity:0;pointer-events:none"></div>`); stage.appendChild(negro);
 const escenas = [];
-const escena = (a, b, crear, actualizar) => { const el = h(`<div class="capa" style="display:none"></div>`); capaEscenas.appendChild(el); const st = crear(el) || {}; escenas.push({ a, b, el, st, actualizar }); };
-let golpes = [];      // instantes con sacudida de cámara
-let flashes = [];     // [t, intensidad]
-let calorEn = () => 0;
+// Cada escena tiene su fondo de color. Con `barrido`, entra 0,3 s antes
+// cubriendo la anterior con un barrido de su color (a izquierda o derecha).
+function escena(a, b, fondo, crear, actualizar, barrido = null) {
+  const el = h(`<div class="capa" style="display:none;color:${OSCUROS.has(fondo) ? '#fff' : C.tinta}"></div>`);
+  const bg = h(`<div class="capa" style="background:${C[fondo]}"></div>`); el.appendChild(bg);
+  capaEscenas.appendChild(el);
+  const st = crear(el, OSCUROS.has(fondo)) || {};
+  escenas.push({ a: barrido ? a - 0.3 : a, ini: a, b, el, bg, st, actualizar, barrido });
+}
+let fundidoFinal = 999;
 
-// ===================== ANUNCIO =====================
+// ===================== ANUNCIO (40 s) =====================
 const FUNC = [
-  { k: 'Agenda', t: 'Agenda <span class="menta">sin choques</span>', s: 'Cada profesional con su horario. Huecos libres al instante y recordatorios por WhatsApp.', c: 'web-03-agenda', fx: 0.55, fy: 0.25, d: 0.6, v: 1.6, i: 'agenda' },
-  { k: 'Odontograma', t: 'Odontograma <span class="menta">digital</span>', s: 'Marca caras y piezas con un toque. Guarda versiones e imprímelo.', c: 'web-05-odontograma', fx: 0.5, fy: 0.45, d: 1.4, v: 2.4, i: 'diente' },
-  { k: 'Oportunidades', t: 'Sabe a quién <span class="menta">escribir hoy</span>', s: 'Citas sin confirmar, cumpleaños, saldos y pacientes por recuperar. El mensaje ya está escrito.', c: 'web-06-oportunidades', fx: 0.62, fy: 0.08, d: 1.6, v: 1.6, i: 'chat' },
-  { k: 'Cartera', t: 'Quién te debe, <span class="oro">al instante</span>', s: 'Cuánto abonó cada paciente y cuánto le falta. De todos, en una sola pantalla.', c: 'web-07-cartera', fx: 0.62, fy: 0.12, d: 1.8, v: 1.7, i: 'billetera' },
-  { k: 'Finanzas', t: 'Finanzas <span class="menta">claras</span>', s: 'Ingresos, gastos fijos, utilidad y proyección de lo que entra y sale.', c: 'web-08-finanzas', fx: 0.6, fy: 0.25, d: 1.8, v: 1.9, i: 'grafico' },
-  { k: 'Documentos', t: 'Comprobantes <span class="oro">con tu logo</span>', s: 'Recibos de abono, estados de cuenta y certificados listos para imprimir.', c: 'web-09-comprobante', fx: 0.5, fy: 0.15, d: 1.2, v: 1.8, i: 'recibo' },
-  { k: 'Tu marca', t: 'Tu logo. <span class="menta">Tu color.</span>', s: 'La app se viste con la identidad de tu consulta, en la web y en el celular.', c: 'web-10-marca', fx: 0.62, fy: 0.35, d: 5.2, v: 1.5, i: 'paleta' },
-  { k: 'App móvil', t: 'Tu consultorio <span class="oro">en el bolsillo</span>', s: 'Agenda, fichas, odontograma y cobros desde el celular.', tel: [['app-04-paciente', 8.2, 1.0], ['app-05-cartera', 3.6, 1.25]], i: 'celular' },
+  { n: '01', k: 'Agenda', t: 'Agenda<br><m>sin choques</m>', s: 'Cada profesional con su horario. Huecos libres al instante.', i: 'agenda', bg: 'papel',
+    chips: ['Día y semana', 'Recordatorios', 'Huecos libres'], web: ['web-03-agenda', 0.6, 1.6], movil: ['app-03-agenda', 1.4, 1.2] },
+  { n: '02', k: 'Odontograma', t: 'Odontograma<br><m>digital</m>', s: 'Marca caras y piezas con un toque y guarda cada versión.', i: 'diente', bg: 'verde',
+    chips: ['Caras y piezas', 'Versiones', 'Imprimible'], web: ['web-05-odontograma', 1.4, 2.4], movil: ['app-04-paciente', 10.2, 1.0] },
+  { n: '03', k: 'Oportunidades', t: 'A quién<br><m>escribir hoy</m>', s: 'Citas sin confirmar, cumpleaños y saldos, con el mensaje listo.', i: 'chat', bg: 'tinta',
+    chips: ['Por confirmar', 'Cumpleaños', 'Saldos'], web: ['web-06-oportunidades', 1.6, 1.6], movil: ['app-07-oportunidades', 4.2, 1.2] },
+  { n: '04', k: 'Cartera', t: 'Quién te debe,<br><m>al instante</m>', s: 'Cuánto abonó cada paciente y cuánto le falta.', i: 'billetera', bg: 'menta',
+    chips: ['Abonos', 'Saldos', 'Tratamientos'], web: ['web-07-cartera', 1.8, 1.7], movil: ['app-05-cartera', 4.0, 1.2] },
+  { n: '05', k: 'Finanzas', t: 'Tus números,<br><m>claros</m>', s: 'Ingresos, gastos fijos, utilidad y proyección de caja.', i: 'grafico', bg: 'papel',
+    chips: ['Gastos fijos', 'Utilidad', 'Proyección'], web: ['web-08-finanzas', 1.8, 1.9], movil: ['app-06-finanzas', 4.4, 1.1] },
+  { n: '06', k: 'Documentos', t: 'Comprobantes<br><m>con tu logo</m>', s: 'Recibos, estados de cuenta y certificados listos para imprimir.', i: 'recibo', bg: 'tinta',
+    web: ['web-09-comprobante', 1.2, 1.8], lupa: { z: 2.3, fx: 0.62, fy: 0.03 } },
+  { n: '07', k: 'Tu marca', t: 'Tu logo.<br><m>Tu color.</m>', s: 'La app se viste con la identidad de tu consulta.', i: 'paleta', bg: 'verde',
+    web: ['web-10-marca', 5.2, 1.5], lupa: { z: 3.0, fx: 0.4, fy: 0.62 } },
+  { n: '08', k: 'Legal', t: 'Todo en regla,<br><m>sin papeleo</m>', s: 'Protección de datos, respaldos diarios y acceso seguro.', i: 'escudo', bg: 'papel',
+    web: ['web-11-legal', 0.6, 1.3], lupa: { z: 2.6, fx: 0.2, fy: 0.45 } },
 ];
-const T_FUNC = 7.5, D_FUNC = 3.0;
+const T_FUNC = 6.0, D_FUNC = 3.0;
 
 function anuncio() {
-  const DUR = 43;
-  golpes = [0.2, 0.7, 1.0, 1.4, 3.0, 3.66, 4.33, 5.0, 37.5];
-  flashes = [[5.0, 0.9], [37.5, 0.6], [31.5, 0.25]];
-  for (let i = 0; i < 8; i++) flashes.push([T_FUNC + i * D_FUNC, 0.12]);
-  calorEn = (t) => cl((t - 2.0) / 0.4) * (1 - cl((t - 4.9) / 0.15)) * 0.8;
+  const DUR = 40;
+  fundidoFinal = DUR - 0.9;
 
-  // ---- 1. Gancho ----
-  escena(0, 3.0, (el) => {
-    const tam = VERT ? 150 : 150;
-    const frase = texto(`¿Tu consultorio<br>todavía vive en <span class="oro">papel?</span>`, 'titulo', `left:0;right:0;top:${VERT ? 640 : 310}px;text-align:center;font-size:${tam}px`);
-    el.appendChild(frase);
-    const caos = [['papel', 'Agenda de papel'], ['tabla', 'Cuentas en Excel'], ['chat', 'Mil chats de WhatsApp'], ['dinero', 'Cobros olvidados']].map(([i, t], k) => {
-      const c = h(`<div class="abs tarjeta vidrio" style="display:flex;align-items:center;gap:20px;padding:22px 28px;font-size:${VERT ? 40 : 34}px;font-weight:700">${icono(i, VERT ? 76 : 64, 'linear-gradient(135deg,#ff8a7a,#d64535)')}<span>${t}</span></div>`);
-      el.appendChild(c);
-      const tach = h(`<div class="tachon" style="left:20px;right:20px;top:48%"></div>`); c.appendChild(tach); c.tach = tach;
-      return c;
-    });
-    return { frase, caos };
-  }, (lt, { frase, caos }) => {
-    const tiempos = [0.2, 0.2, 0.7, 0.7, 1.0, 1.0, 1.4];
-    frase.piezas.forEach((p, i) => {
-      const k = pr(lt, tiempos[i] ?? 1.4, 0.32, E.out5);
-      const salida = pr(lt, 1.95, 0.35, E.inn);
-      pon(p, { s: lerp(1.9, 1, k) * (1 - salida * 0.3), o: k * (1 - salida), b: (1 - k) * 22 + salida * 16, y: -salida * 60 });
-    });
-    const pos = VERT
-      ? [[90, 520, -6], [330, 760, 4], [120, 1020, 5], [300, 1260, -4]]
-      : [[150, 220, -6], [1040, 300, 5], [260, 640, 4], [1080, 700, -5]];
-    caos.forEach((c, i) => {
-      const k = pr(lt, 2.0 + i * 0.09, 0.45, E.back);
-      const [x, y, r] = pos[i];
-      const fuera = pr(lt, 2.78, 0.22, E.inn);
-      pon(c, { x, y: y + (1 - k) * 120 + fuera * 80, r: r * k, s: lerp(0.6, 1, k), o: cl(k * 1.4) * (1 - fuera), b: fuera * 12 });
-      c.tach.style.transform = `scaleX(${pr(lt, 2.45 + i * 0.06, 0.18, E.out)})`;
+  // ---- 1. Gancho: preguntas que golpean con el ritmo ----
+  const pares = [['¿Agenda', 'en papel?', 'tinta'], ['¿Cobros', 'olvidados?', 'coral'], ['¿Pacientes', 'que no vuelven?', 'tinta']];
+  pares.forEach(([a, b, bg], k) => {
+    escena(k, k + 1, bg, (el) => {
+      const t = texto(`${a}<br><m>${b}</m>`, 'titulo', `left:50px;right:50px;text-align:center;top:${VERT ? 700 : 300}px;font-size:${VERT ? 140 : 180}px`);
+      el.appendChild(t); return { t };
+    }, (lt, { t }) => {
+      t.piezas.forEach((p, i) => { const ini = i === 0 ? 0 : 0.5; const kk = pr(lt, ini, 0.14, E.out5); pon(p, { s: lerp(1.3, 1, kk), o: kk }); });
+      t.marcas.forEach((m) => { m.style.transform = `scaleX(${pr(lt, 0.5, 0.18, E.out5)})`; });
     });
   });
-
-  // ---- 2. El problema en tres golpes ----
-  escena(3.0, 5.0, (el) => {
-    const lineas = [['Citas que', 'se olvidan.'], ['Cobros que', 'se pierden.'], ['Horas en', 'papeleo.']].map(([a, b], i) => {
-      const t = texto(`${a} <span style="color:var(--rojo)">${b}</span>`, 'titulo', `left:0;right:0;text-align:center;font-size:${VERT ? 104 : 120}px;top:${(VERT ? 520 : 300) + i * (VERT ? 300 : 170)}px`);
-      el.appendChild(t); return t;
-    });
-    return { lineas };
-  }, (lt, { lineas }) => {
-    lineas.forEach((t, i) => {
-      const ini = i * 0.66;
-      const fuera = pr(lt, 1.75, 0.25, E.inn);
-      t.piezas.forEach((p, j) => {
-        const k = pr(lt, ini + j * 0.05, 0.3, E.out5);
-        const atenuar = i < 2 ? pr(lt, ini + 0.66, 0.2) * 0.55 : 0;
-        pon(p, { x: (1 - k) * (i % 2 ? 160 : -160), o: k * (1 - atenuar) * (1 - fuera), b: (1 - k) * 18 + fuera * 20, s: 1 + fuera * 0.2 });
-      });
-    });
+  escena(3, 4, 'amarillo', (el) => {
+    const t = texto(`Hay una forma<br>mejor.`, 'titulo', `left:50px;right:50px;text-align:center;top:${VERT ? 720 : 320}px;font-size:${VERT ? 150 : 190}px`);
+    el.appendChild(t); return { t };
+  }, (lt, { t }) => {
+    t.piezas.forEach((p, i) => { const ini = [0, 0.15, 0.3, 0.5][i] ?? 0.5; const kk = pr(lt, ini, 0.16, E.out5); pon(p, { s: lerp(1.3, 1, kk), o: kk }); });
   });
 
-  // ---- 3. Revelación ----
-  escena(5.0, 7.6, (el) => {
-    const rayos = h(`<div class="abs" style="left:50%;top:${VERT ? 760 : 400}px;width:2400px;height:2400px;margin:-1200px 0 0 -1200px;
-      background:repeating-conic-gradient(from 0deg,rgba(94,234,212,.10) 0 6deg,transparent 6deg 18deg);border-radius:50%;
-      -webkit-mask:radial-gradient(circle,#000 0,transparent 60%);mask:radial-gradient(circle,#000 0,transparent 60%)"></div>`);
-    const halo = h(`<div class="abs" style="left:50%;top:${VERT ? 760 : 400}px;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.55),transparent 60%)"></div>`);
-    const logo = h(`<div class="abs" style="left:50%;top:${VERT ? 760 : 400}px;margin:-110px 0 0 -110px">${MARCA(220)}</div>`);
-    const nombre = texto(`Sistema <span class="menta">Odontológico</span>`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 930 : 560}px;font-size:${VERT ? 120 : 130}px`);
-    const lema = texto(`Tu consulta completa. En una sola app.`, 'medio', `left:0;right:0;text-align:center;top:${VERT ? 1180 : 730}px;font-size:${VERT ? 54 : 50}px;color:#cfe7e4`);
-    [rayos, halo, logo, nombre, lema].forEach((e) => el.appendChild(e));
-    return { rayos, halo, logo, nombre, lema };
+  // ---- 2. Revelación (drop) ----
+  escena(4, 6, 'verde', (el) => {
+    const cy = VERT ? 640 : 250;
+    const anillo = h(`<div class="abs" style="left:50%;top:${cy + 100}px;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;border:6px solid ${C.amarillo}"></div>`);
+    const logo = h(`<div class="abs" style="left:50%;top:${cy}px;margin-left:-100px">${MARCA(200, '#fff', C.verde)}</div>`);
+    const nombre = texto(`Sistema Odontológico`, 'titulo', `left:30px;right:30px;text-align:center;top:${cy + 260}px;font-size:${VERT ? 104 : 130}px`);
+    const lema = texto(`Tu consultorio completo, <m>en una sola app.</m>`, 'medio', `left:60px;right:60px;text-align:center;top:${cy + (VERT ? 520 : 420)}px;font-size:${VERT ? 52 : 50}px`);
+    [anillo, logo, nombre, lema].forEach((e) => el.appendChild(e));
+    return { anillo, logo, nombre, lema };
   }, (lt, s) => {
-    const fuera = pr(lt, 2.25, 0.35, E.inn);
-    pon(s.rayos, { r: lt * 14, s: lerp(0.4, 1, pr(lt, 0, 0.8)), o: pr(lt, 0, 0.3) * (1 - fuera) * 0.9 });
-    pon(s.halo, { s: lerp(0.3, 1.1, pr(lt, 0, 0.6)) + 0.04 * Math.sin(lt * 5), o: (1 - fuera) });
-    const k = pr(lt, 0.05, 0.8, E.spring);
-    pon(s.logo, { s: lerp(0.2, 1, k) * (1 + fuera * 0.4), r: (1 - k) * -40, o: cl(lt / 0.15) * (1 - fuera), b: fuera * 20 });
-    animarTexto(s.nombre, lt, 0.35, { paso: 0.1, dy: 80, salida: 2.2, ds: 0.2 });
-    animarTexto(s.lema, lt, 0.8, { paso: 0.05, dy: 30, salida: 2.25 });
+    const a = pr(lt, 0, 0.7, E.out5);
+    pon(s.anillo, { s: lerp(0.5, 4.5, a), o: 1 - a });
+    pon(s.logo, { s: lerp(0.3, 1, pr(lt, 0, 0.5, E.rebote)), o: pr(lt, 0, 0.1) });
+    animarTexto(s.nombre, lt, 0.3, { paso: 0.1, dy: 60 });
+    animarTexto(s.lema, lt, 0.7, { paso: 0.05, dy: 30, marcaEn: 1.1 });
   });
 
-  // ---- 4. Funciones ----
+  // ---- 3. Funciones: bloques de color, laptop completa + celular o lupa ----
   FUNC.forEach((f, i) => {
     const a = T_FUNC + i * D_FUNC;
-    escena(a, a + D_FUNC, (el) => {
-      const num = h(`<div class="abs kicker" style="font-size:${VERT ? 30 : 24}px;${VERT ? 'left:90px;top:250px' : 'left:110px;top:300px'};display:flex;align-items:center;gap:16px">${icono(f.i, VERT ? 64 : 56)}<span>${String(i + 1).padStart(2, '0')} · ${f.k}</span></div>`);
-      const tit = texto(f.t, 'titulo', VERT ? `left:90px;right:70px;top:360px;font-size:104px` : `left:110px;width:640px;top:390px;font-size:88px`);
-      const sub = texto(f.s, '', VERT ? `left:90px;right:90px;top:${f.tel ? 600 : 600}px;font-size:40px;line-height:1.35;color:#b9d3d0` : `left:110px;width:600px;top:${f.t.length > 40 ? 640 : 640}px;font-size:31px;line-height:1.4;color:#b9d3d0`);
-      [num, tit, sub].forEach((e) => el.appendChild(e));
-      let dispositivos = [];
-      if (f.tel) {
-        f.tel.forEach(([n, d, v], k) => {
-          const c = clip(n); const alto = VERT ? 1000 : 860;
-          const t = telefono(c, alto); t.style.left = (VERT ? 90 + k * 470 : 900 + k * 440) + 'px'; t.style.top = (VERT ? 820 : 120) + 'px';
-          el.appendChild(t); dispositivos.push({ el: t, c, d, v, k });
-        });
+    escena(a, a + D_FUNC, f.bg, (el, oscuro) => {
+      const acento = oscuro ? C.amarillo : C.verde;
+      const kick = h(`<div class="abs etiqueta" style="display:flex;align-items:center;gap:16px;font-size:${VERT ? 26 : 22}px;color:${acento};${VERT ? 'left:70px;top:150px' : 'left:110px;top:250px'}">${icono(f.i, VERT ? 54 : 46, acento, oscuro ? C.tinta : '#fff')}<span>${f.n} · ${f.k}</span></div>`);
+      const tit = texto(f.t, 'titulo', VERT ? `left:70px;right:40px;top:230px;font-size:108px` : `left:110px;width:600px;top:320px;font-size:80px`);
+      const sub = texto(f.s, 'cuerpo', VERT ? `left:70px;right:70px;top:470px;font-size:38px;opacity:.85` : `left:110px;width:540px;top:540px;font-size:30px;opacity:.85`);
+      [kick, tit, sub].forEach((e) => el.appendChild(e));
+      const c = clip(f.web[0]);
+      const lap = VERT ? laptop(c, 920) : laptop(c, f.lupa ? 1000 : 860);
+      if (VERT) { lap.style.left = (W - 952) / 2 + 'px'; lap.style.top = '620px'; }
+      else if (f.lupa) { lap.style.left = '790px'; lap.style.top = '240px'; }
+      else { lap.style.left = '700px'; lap.style.top = '262px'; }
+      el.appendChild(lap);
+      const disp = [{ el: lap, c, d: f.web[1], v: f.web[2], k: 0, dy: 90 }];
+      let extra = null;
+      if (f.movil) {
+        const cm = clip(f.movil[0]);
+        const tel = telefono(cm, VERT ? 600 : 560);
+        tel.style.left = (VERT ? W - 70 - tel.ancho : 1636) + 'px'; tel.style.top = (VERT ? 1215 : 250) + 'px';
+        el.appendChild(tel); disp.push({ el: tel, c: cm, d: f.movil[1], v: f.movil[2], k: 1, dy: 160 });
       } else {
-        const c = clip(f.c); const ancho = VERT ? 980 : 1120;
-        const v = ventana(c, ancho, VERT ? { alto: 1000, zoom: 1.85, fx: f.fx ?? 0.62, fy: f.fy ?? 0.3 } : null); v.style.left = (VERT ? 50 : 720) + 'px'; v.style.top = (VERT ? 800 : 190) + 'px';
-        el.appendChild(v); dispositivos.push({ el: v, c, d: f.d, v: f.v, k: 0 });
+        extra = lupa(c, VERT ? 470 : 540, VERT ? 330 : 300, f.lupa);
+        extra.style.left = (VERT ? W - 70 - 470 : 110) + 'px'; extra.style.top = (VERT ? 1250 : 660) + 'px';
+        el.appendChild(extra);
       }
-      const prog = h(`<div class="barra-prog" style="${VERT ? 'left:90px;right:90px;top:200px' : 'left:110px;width:600px;top:260px'}"><i></i></div>`);
-      el.appendChild(prog);
-      return { num, tit, sub, dispositivos, prog };
-    }, (lt, s) => {
-      const fuera = pr(lt, D_FUNC - 0.32, 0.32, E.inn);
-      pon(s.num, { x: (1 - pr(lt, 0, 0.4)) * -40, o: pr(lt, 0, 0.3) * (1 - fuera) });
-      animarTexto(s.tit, lt, 0.05, { paso: 0.06, dy: 70, salida: D_FUNC - 0.34 });
-      animarTexto(s.sub, lt, 0.35, { paso: 0.015, dy: 24, blur: 8, salida: D_FUNC - 0.3 });
-      s.prog.firstElementChild.style.transform = `scaleX(${(i + pr(lt, 0, D_FUNC, E.lin)) / FUNC.length})`;
-      pon(s.prog, { o: 1 - fuera });
-      s.dispositivos.forEach(({ el, c, d, v, k }) => {
-        c.ir(d + lt * v);
-        const ent = pr(lt, 0.0 + k * 0.12, 0.7, E.out5);
-        const deriva = lt / D_FUNC;
-        if (VERT) {
-          pon(el, { y: (1 - ent) * 260 + fuera * -140, s: lerp(0.86, 1, ent) * (1 + deriva * 0.03) * (1 - fuera * 0.08), rx: (1 - ent) * 18 + 4 - deriva * 4, o: cl(ent * 1.6) * (1 - fuera), b: (1 - ent) * 10 + fuera * 14 });
-        } else {
-          pon(el, { x: (1 - ent) * 380 + fuera * 160, s: lerp(0.86, 1, ent) * (1 + deriva * 0.035), ry: -14 + (1 - ent) * -18 + deriva * 6, rx: 3, o: cl(ent * 1.6) * (1 - fuera), b: (1 - ent) * 12 + fuera * 14 });
-        }
+      const chips = (f.chips || []).map((txt, k) => {
+        const ch = h(`<div class="abs chip" style="padding:${VERT ? '16px 26px' : '12px 22px'};font-size:${VERT ? 30 : 22}px;background:${oscuro ? 'rgba(255,255,255,.12)' : '#fff'};${VERT ? `left:70px;top:${1260 + k * 100}px` : `left:${110}px;top:${690 + k * 64}px`}">${svg('ok', VERT ? 30 : 22, acento)}${txt}</div>`);
+        if (oscuro) ch.style.background = C.tinta === C[f.bg] ? '#1f2c2e' : '#0a6b63';
+        el.appendChild(ch); return ch;
       });
-    });
+      return { kick, tit, sub, disp, extra, chips };
+    }, (lt, s) => {
+      pon(s.kick, { x: (1 - pr(lt, 0, 0.35)) * -30, o: pr(lt, 0, 0.3) });
+      animarTexto(s.tit, lt, 0.05, { paso: 0.06, dy: 70 });
+      animarTexto(s.sub, lt, 0.4, { paso: 0.012, dy: 20 });
+      s.disp.forEach(({ el, c, d, v, k, dy }) => {
+        c.ir(d + Math.max(0, lt) * v);
+        const e = pr(lt, 0.05 + k * 0.15, 0.6, E.out5);
+        const empuje = 1 + 0.02 * pr(lt, 0.6, 2.4, E.lin);
+        pon(el, { y: (1 - e) * dy, s: lerp(0.94, 1, e) * empuje, o: cl(e * 2) });
+      });
+      if (s.extra) { const e = pr(lt, 0.8, 0.5, E.rebote); pon(s.extra, { s: lerp(0.5, 1, e), o: cl(e * 2), r: (1 - e) * -4 }); }
+      s.chips.forEach((ch, k) => { const e = pr(lt, 0.7 + k * 0.12, 0.4, E.rebote); pon(ch, { s: lerp(0.6, 1, e), o: cl(e * 2) }); });
+    }, i % 2 ? 'izq' : 'der');
   });
 
-  // ---- 5. Para quién ----
-  escena(31.5, 35.2, (el) => {
-    const tit = texto(`Hecho para <span class="menta">cualquier consulta</span>`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 300 : 170}px;font-size:${VERT ? 96 : 88}px`);
-    const datos = [['persona', 'Trabajas solo', 'Agenda, fichas y cobros sin complicarte.'], ['equipo', 'Consultorio pequeño', 'Dos o tres odontólogos, cada uno con su agenda.'], ['clinica', 'Clínica con equipo', 'Recepción, caja, inventario y laboratorio.']];
-    const tarjetas = datos.map(([i, t, d], k) => {
-      const c = h(`<div class="abs tarjeta vidrio" style="${VERT ? `left:110px;right:110px;top:${640 + k * 300}px;display:flex;gap:34px;align-items:center;padding:40px` : `left:${150 + k * 560}px;top:420px;width:500px;height:360px;padding:40px`}">
-        ${icono(i, VERT ? 110 : 96)}<div style="${VERT ? '' : 'margin-top:30px'}"><div class="medio" style="font-size:${VERT ? 52 : 44}px">${t}</div><div style="font-size:${VERT ? 32 : 26}px;color:#b9d3d0;margin-top:12px;line-height:1.35">${d}</div></div></div>`);
-      el.appendChild(c); return c;
-    });
-    const pie = texto(`Activa solo lo que necesitas. <span class="oro">Crece cuando quieras.</span>`, 'medio', `left:0;right:0;text-align:center;top:${VERT ? 1600 : 870}px;font-size:${VERT ? 46 : 44}px`);
-    el.appendChild(tit); el.appendChild(pie);
-    return { tit, tarjetas, pie };
-  }, (lt, s) => {
-    const fuera = pr(lt, 3.35, 0.35, E.inn);
-    animarTexto(s.tit, lt, 0.05, { paso: 0.07, salida: 3.35 });
-    s.tarjetas.forEach((c, k) => { const e = pr(lt, 0.45 + k * 0.22, 0.7, E.spring); pon(c, { y: (1 - e) * 140 - fuera * 60, s: lerp(0.8, 1, e), o: cl(e * 1.5) * (1 - fuera), b: fuera * 12 }); });
-    animarTexto(s.pie, lt, 1.5, { paso: 0.05, dy: 30, salida: 3.35 });
+  // ---- 4. Para quién (un golpe por perfil) ----
+  const perfiles = [['persona', '¿Trabajas <m>solo?</m>', 'Agenda, fichas y cobros sin complicarte.', 'papel'],
+    ['equipo', '¿Son <m>dos o tres?</m>', 'Cada odontólogo con su propia agenda.', 'menta'],
+    ['clinica', '¿Tienes una <m>clínica?</m>', 'Recepción, caja, inventario y laboratorio.', 'papel']];
+  perfiles.forEach(([ic, t, s, bg], k) => {
+    escena(30 + k, 31 + k, bg, (el) => {
+      const cy = VERT ? 600 : 230;
+      const i = h(`<div class="abs" style="left:50%;top:${cy}px;margin-left:-80px">${icono(ic, 160, C.verde)}</div>`);
+      const tt = texto(t, 'titulo', `left:40px;right:40px;text-align:center;top:${cy + 220}px;font-size:${VERT ? 118 : 140}px`);
+      const ss = texto(s, 'cuerpo', `left:60px;right:60px;text-align:center;top:${cy + (VERT ? 520 : 420)}px;font-size:${VERT ? 42 : 38}px;opacity:.75`);
+      [i, tt, ss].forEach((e) => el.appendChild(e)); return { i, tt, ss };
+    }, (lt, st) => {
+      pon(st.i, { s: lerp(0.4, 1, pr(lt, 0, 0.4, E.rebote)), o: pr(lt, 0, 0.1) });
+      animarTexto(st.tt, lt, 0.05, { paso: 0.06, dy: 60, marcaEn: 0.35 });
+      animarTexto(st.ss, lt, 0.3, { paso: 0.02, dy: 20 });
+    }, k ? (k % 2 ? 'izq' : 'der') : 'der');
   });
-
-  // ---- 6. Confianza ----
-  escena(35.2, 37.6, (el) => {
-    const datos = [['escudo', 'Datos protegidos', 'Cumple la LOPDP'], ['nube', 'Respaldo diario', 'Automático'], ['dispositivos', 'Web y app móvil', 'Los mismos datos'], ['reloj', 'Listo en minutos', 'Sin instalar nada']];
-    const items = datos.map(([i, t, d], k) => {
-      const c = h(`<div class="abs tarjeta vidrio" style="display:flex;align-items:center;gap:24px;padding:28px 34px;${VERT ? `left:110px;right:110px;top:${520 + k * 230}px` : `left:${k % 2 ? 990 : 250}px;top:${k < 2 ? 300 : 560}px;width:680px`}">
-        ${icono(i, 84)}<div><div class="medio" style="font-size:${VERT ? 48 : 42}px">${t}</div><div style="font-size:${VERT ? 30 : 26}px;color:#9fd8cf;margin-top:6px">${d}</div></div></div>`);
-      el.appendChild(c); return c;
+  escena(33, 34, 'tinta', (el) => {
+    const tt = texto(`Es para <m>ti.</m>`, 'titulo', `left:40px;right:40px;text-align:center;top:${VERT ? 380 : 170}px;font-size:${VERT ? 150 : 160}px`);
+    el.appendChild(tt);
+    const datos = [['escudo', 'Datos protegidos'], ['nube', 'Respaldo diario'], ['dispositivos', 'Web y celular'], ['reloj', 'Listo en minutos']];
+    const chips = datos.map(([ic, txt], k) => {
+      const c2 = h(`<div class="abs chip" style="background:#1f2c2e;padding:${VERT ? '22px 34px' : '20px 32px'};font-size:${VERT ? 38 : 34}px;${VERT ? `left:50%;top:${760 + k * 150}px` : `left:${k % 2 ? 980 : 420}px;top:${k < 2 ? 520 : 650}px`}">${icono(ic, VERT ? 56 : 50, C.amarillo, C.tinta)}${txt}</div>`);
+      el.appendChild(c2); return c2;
     });
-    return { items };
-  }, (lt, s) => {
-    const fuera = pr(lt, 2.1, 0.3, E.inn);
-    s.items.forEach((c, k) => { const e = pr(lt, 0.05 + k * 0.12, 0.55, E.out5); pon(c, { x: (1 - e) * (k % 2 ? 120 : -120), o: e * (1 - fuera), b: (1 - e) * 10 + fuera * 10, s: 1 - fuera * 0.05 }); });
-  });
+    return { tt, chips };
+  }, (lt, st) => {
+    animarTexto(st.tt, lt, 0, { golpe: true, paso: 0.12, marcaEn: 0.2 });
+    st.chips.forEach((c2, k) => { const e = pr(lt, 0.25 + k * 0.125, 0.3, E.rebote); pon(c2, { x: VERT ? -c2.offsetWidth / 2 : 0, s: lerp(0.5, 1, e), o: cl(e * 2) }); });
+  }, 'der');
 
-  // ---- 7. Llamado a la acción ----
-  escena(37.6, DUR, (el) => {
-    const logo = h(`<div class="abs" style="left:50%;top:${VERT ? 380 : 150}px;margin-left:-60px">${MARCA(120)}</div>`);
-    const tit = texto(`Agenda tu <span class="oro">demo gratis</span>`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 600 : 330}px;font-size:${VERT ? 128 : 140}px`);
-    const sub = texto(`Te lo mostramos con tus datos, en 15 minutos.`, 'medio', `left:0;right:0;text-align:center;top:${VERT ? 900 : 520}px;font-size:${VERT ? 46 : 44}px;color:#cfe7e4`);
-    const boton = h(`<div class="abs boton" style="left:50%;top:${VERT ? 1080 : 650}px;padding:${VERT ? '34px 56px' : '30px 54px'};font-size:${VERT ? 48 : 46}px;white-space:nowrap">${svg('chat', VERT ? 50 : 46, '#04191b')}<span>${CONTACTO}</span>${svg('flecha', VERT ? 46 : 42, '#04191b')}</div>`);
-    const pie = texto(`Odontólogos independientes · Consultorios · Clínicas`, '', `left:0;right:0;text-align:center;top:${VERT ? 1330 : 860}px;font-size:${VERT ? 32 : 28}px;letter-spacing:.06em;color:#9fd8cf`);
+  // ---- 5. Llamado a la acción (segundo drop) ----
+  escena(34, DUR, 'verde', (el) => {
+    const cy = VERT ? 380 : 120;
+    const logo = h(`<div class="abs" style="left:50%;top:${cy}px;margin-left:-60px">${MARCA(120, '#fff', C.verde)}</div>`);
+    const tit = texto(`Agenda tu demo<br><m>gratis</m>`, 'titulo', `left:30px;right:30px;text-align:center;top:${cy + 180}px;font-size:${VERT ? 136 : 150}px`);
+    const sub = texto(`Te lo mostramos con tus datos, en 15 minutos.`, 'medio', `left:60px;right:60px;text-align:center;top:${cy + (VERT ? 510 : 500)}px;font-size:${VERT ? 44 : 42}px;opacity:.9`);
+    const boton = h(`<div class="abs boton" style="left:50%;top:${cy + (VERT ? 660 : 610)}px;padding:${VERT ? '34px 52px' : '30px 54px'};font-size:${VERT ? 46 : 46}px;white-space:nowrap;background:${C.amarillo};color:${C.tinta};box-shadow:0 24px 50px -20px rgba(0,0,0,.45)">${svg('chat', VERT ? 50 : 48, C.tinta)}<span>${CONTACTO}</span>${svg('flecha', VERT ? 46 : 44, C.tinta)}</div>`);
+    const pie = texto(`Odontólogos independientes · Consultorios · Clínicas`, 'etiqueta', `left:30px;right:30px;text-align:center;top:${cy + (VERT ? 900 : 800)}px;font-size:${VERT ? 24 : 22}px;opacity:.8`);
     [logo, tit, sub, boton, pie].forEach((e) => el.appendChild(e));
     return { logo, tit, sub, boton, pie };
   }, (lt, s) => {
-    const fin = pr(lt, DUR - 37.6 - 0.9, 0.9, E.io);
-    pon(s.logo, { s: lerp(0.3, 1, pr(lt, 0, 0.7, E.spring)), o: pr(lt, 0, 0.2) * (1 - fin) });
-    animarTexto(s.tit, lt, 0.1, { paso: 0.09, dy: 90, ds: 0.3 });
-    animarTexto(s.sub, lt, 0.6, { paso: 0.035, dy: 30 });
-    const e = pr(lt, 1.0, 0.7, E.spring);
-    const ancho = s.boton.offsetWidth;
-    const latido = 1 + 0.035 * Math.max(0, Math.sin((lt - 1.6) * Math.PI * 2 / 1.0)) * cl(lt - 1.6);
-    pon(s.boton, { x: -ancho / 2, s: lerp(0.5, 1, e) * latido, o: cl(e * 1.5) });
-    s.boton.style.boxShadow = `0 30px ${80 + 40 * (latido - 1) * 28}px -20px rgba(226,177,85,${0.55 + (latido - 1) * 8}),inset 0 2px 0 rgba(255,255,255,.6)`;
-    animarTexto(s.pie, lt, 1.6, { paso: 0.03, dy: 20 });
-    stage.style.filter = fin > 0 ? `brightness(${1 - fin})` : 'none';
-  });
+    pon(s.logo, { s: lerp(0.3, 1, pr(lt, 0, 0.5, E.rebote)), o: pr(lt, 0, 0.1) });
+    animarTexto(s.tit, lt, 0.1, { golpe: true, paso: 0.14, marcaEn: 0.6 });
+    animarTexto(s.sub, lt, 0.9, { paso: 0.03, dy: 20 });
+    const e = pr(lt, 1.3, 0.5, E.rebote);
+    const latido = 1 + 0.04 * Math.pow(Math.max(0, Math.sin((lt - 2) * Math.PI * 2)), 8) * cl(lt - 2);
+    pon(s.boton, { x: -s.boton.offsetWidth / 2, s: lerp(0.5, 1, e) * latido, o: cl(e * 2) });
+    animarTexto(s.pie, lt, 1.9, { paso: 0.04, dy: 14 });
+  }, 'izq');
   return DUR;
 }
 
-// ===================== AVANCE «PRÓXIMAMENTE» =====================
+// ===================== AVANCE «PRÓXIMAMENTE» (20 s) =====================
 function teaser() {
   const DUR = 20;
-  golpes = [2.0, 12.0, 16.0];
-  flashes = [[2.0, 0.8], [12.0, 0.7], [16.0, 0.9]];
-  calorEn = () => 0;
-  // 1. Algo llega
-  escena(0, 2.0, (el) => {
-    const t1 = texto(`Algo nuevo llega`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 760 : 380}px;font-size:${VERT ? 120 : 130}px`);
-    const t2 = texto(`a tu <span class="menta">consultorio</span>`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 900 : 530}px;font-size:${VERT ? 120 : 130}px`);
-    el.appendChild(t1); el.appendChild(t2); return { t1, t2 };
-  }, (lt, s) => {
-    animarTexto(s.t1, lt, 0.15, { paso: 0.12, dy: 0, blur: 30, ds: 0.4, dur: 0.6 });
-    animarTexto(s.t2, lt, 0.8, { paso: 0.12, dy: 0, blur: 30, ds: 0.4, dur: 0.6 });
-    const f = pr(lt, 1.75, 0.25, E.inn);
-    pon(s.t1, { s: 1 + f * 0.6, o: 1 - f, b: f * 20 }); pon(s.t2, { s: 1 + f * 0.6, o: 1 - f, b: f * 20 });
+  fundidoFinal = DUR - 0.9;
+  escena(0, 2, 'tinta', (el) => {
+    const t = texto(`Algo nuevo<br>llega a tu<br><m>consultorio.</m>`, 'titulo', `left:40px;right:40px;text-align:center;top:${VERT ? 620 : 210}px;font-size:${VERT ? 140 : 150}px`);
+    el.appendChild(t); return { t };
+  }, (lt, { t }) => {
+    t.piezas.forEach((p, i) => { const ini = [0.1, 0.6, 0.6, 1.1][i] ?? 1.1; const kk = pr(lt, ini, 0.15, E.out5); pon(p, { s: lerp(1.3, 1, kk), o: kk }); });
+    t.marcas.forEach((m) => { m.style.transform = `scaleX(${pr(lt, 1.3, 0.25, E.out5)})`; });
   });
-  // 2. Ráfaga de tomas al ritmo (cada 0,5 s), con una palabra cada segundo.
   const cortes = [
-    ['web-02-panel', 1.0, 'Tu día'], ['web-03-agenda', 3.0, null], ['web-05-odontograma', 5.0, 'Odontograma'], ['app-04-paciente', 9.5, null],
-    ['web-06-oportunidades', 3.5, 'WhatsApp'], ['web-07-cartera', 3.0, null], ['web-08-finanzas', 4.5, 'Finanzas'], ['app-05-cartera', 4.0, null],
-    ['web-09-comprobante', 2.5, 'Tu logo'], ['web-10-marca', 6.0, null], ['web-10-marca', 8.0, 'Tu color'], ['app-03-agenda', 2.0, null],
-    ['web-12-modo-oscuro', 3.2, 'Modo oscuro'], ['web-11-legal', 1.5, null], ['app-02-panel', 1.5, 'En tu celular'], ['app-07-oportunidades', 3.0, null],
-    ['web-04-paciente', 3.0, 'Todo'], ['web-13-busqueda', 2.5, null], ['web-10-marca', 9.5, 'Listo'], ['web-02-panel', 3.0, null],
+    ['web-02-panel', 1.0, 'Tu día', 'verde'], ['app-03-agenda', 2.0, null, 'papel'], ['web-05-odontograma', 5.0, 'Odontograma', 'tinta'], ['app-04-paciente', 10.5, null, 'menta'],
+    ['web-06-oportunidades', 3.5, 'WhatsApp', 'papel'], ['app-07-oportunidades', 4.5, null, 'verde'], ['web-08-finanzas', 4.5, 'Finanzas', 'tinta'], ['app-05-cartera', 4.5, null, 'papel'],
+    ['web-09-comprobante', 2.5, 'Tu logo', 'verde'], ['web-10-marca', 6.0, null, 'menta'], ['web-10-marca', 8.0, 'Tu color', 'tinta'], ['app-06-finanzas', 4.5, null, 'papel'],
+    ['web-07-cartera', 3.0, 'Cartera', 'verde'], ['app-02-panel', 1.5, null, 'menta'], ['web-11-legal', 1.5, 'Seguro', 'tinta'], ['app-05-cartera', 7.0, null, 'papel'],
+    ['web-04-paciente', 3.0, 'Todo', 'verde'], ['web-13-busqueda', 2.5, null, 'papel'], ['web-03-agenda', 4.0, 'En un lugar', 'tinta'], ['web-02-panel', 3.0, null, 'verde'],
   ];
-  cortes.forEach(([n, d, palabra], i) => {
-    const a = 2.0 + i * 0.5;
-    escena(a, a + 0.5, (el) => {
+  cortes.forEach(([n, d, palabra, bg], i) => {
+    const a = 2 + i * 0.5;
+    escena(a, a + 0.5, bg, (el) => {
       const c = clip(n); const movil = n.startsWith('app');
       let disp;
-      if (movil) { disp = telefono(c, VERT ? 1500 : 900); disp.style.left = (W - (VERT ? 1500 : 900) * 0.4618) / 2 + 'px'; disp.style.top = (H - (VERT ? 1500 : 900)) / 2 + 'px'; }
-      else { const anc = VERT ? 1000 : 1500; disp = ventana(c, anc, VERT ? { alto: 1150, zoom: 2.1, fx: 0.6, fy: 0.3 } : null); disp.style.left = (W - anc) / 2 + 'px'; disp.style.top = (VERT ? 300 : 120) + 'px'; }
+      if (movil) { disp = telefono(c, VERT ? 1300 : 900); disp.style.left = (W - disp.ancho) / 2 + 'px'; disp.style.top = (VERT ? 200 : 90) + 'px'; }
+      else { const ap = VERT ? 960 : 1240; disp = laptop(c, ap); disp.style.left = (W - ap - 32) / 2 + 'px'; disp.style.top = (VERT ? 520 : (palabra ? 60 : 160)) + 'px'; }
       el.appendChild(disp);
       let pal = null;
-      if (palabra) { pal = texto(palabra, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 1560 : 860}px;font-size:${VERT ? 120 : 110}px;text-shadow:0 20px 60px rgba(0,0,0,.6)`); el.appendChild(pal); }
-      return { c, disp, d, pal, movil };
+      if (palabra) { pal = texto(palabra, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 1240 : 870}px;font-size:${VERT ? 130 : 110}px`); el.appendChild(pal); }
+      return { c, disp, d, pal };
     }, (lt, s) => {
       s.c.ir(s.d + lt * 1.4);
-      const e = pr(lt, 0, 0.18, E.out5);
-      const dir = i % 2 ? 1 : -1;
-      pon(s.disp, { x: (1 - e) * 220 * dir, s: lerp(1.15, 1, e) * (1 + lt * 0.08), r: (1 - e) * 3 * dir, b: (1 - e) * 16, o: 1, ry: s.movil ? 0 : dir * 6, rx: s.movil ? 0 : 4 });
-      if (s.pal) s.pal.piezas.forEach((p) => { const k = pr(lt, 0.02, 0.2, E.out5); pon(p, { s: lerp(1.6, 1, k), o: k, b: (1 - k) * 18 }); });
+      const e = pr(lt, 0, 0.2, E.out5);
+      pon(s.disp, { y: (1 - e) * 60, s: lerp(0.94, 1, e) * (1 + lt * 0.04), o: 1 });
+      if (s.pal) s.pal.piezas.forEach((p) => { const k = pr(lt, 0.03, 0.14, E.out5); pon(p, { s: lerp(1.3, 1, k), o: k }); });
     });
   });
-  // 3. Pausa y logo desenfocado
-  escena(12.0, 16.0, (el) => {
-    const logo = h(`<div class="abs" style="left:50%;top:${VERT ? 700 : 330}px;margin-left:-110px">${MARCA(220)}</div>`);
-    const nombre = texto(`Sistema <span class="menta">Odontológico</span>`, 'titulo', `left:0;right:0;text-align:center;top:${VERT ? 980 : 600}px;font-size:${VERT ? 116 : 120}px`);
-    const lema = texto(`Para odontólogos independientes, consultorios y clínicas.`, 'medio', `left:${VERT ? 80 : 0}px;right:${VERT ? 80 : 0}px;text-align:center;top:${VERT ? 1240 : 770}px;font-size:${VERT ? 46 : 40}px;color:#cfe7e4`);
-    [logo, nombre, lema].forEach((e) => el.appendChild(e));
-    return { logo, nombre, lema };
+  escena(12, 16, 'papel', (el) => {
+    const cy = VERT ? 640 : 250;
+    const logo = h(`<div class="abs" style="left:50%;top:${cy}px;margin-left:-100px">${MARCA(200, C.verde, '#fff')}</div>`);
+    const nombre = texto(`Sistema Odontológico`, 'titulo', `left:30px;right:30px;text-align:center;top:${cy + 260}px;font-size:${VERT ? 104 : 130}px`);
+    const lema = texto(`Para odontólogos independientes, <m>consultorios y clínicas.</m>`, 'medio', `left:60px;right:60px;text-align:center;top:${cy + (VERT ? 520 : 420)}px;font-size:${VERT ? 46 : 44}px`);
+    [logo, nombre, lema].forEach((e) => el.appendChild(e)); return { logo, nombre, lema };
   }, (lt, s) => {
-    const enfoque = pr(lt, 0, 2.6, E.io);
-    const f = pr(lt, 3.7, 0.3, E.inn);
-    pon(s.logo, { s: lerp(1.6, 1, enfoque), b: (1 - enfoque) * 40 + f * 20, o: cl(lt / 0.4) * (1 - f) });
-    animarTexto(s.nombre, lt, 1.2, { paso: 0.12, dy: 40, blur: 20, salida: 3.7 });
-    animarTexto(s.lema, lt, 2.0, { paso: 0.04, dy: 24, salida: 3.7 });
-  });
-  // 4. PRÓXIMAMENTE
-  escena(16.0, DUR, (el) => {
-    const t = h(`<div class="abs titulo" style="left:0;right:0;text-align:center;top:${VERT ? 740 : 330}px;white-space:nowrap;font-size:${VERT ? 112 : 190}px">${'PRÓXIMAMENTE'.split('').map((c) => `<span class="palabra">${c}</span>`).join('')}</div>`);
+    pon(s.logo, { s: lerp(0.3, 1, pr(lt, 0.1, 0.6, E.rebote)), o: pr(lt, 0.1, 0.1) });
+    animarTexto(s.nombre, lt, 0.6, { paso: 0.12, dy: 60 });
+    animarTexto(s.lema, lt, 1.3, { paso: 0.05, dy: 24, marcaEn: 2.0 });
+  }, 'der');
+  escena(16, DUR, 'tinta', (el) => {
+    const t = h(`<div class="abs titulo" style="left:0;right:0;text-align:center;white-space:nowrap;top:${VERT ? 700 : 330}px;font-size:${VERT ? 118 : 180}px">${'PRÓXIMAMENTE'.split('').map((c2) => `<span class="palabra">${c2}</span>`).join('')}</div>`);
     t.piezas = [...t.querySelectorAll('.palabra')];
-    const linea = h(`<div class="abs" style="left:50%;top:${VERT ? 900 : 560}px;width:${VERT ? 700 : 900}px;margin-left:-${VERT ? 350 : 450}px;height:4px;border-radius:4px;background:linear-gradient(90deg,transparent,var(--oro),transparent)"></div>`);
-    const cta = h(`<div class="abs boton" style="left:50%;top:${VERT ? 1000 : 640}px;padding:26px 48px;font-size:${VERT ? 42 : 40}px;white-space:nowrap">${svg('chat', 42, '#04191b')}<span>Reserva tu demo: ${CONTACTO}</span></div>`);
-    [t, linea, cta].forEach((e) => el.appendChild(e));
-    return { t, linea, cta };
+    const raya = h(`<div class="abs" style="left:50%;top:${VERT ? 860 : 560}px;width:${VERT ? 560 : 760}px;margin-left:-${VERT ? 280 : 380}px;height:14px;background:${C.amarillo};transform-origin:left"></div>`);
+    const cta = h(`<div class="abs boton" style="left:50%;top:${VERT ? 960 : 650}px;padding:${VERT ? "24px 36px" : "28px 48px"};font-size:${VERT ? 32 : 40}px;white-space:nowrap;background:${C.amarillo};color:${C.tinta}">${svg('chat', 42, C.tinta)}<span>Reserva tu demo: ${CONTACTO}</span></div>`);
+    [t, raya, cta].forEach((e) => el.appendChild(e)); return { t, raya, cta };
   }, (lt, s) => {
-    const n = s.t.piezas.length;
-    s.t.piezas.forEach((p, i) => {
-      const k = pr(lt, Math.abs(i - (n - 1) / 2) * 0.05, 0.7, E.out5);
-      pon(p, { y: (1 - k) * 50, o: k, b: (1 - k) * 20, s: lerp(1.4, 1, k) });
-    });
-    s.t.style.letterSpacing = `${lerp(VERT ? 0.12 : 0.25, VERT ? 0.01 : 0.04, pr(lt, 0, 3.5, E.out))}em`;
-    pon(s.linea, { sx: pr(lt, 0.4, 0.8, E.out5), o: 1 });
-    const e = pr(lt, 1.1, 0.7, E.spring);
-    pon(s.cta, { x: -s.cta.offsetWidth / 2, s: lerp(0.6, 1, e), o: cl(e * 1.5) });
-    const fin = pr(lt, DUR - 16 - 0.8, 0.8, E.io);
-    stage.style.filter = fin > 0 ? `brightness(${1 - fin})` : 'none';
-  });
+    s.t.piezas.forEach((p, i) => { const k = pr(lt, i * 0.04, 0.2, E.out5); pon(p, { s: lerp(1.4, 1, k), o: k }); });
+    pon(s.raya, { sx: pr(lt, 0.6, 0.4, E.out5) });
+    const e = pr(lt, 1.1, 0.5, E.rebote);
+    pon(s.cta, { x: -s.cta.offsetWidth / 2, s: lerp(0.5, 1, e), o: cl(e * 2) });
+  }, 'izq');
   return DUR;
 }
 
@@ -450,19 +377,20 @@ window.FILM = {
   dur: DURACION, W, H, fps: FPS,
   async render(t) {
     pendientes.length = 0;
-    stage.style.filter = 'none';
-    fondoEn(t, calorEn(t));
-    // Sacudida de cámara en cada golpe.
-    let sx = 0, sy = 0;
-    for (const g of golpes) { const d = t - g; if (d >= 0 && d < 0.35) { const a = 14 * Math.exp(-d * 12); sx += Math.sin(d * 90) * a; sy += Math.cos(d * 77) * a; } }
-    capaEscenas.style.transform = `translate(${sx}px,${sy}px)`;
-    let fl = 0; for (const [ft, i] of flashes) { const d = t - ft; if (d >= 0 && d < 0.6) fl = Math.max(fl, i * Math.exp(-d * 9)); }
-    destello.style.opacity = fl;
     for (const e of escenas) {
       const vis = t >= e.a && t < e.b;
       e.el.style.display = vis ? 'block' : 'none';
-      if (vis) e.actualizar(t - e.a, e.st);
+      if (!vis) continue;
+      const lt = t - e.ini;
+      if (e.barrido) {
+        // Entra cubriendo la escena anterior con su color.
+        const k = E.io(cl((lt + 0.3) / 0.3));
+        const resto = (1 - k) * 100;
+        e.el.style.clipPath = e.barrido === 'der' ? `inset(0 0 0 ${resto}%)` : `inset(0 ${resto}% 0 0)`;
+      } else e.el.style.clipPath = 'none';
+      e.actualizar(lt, e.st);
     }
+    negro.style.opacity = pr(t, fundidoFinal, 0.9, E.io);
     await Promise.all(pendientes);
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   },

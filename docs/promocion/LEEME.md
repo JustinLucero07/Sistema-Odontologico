@@ -2,12 +2,14 @@
 
 Todo está pensado para vender a **odontólogos que trabajan solos, consultorios de 2 o 3 personas y clínicas**. No lleva emojis ni música con derechos de terceros: la música es original, generada para estos videos.
 
+**Estilo:** anuncio para redes con bloques de color sólido que cambian al ritmo (sin degradados), tipografía grande con resaltador amarillo y las pantallas reales **completas**: la web en una laptop y la app en un celular, lado a lado. Música original estilo house pop (120 BPM) con gancho, drop y segundo drop en el cierre.
+
 ## Videos
 
 | Archivo | Formato | Para qué |
 |---|---|---|
-| `video-promocional-horizontal.mp4` | 1920×1080, 43 s | Anuncio principal para YouTube, Facebook, la web y presentaciones |
-| `video-promocional-vertical.mp4` | 1080×1920, 43 s | El mismo anuncio para Instagram Reels, TikTok y estados de WhatsApp |
+| `video-promocional-horizontal.mp4` | 1920×1080, 40 s | Anuncio principal para YouTube, Facebook, la web y presentaciones |
+| `video-promocional-vertical.mp4` | 1080×1920, 40 s | El mismo anuncio para Instagram Reels, TikTok y estados de WhatsApp |
 | `teaser-proximamente-horizontal.mp4` | 1920×1080, 20 s | Avance «Próximamente» para generar expectativa antes del lanzamiento |
 | `teaser-proximamente-vertical.mp4` | 1080×1920, 20 s | El mismo avance en vertical |
 | `tomas-sin-edicion.mp4` | 1920×1080, 4 min 42 s | Todas las tomas reales seguidas, sin edición, para editar a su gusto |
@@ -20,13 +22,13 @@ El audio está normalizado a -14 LUFS, el nivel que usan Instagram, TikTok y You
 
 | Tiempo | Parte | Qué pasa |
 |---|---|---|
-| 0–3 s | **Gancho** | «¿Tu consultorio todavía vive en papel?» y se tachan la agenda de papel, el Excel, los chats y los cobros olvidados |
-| 3–5 s | **Dolor** | «Citas que se olvidan. Cobros que se pierden. Horas en papeleo.» |
-| 5–7,5 s | **Revelación** | Logo y «Tu consulta completa. En una sola app.» |
-| 7,5–31,5 s | **Contenido** | 8 funciones con tomas reales: agenda, odontograma, oportunidades por WhatsApp, cartera, finanzas, comprobantes con tu logo, tu marca y la app del celular |
-| 31,5–35 s | **Para quién** | Trabajas solo · Consultorio pequeño · Clínica con equipo |
-| 35–37,5 s | **Confianza** | Datos protegidos (LOPDP) · Respaldo diario · Web y app móvil · Listo en minutos |
-| 37,5–43 s | **Llamado a la acción** | «Agenda tu demo gratis» con un botón que late |
+| 0–3 s | **Gancho** | Tres preguntas que golpean al ritmo: «¿Agenda en papel?», «¿Cobros olvidados?», «¿Pacientes que no vuelven?» |
+| 3–4 s | **Giro** | «Hay una forma mejor.» |
+| 4–6 s | **Revelación (drop)** | Logo y «Tu consultorio completo, en una sola app» |
+| 6–30 s | **Contenido** | 8 funciones de 3 s cada una con la web y la app reales: agenda, odontograma, oportunidades, cartera, finanzas, comprobantes con logo, tu marca y legal |
+| 30–33 s | **Para quién** | ¿Trabajas solo? · ¿Son dos o tres? · ¿Tienes una clínica? |
+| 33–34 s | **Confianza** | Es para ti: datos protegidos, respaldo diario, web y celular, listo en minutos |
+| 34–40 s | **Llamado a la acción (segundo drop)** | «Agenda tu demo gratis» con el botón de contacto |
 
 ### Tomas
 
@@ -52,4 +54,4 @@ CONTACTO="WhatsApp 099 123 4567" ./armar-todo.sh solo-montaje
 - `grabadora.mjs`: captura en alta calidad cuadro a cuadro.
 - `film.html` y `film.js`: el montaje animado (textos, transiciones, marcos de laptop y celular).
 - `render.mjs`: exporta el montaje a video.
-- `musica.py`: la música original (120 BPM, con impactos y barridos sincronizados con los cortes).
+- `musica.py`: la música original (house pop, 120 BPM, con drops y barridos sincronizados con los cortes).
