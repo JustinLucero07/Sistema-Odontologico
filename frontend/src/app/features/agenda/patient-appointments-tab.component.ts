@@ -16,6 +16,10 @@ import {
 import { AppointmentsService } from '../../core/services/appointments.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { promptText } from '../../shared/confirm-dialog/prompt-dialog.component';
+import { ClinicService } from '../../core/services/clinic.service';
+import { LegalService } from '../../core/services/legal.service';
+import { PatientsService } from '../../core/services/patients.service';
+import { printAttendanceCertificate } from '../../shared/print/certificate-print';
 
 @Component({
   selector: 'app-patient-appointments-tab',
@@ -61,6 +65,47 @@ export class PatientAppointmentsTabComponent implements OnChanges {
     await firstValueFrom(this.appointmentsService.updateStatus(appointment.id, 'cancelada', reason));
     this.snackBar.open('Cita cancelada', 'Cerrar', { duration: 3000 });
     await this.ngOnChanges();
+  }
+
+  private readonly legal = inject(LegalService);
+  private readonly patients = inject(PatientsService);
+  private readonly clinics = inject(ClinicService);
+
+  /** Justificativo de asistencia para el trabajo o el colegio. */
+  async printAttendance(a: Appointment): Promise<void> {
+    const dias = await promptText(this.dialog, {
+      title: 'Certificado de asistencia',
+      message: 'Si recomienda reposo, indique cuántos días (0 si no aplica).',
+      label: 'Días de reposo',
+      initial: '0',
+      confirmLabel: 'Imprimir',
+      minLength: 1,
+    });
+    if (dias === null) return;
+    try {
+      const [clinic, p, profs] = await Promise.all([
+        firstValueFrom(this.legal.getController()),
+        firstValueFrom(this.patients.getPatient(this.patientId)),
+        firstValueFrom(this.clinics.listProfessionals()),
+      ]);
+      const prof = profs.find((x) => x.id === a.professional_id);
+      printAttendanceCertificate(
+        {
+          patient_name: `${p.first_name} ${p.last_name}`,
+          patient_id_number: p.national_id ?? null,
+          date: a.starts_at,
+          ends_at: a.ends_at,
+          reason: a.treatment_name ?? 'atención odontológica',
+          professional_name: prof ? `${prof.first_name} ${prof.last_name}` : a.professional_name,
+          license_number: prof?.license_number ?? null,
+          rest_days: Math.max(0, parseInt(dias, 10) || 0),
+          city: clinic.address?.split(',').pop()?.trim() ?? null,
+        },
+        clinic,
+      );
+    } catch {
+      this.snackBar.open('No se pudo preparar el certificado', 'Cerrar', { duration: 4000 });
+    }
   }
 
   statusColor(appointment: Appointment): string {

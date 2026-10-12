@@ -10,8 +10,21 @@
 #   - Las migraciones y los permisos se aplican solos al arrancar el backend.
 #   - Respaldo diario automático de la base de datos y de los archivos clínicos.
 
+# Nombre propio: no se mezcla con el entorno de desarrollo (docker-compose.yml
+# está en la misma carpeta) y los volúmenes se llaman odonto_pgdata, etc.
+name: odonto
+
+# Los registros de cada contenedor se rotan para no llenar el disco.
+x-logs: &logs
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
 services:
   postgres:
+    <<: *logs
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -27,10 +40,12 @@ services:
       retries: 20
 
   redis:
+    <<: *logs
     image: redis:7-alpine
     restart: unless-stopped
 
   backend:
+    <<: *logs
     build:
       context: ../backend
     restart: unless-stopped
@@ -50,6 +65,11 @@ services:
       WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Quien vende el sistema: sale en los Términos de uso y el contrato de encargo.
+      PROVIDER_NAME: ${PROVIDER_NAME:-el proveedor del sistema}
+      PROVIDER_TAX_ID: ${PROVIDER_TAX_ID:-}
+      PROVIDER_EMAIL: ${PROVIDER_EMAIL:-}
+      WEB_WORKERS: ${WEB_WORKERS:-2}
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,6 +86,7 @@ services:
   # Envía los recordatorios de citas (24 h y 2 h antes) cada 15 minutos.
   # Sin WHATSAPP_TOKEN quedan registrados como «simulado».
   recordatorios:
+    <<: *logs
     build:
       context: ../backend
     restart: unless-stopped
@@ -85,11 +106,13 @@ services:
         condition: service_healthy
 
   frontend:
+    <<: *logs
     build:
       context: ../frontend
     restart: unless-stopped
 
   caddy:
+    <<: *logs
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
@@ -111,6 +134,7 @@ services:
   # (otro disco o la nube): un respaldo en la misma máquina no protege de que
   # esa máquina se pierda.
   respaldos:
+    <<: *logs
     image: postgres:16-alpine
     restart: unless-stopped
     environment:

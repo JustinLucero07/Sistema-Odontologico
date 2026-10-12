@@ -78,7 +78,7 @@ export class PromptDialogComponent {
 
   readonly control = new FormControl(this.data.initial ?? '', {
     nonNullable: true,
-    validators: [Validators.required, Validators.minLength(this.data.minLength ?? 1)],
+    validators: (this.data.minLength ?? 1) > 0 ? [Validators.required, Validators.minLength(this.data.minLength ?? 1)] : [],
   });
   readonly group = new FormGroup({ value: this.control });
 

@@ -268,3 +268,112 @@ async def accept_confidentiality(db: AsyncSession, user: User) -> None:
         db, clinic_id=user.clinic_id, user_id=user.id, action="accept", entity_type="confidentiality",
         entity_id=str(user.id), after={"version": CONFIDENTIALITY_VERSION},
     )
+
+
+# ---------------------------------------------------------------------------
+# Solicitudes de los titulares (derechos LOPDP)
+# ---------------------------------------------------------------------------
+
+
+def _rights_out(r, patient_name: str | None, today) -> dict:
+    from app.modules.privacy.constants import RIGHTS_KINDS, RIGHTS_STATUSES
+
+    abierta = r.status in ("pendiente", "en_proceso")
+    return {
+        **{k: getattr(r, k) for k in (
+            "id", "patient_id", "requester_name", "requester_id_number", "contact", "kind", "details",
+            "received_on", "due_on", "status", "response", "resolved_on", "created_at",
+        )},
+        "patient_name": patient_name,
+        "kind_label": RIGHTS_KINDS.get(r.kind, r.kind),
+        "status_label": RIGHTS_STATUSES.get(r.status, r.status),
+        "overdue": abierta and r.due_on < today,
+        "days_left": (r.due_on - today).days if abierta else None,
+    }
+
+
+async def list_rights_requests(db: AsyncSession, clinic_id: uuid.UUID) -> list[dict]:
+    from datetime import date
+
+    from app.modules.patients.models import Patient
+    from app.modules.privacy.models import DataRightsRequest
+
+    rows = (
+        await db.execute(
+            select(DataRightsRequest, Patient.first_name, Patient.last_name)
+            .outerjoin(Patient, Patient.id == DataRightsRequest.patient_id)
+            .where(DataRightsRequest.clinic_id == clinic_id)
+            .order_by(DataRightsRequest.received_on.desc(), DataRightsRequest.created_at.desc())
+        )
+    ).all()
+    hoy = date.today()
+    return [_rights_out(r, f"{fn} {ln}" if fn else None, hoy) for r, fn, ln in rows]
+
+
+async def _get_rights(db: AsyncSession, clinic_id: uuid.UUID, request_id: uuid.UUID):
+    from fastapi import HTTPException
+
+    from app.modules.privacy.models import DataRightsRequest
+
+    r = await db.get(DataRightsRequest, request_id)
+    if r is None or r.clinic_id != clinic_id:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return r
+
+
+async def save_rights_request(
+    db: AsyncSession, clinic_id: uuid.UUID, user_id: uuid.UUID, payload, request_id: uuid.UUID | None = None
+) -> dict:
+    from datetime import date, datetime, timedelta, timezone
+
+    from app.core.audit import record_audit
+    from app.modules.patients.models import Patient
+    from app.modules.privacy.constants import RIGHTS_RESPONSE_DAYS
+    from app.modules.privacy.models import DataRightsRequest
+
+    data = payload.model_dump()
+    if data["patient_id"]:
+        p = await db.get(Patient, data["patient_id"])
+        if p is None or p.clinic_id != clinic_id:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="Paciente no encontrado")
+    recibida = data.pop("received_on") or date.today()
+    if request_id is None:
+        r = DataRightsRequest(
+            clinic_id=clinic_id, created_by_id=user_id, created_at=datetime.now(timezone.utc),
+            received_on=recibida, due_on=recibida + timedelta(days=RIGHTS_RESPONSE_DAYS), **data,
+        )
+        db.add(r)
+    else:
+        r = await _get_rights(db, clinic_id, request_id)
+        for k, v in data.items():
+            setattr(r, k, v)
+        if r.received_on != recibida:
+            r.received_on = recibida
+            r.due_on = recibida + timedelta(days=RIGHTS_RESPONSE_DAYS)
+    if r.status in ("respondida", "rechazada"):
+        r.resolved_on = r.resolved_on or date.today()
+    else:
+        r.resolved_on = None
+    await db.flush()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=user_id, action="create" if request_id is None else "update",
+        entity_type="data_rights_request", entity_id=str(r.id), after=payload.model_dump(mode="json"),
+    )
+    nombre = None
+    if r.patient_id:
+        p = await db.get(Patient, r.patient_id)
+        nombre = f"{p.first_name} {p.last_name}"
+    return _rights_out(r, nombre, date.today())
+
+
+async def delete_rights_request(db: AsyncSession, clinic_id: uuid.UUID, user_id: uuid.UUID, request_id: uuid.UUID):
+    from app.core.audit import record_audit
+
+    r = await _get_rights(db, clinic_id, request_id)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=user_id, action="delete", entity_type="data_rights_request",
+        entity_id=str(r.id), before={"requester_name": r.requester_name, "kind": r.kind, "status": r.status},
+    )
+    await db.delete(r)

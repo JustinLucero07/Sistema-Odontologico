@@ -22,6 +22,14 @@ export class ClinicService {
     return this.http.get<Clinic>(`${this.base}/clinics/me`);
   }
 
+  completeSetup(payload: Record<string, unknown>): Observable<Clinic> {
+    return this.http.post<Clinic>(`${this.base}/clinics/me/setup`, payload);
+  }
+
+  acceptTerms(): Observable<Clinic> {
+    return this.http.post<Clinic>(`${this.base}/clinics/me/accept-terms`, {});
+  }
+
   updateMyClinic(payload: Partial<Clinic>): Observable<Clinic> {
     return this.http.put<Clinic>(`${this.base}/clinics/me`, payload);
   }

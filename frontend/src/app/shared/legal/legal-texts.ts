@@ -23,13 +23,22 @@ function contactLine(c: LegalController): string {
  */
 export function privacyNotice(c: LegalController): LegalSection[] {
   const name = controllerName(c);
-  const rightsContact = c.email ? `al correo ${c.email}` : 'en la recepción de la clínica';
-  return [
+  const rightsContact = c.dpo_email
+    ? `a nuestro delegado de protección de datos${c.dpo_name ? `, ${c.dpo_name},` : ''} al correo ${c.dpo_email}`
+    : c.email
+      ? `al correo ${c.email}`
+      : 'en la recepción de la clínica';
+  const years = c.record_retention_years ?? 15;
+  const sections: LegalSection[] = [
     {
       title: 'Quién trata sus datos',
       paragraphs: [
         `${name}${c.tax_id ? `, RUC ${c.tax_id}` : ''}, es responsable del tratamiento de sus datos personales. ` +
           `Puede contactarnos en ${contactLine(c)}.`,
+        ...(c.legal_rep_name ? [`Representante legal: ${c.legal_rep_name}.`] : []),
+        ...(c.dpo_email
+          ? [`Delegado de protección de datos: ${c.dpo_name ? `${c.dpo_name}, ` : ''}${c.dpo_email}.`]
+          : []),
       ],
     },
     {
@@ -64,8 +73,8 @@ export function privacyNotice(c: LegalController): LegalSection[] {
     {
       title: 'Cuánto tiempo los conservamos',
       paragraphs: [
-        'La historia clínica se conserva durante el plazo que establece la normativa sanitaria vigente, aun ' +
-          'cuando usted deje de ser paciente. Los demás datos, mientras dure la relación y los plazos legales ' +
+        `La historia clínica se conserva al menos ${years} años desde su última atención, o el plazo mayor que ` +
+          'establezca la normativa sanitaria vigente, aun cuando usted deje de ser paciente. Los demás datos, mientras dure la relación y los plazos legales ' +
           'aplicables. Los registros clínicos no se borran ni se sobrescriben: las correcciones quedan anotadas.',
       ],
     },
@@ -89,6 +98,13 @@ export function privacyNotice(c: LegalController): LegalSection[] {
       ],
     },
   ];
+  if (c.privacy_extra?.trim()) {
+    sections.push({
+      title: 'Información adicional',
+      paragraphs: c.privacy_extra.split(/\n\s*\n|\n/).map((p) => p.trim()).filter(Boolean),
+    });
+  }
+  return sections;
 }
 
 /** Acuerdo de confidencialidad que acepta todo el personal con acceso al sistema. */

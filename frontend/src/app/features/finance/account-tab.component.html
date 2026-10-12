@@ -7,8 +7,12 @@
         elimina: un error se anula con motivo.
       </p>
     </div>
+    <div class="account-actions">
+      <button mat-stroked-button (click)="printStatement()" [disabled]="!account()">
+        <mat-icon>print</mat-icon>
+        Estado de cuenta
+      </button>
     @if (canWrite) {
-      <div class="account-actions">
         <button mat-flat-button (click)="showPaymentForm.set(true)">
           <mat-icon>payments</mat-icon>
           Registrar pago
@@ -17,8 +21,8 @@
           <mat-icon>receipt_long</mat-icon>
           Nuevo cargo
         </button>
-      </div>
     }
+    </div>
   </header>
 
   @if (loading()) {
@@ -181,7 +185,12 @@
                     <span class="tag" data-status="anulada" [matTooltip]="payment.void_reason ?? ''">
                       Anulado
                     </span>
-                  } @else if (canWrite) {
+                  } @else {
+                    <button mat-icon-button matTooltip="Imprimir comprobante de pago" aria-label="Comprobante" (click)="printPaymentReceipt(payment)">
+                      <mat-icon>receipt</mat-icon>
+                    </button>
+                  }
+                  @if (!payment.voided_at && canWrite) {
                     <button
                       mat-icon-button
                       matTooltip="Anular pago"

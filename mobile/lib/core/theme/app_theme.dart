@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../marca/marca.dart';
+
 /// Los mismos tokens que la web, para que la app no parezca otro producto.
 /// El set oscuro está *elegido*, no invertido: una paleta invertida da
 /// medios tonos sucios y primarios muertos.
 class AppColors {
-  static const primary = Color(0xFF0D7F76);
-  static const primaryDark = Color(0xFF095C55);
-  static const mint = Color(0xFF2FBFAE);
+  // El color principal es el de la marca de cada consulta; el resto de su
+  // familia se deriva de él para que todo combine.
+  static Color get primary => Marca.actual;
+  static Color get primaryDark => tono(Marca.actual, -0.28);
+  static Color get mint => tono(Marca.actual, 0.3);
   static const accent = Color(0xFFB9832F);
   static const danger = Color(0xFFB3352B);
   static const success = Color(0xFF2B7A4B);
@@ -15,8 +19,8 @@ class AppColors {
   static const baseLight = Color(0xFFEEF3F4);
   static const surfaceLight = Color(0xFFFFFFFF);
 
-  static const primaryOnDark = Color(0xFF34D3C0);
-  static const mintOnDark = Color(0xFF5EE0CE);
+  static Color get primaryOnDark => tono(Marca.actual, 0.38);
+  static Color get mintOnDark => tono(Marca.actual, 0.5);
   static const accentOnDark = Color(0xFFE2B155);
   static const dangerOnDark = Color(0xFFEF7A70);
   static const successOnDark = Color(0xFF5FC98B);

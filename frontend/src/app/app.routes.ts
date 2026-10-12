@@ -14,6 +14,12 @@ export const routes: Routes = [
       import('./features/portal/portal-page.component').then((m) => m.PortalPageComponent),
   },
   {
+    path: 'setup',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/setup/setup-wizard.component').then((m) => m.SetupWizardComponent),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/shell/shell.component').then((m) => m.ShellComponent),
@@ -138,6 +144,27 @@ export const routes: Routes = [
           import('./features/settings/professionals/professionals.component').then(
             (m) => m.ProfessionalsComponent,
           ),
+      },
+      {
+        path: 'settings/branding',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage', edit: true },
+        loadComponent: () =>
+          import('./features/setup/setup-wizard.component').then((m) => m.SetupWizardComponent),
+      },
+      {
+        path: 'portfolio',
+        canActivate: [permissionGuard],
+        data: { permission: 'payments:read' },
+        loadComponent: () =>
+          import('./features/portfolio/portfolio-page.component').then((m) => m.PortfolioPageComponent),
+      },
+      {
+        path: 'settings/compliance',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/compliance/compliance-page.component').then((m) => m.CompliancePageComponent),
       },
       {
         path: 'settings/clinic',

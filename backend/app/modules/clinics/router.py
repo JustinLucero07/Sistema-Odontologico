@@ -4,13 +4,16 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import CurrentUser, require_permission
+from app.core.deps import CurrentUser, get_current_user, require_permission
 from app.modules.clinics import service
+from app.modules.privacy.constants import TERMS_VERSION
 from app.modules.clinics.schemas import (
     BranchCreate,
     BranchOut,
     BranchUpdate,
+    Branding,
     ClinicOut,
+    ClinicSetup,
     ClinicUpdate,
     OperatoryCreate,
     OperatoryUpdate,
@@ -26,6 +29,45 @@ async def get_my_clinic(
     current_user: CurrentUser = Depends(require_permission("settings:manage")),
 ):
     return await service.get_clinic_or_404(db, current_user.clinic_id)
+
+
+@router.get("/branding", response_model=Branding)
+async def get_branding(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Nombre, logo, colores y módulos visibles: lo necesita cualquier usuario
+    para pintar la interfaz con la identidad de su consulta."""
+    c = await service.get_clinic_or_404(db, current_user.clinic_id)
+    return Branding(
+        name=c.name, practice_type=c.practice_type, logo_data=c.logo_data, slogan=c.slogan,
+        primary_color=c.primary_color, secondary_color=c.secondary_color, hidden_modules=c.hidden_modules or [],
+        setup_completed=c.setup_completed_at is not None, opens_at=c.opens_at, closes_at=c.closes_at,
+        work_days=c.work_days, session_timeout_minutes=c.session_timeout_minutes,
+        terms_pending=c.terms_version != TERMS_VERSION, health_permit_expires_on=c.health_permit_expires_on,
+    )
+
+
+@router.post("/me/accept-terms", response_model=ClinicOut)
+async def post_accept_terms(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    clinic = await service.get_clinic_or_404(db, current_user.clinic_id)
+    await service.accept_terms(db, clinic, current_user.user)
+    await db.commit()
+    return clinic
+
+
+@router.post("/me/setup", response_model=ClinicOut)
+async def post_setup(
+    payload: ClinicSetup,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    clinic = await service.complete_setup(db, current_user.clinic_id, current_user.user, payload)
+    await db.commit()
+    return clinic
 
 
 @router.put("/me", response_model=ClinicOut)

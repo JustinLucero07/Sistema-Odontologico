@@ -11,6 +11,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToothMarkComponent } from '../../../shared/brand/tooth-mark.component';
+import { BrandingService } from '../../../core/branding/branding.service';
 
 @Component({
   selector: 'app-login',
@@ -28,6 +29,7 @@ import { ToothMarkComponent } from '../../../shared/brand/tooth-mark.component';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent {
+  readonly branding = inject(BrandingService);
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);

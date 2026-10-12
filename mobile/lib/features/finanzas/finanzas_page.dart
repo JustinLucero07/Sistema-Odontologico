@@ -16,34 +16,72 @@ final _resumenProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
 final _cobrosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
   (ref) => ref.watch(apiProvider).lista('/finance/payments'),
 );
+final _fijosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
+  (ref) => ref.watch(apiProvider).lista('/finance/recurring-expenses'),
+);
+final _diasProyeccion = StateProvider.autoDispose<int>((ref) => 30);
+final _proyeccionProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) => ref
+      .watch(apiProvider)
+      .mapa('/finance/projection', query: {'days': ref.watch(_diasProyeccion)}),
+);
 final _egresosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
   (ref) => ref.watch(apiProvider).lista('/finance/expenses'),
 );
 
 /// Finanzas: resultado del periodo (ventas, ingresos, egresos, utilidad),
-/// cobros y egresos con su alta, edición y anulación.
+/// cobros y egresos con su alta, edición y anulación, gastos fijos del mes y
+/// la proyección de lo que entra y sale en los próximos días.
 class FinanzasPage extends ConsumerWidget {
   const FinanzasPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 3,
-      child: PaginaModulo(
-        titulo: 'Finanzas',
-        inferior: const TabBar(
-          tabs: [
-            Tab(text: 'Resumen'),
-            Tab(text: 'Cobros'),
-            Tab(text: 'Egresos'),
-          ],
-        ),
-        accion: FloatingActionButton.extended(
-          onPressed: () => editarEgreso(context, ref, null),
-          icon: const Icon(Icons.add),
-          label: const Text('Egreso'),
-        ),
-        cuerpo: const TabBarView(children: [_Resumen(), _Cobros(), _Egresos()]),
+      length: 5,
+      child: Builder(
+        builder: (context) {
+          final pestana = DefaultTabController.of(context);
+          return ListenableBuilder(
+            listenable: pestana,
+            builder: (context, _) => PaginaModulo(
+              titulo: 'Finanzas',
+              inferior: const TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  Tab(text: 'Resumen'),
+                  Tab(text: 'Cobros'),
+                  Tab(text: 'Egresos'),
+                  Tab(text: 'Gastos fijos'),
+                  Tab(text: 'Proyección'),
+                ],
+              ),
+              accion: pestana.index == 3
+                  ? FloatingActionButton.extended(
+                      onPressed: () => editarGastoFijo(context, ref, null),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Gasto fijo'),
+                    )
+                  : pestana.index == 4
+                  ? null
+                  : FloatingActionButton.extended(
+                      onPressed: () => editarEgreso(context, ref, null),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Egreso'),
+                    ),
+              cuerpo: const TabBarView(
+                children: [
+                  _Resumen(),
+                  _Cobros(),
+                  _Egresos(),
+                  _Fijos(),
+                  _Proyeccion(),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -485,6 +523,268 @@ class _Egresos extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Alta y edición de un gasto fijo (arriendo, internet, sueldo…).
+Future<void> editarGastoFijo(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic>? g,
+) async {
+  final api = ref.read(apiProvider);
+  final categorias = await cargarOAvisar(context, ref.read(categoriasEgresoProvider.future));
+  if (categorias == null || !context.mounted) return;
+  final formas = await cargarOAvisar(context, ref.read(formasPagoProvider.future));
+  if (formas == null || !context.mounted) return;
+  await mostrarFormulario(
+    context,
+    titulo: g == null ? 'Nuevo gasto fijo' : 'Editar gasto fijo',
+    subtitulo: 'Lo que pagas todos los meses. Cada mes lo registras con un toque.',
+    icono: Icons.event_repeat,
+    campos: [
+      Campo('description', 'Descripción', requerido: true, inicial: g?['description'], ayuda: 'Ej. Arriendo del consultorio'),
+      Campo('category', 'Categoría', tipo: TipoCampo.seleccion, requerido: true, opciones: categorias, inicial: g?['category'], mitad: true),
+      Campo('amount', 'Importe mensual', tipo: TipoCampo.dinero, requerido: true, inicial: g?['amount'], mitad: true),
+      Campo('day_of_month', 'Día del mes (1-28)', tipo: TipoCampo.entero, requerido: true, inicial: g?['day_of_month'] ?? 1, mitad: true),
+      Campo('method', 'Forma de pago', tipo: TipoCampo.seleccion, requerido: true, opciones: formas, inicial: g?['method'] ?? 'transferencia', mitad: true),
+      Campo('supplier_name', 'Proveedor', inicial: g?['supplier_name']),
+      Campo('is_active', 'Activo', tipo: TipoCampo.interruptor, inicial: g?['is_active'] ?? true),
+    ],
+    alGuardar: (v) async {
+      if (g == null) {
+        await api.post('/finance/recurring-expenses', v);
+      } else {
+        await api.put('/finance/recurring-expenses/${g['id']}', v);
+      }
+      ref.invalidate(_fijosProvider);
+      ref.invalidate(_proyeccionProvider);
+    },
+  );
+}
+
+class _Fijos extends ConsumerWidget {
+  const _Fijos();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final api = ref.read(apiProvider);
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(_fijosProvider),
+      child: Asincrono(
+        valor: ref.watch(_fijosProvider),
+        alReintentar: () => ref.invalidate(_fijosProvider),
+        listo: (lista) {
+          if (lista.isEmpty) {
+            return ListView(
+              children: const [
+                EstadoVacio(
+                  icono: Icons.event_repeat,
+                  titulo: 'Sin gastos fijos',
+                  detalle: 'Agrega el arriendo, internet, sueldos… y cada mes los registras con un toque.',
+                ),
+              ],
+            );
+          }
+          final activos = lista.where((g) => g['is_active'] == true);
+          final mensual = activos.fold<double>(0, (a, g) => a + numero(g['amount']));
+          final pendientes = activos.where((g) => g['due_this_month'] == true).toList();
+          final porPagar = pendientes.fold<double>(0, (a, g) => a + numero(g['amount']));
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              RejillaKpi(
+                hijos: [
+                  Kpi(etiqueta: 'Gasto fijo al mes', valor: dinero(mensual), icono: Icons.event_repeat, color: Tonos.rojo),
+                  Kpi(
+                    etiqueta: 'Por registrar este mes · ${pendientes.length}',
+                    valor: dinero(porPagar),
+                    icono: Icons.pending_actions,
+                    color: Tonos.ambar,
+                  ),
+                ],
+              ),
+              const Seccion('Tus gastos fijos'),
+              for (final g in lista)
+                FilaTarjeta(
+                  icono: g['due_this_month'] == true ? Icons.pending_actions : Icons.check_circle_outline,
+                  colorIcono: g['is_active'] != true
+                      ? Tonos.gris
+                      : g['due_this_month'] == true
+                      ? Tonos.ambar
+                      : Tonos.verde,
+                  titulo: '${g['description']}',
+                  subtitulo: [
+                    'Día ${g['day_of_month']}',
+                    '${g['category_label']}',
+                    if (g['is_active'] != true)
+                      'Pausado'
+                    else if (g['due_this_month'] == true)
+                      'Pendiente este mes'
+                    else
+                      'Registrado este mes',
+                  ].join(' · '),
+                  tachado: g['is_active'] != true,
+                  alTocar: () => _acciones(context, ref, api, g),
+                  derecha: Text(dinero(numero(g['amount'])), style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              finDeLista,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _acciones(BuildContext context, WidgetRef ref, Api api, Map<String, dynamic> g) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (hoja) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (g['due_this_month'] == true)
+              ListTile(
+                leading: const Icon(Icons.task_alt, color: Tonos.verde),
+                title: Text('Registrar pago de este mes (${dinero(numero(g['amount']))})'),
+                subtitle: const Text('Se crea el egreso con fecha de hoy.'),
+                onTap: () async {
+                  Navigator.pop(hoja);
+                  if (await intentar(
+                    context,
+                    () => api.post('/finance/recurring-expenses/${g['id']}/register', {}),
+                    exito: 'Egreso registrado',
+                  )) {
+                    ref.invalidate(_fijosProvider);
+                    ref.invalidate(_egresosProvider);
+                    ref.invalidate(_resumenProvider);
+                    ref.invalidate(_proyeccionProvider);
+                  }
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Editar'),
+              onTap: () {
+                Navigator.pop(hoja);
+                editarGastoFijo(context, ref, g);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+              title: const Text('Eliminar'),
+              subtitle: const Text('Los egresos ya registrados se conservan.'),
+              onTap: () async {
+                Navigator.pop(hoja);
+                if (await confirmar(context, titulo: '¿Eliminar «${g['description']}»?', textoConfirmar: 'Eliminar', peligro: true) &&
+                    context.mounted &&
+                    await intentar(context, () => api.delete('/finance/recurring-expenses/${g['id']}'))) {
+                  ref.invalidate(_fijosProvider);
+                  ref.invalidate(_proyeccionProvider);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Proyeccion extends ConsumerWidget {
+  const _Proyeccion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dias = ref.watch(_diasProyeccion);
+    final tenue = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(_proyeccionProvider),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final d in const [15, 30, 60, 90])
+                ChoiceChip(
+                  label: Text('$d días'),
+                  selected: dias == d,
+                  onSelected: (_) => ref.read(_diasProyeccion.notifier).state = d,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Asincrono(
+            valor: ref.watch(_proyeccionProvider),
+            alReintentar: () => ref.invalidate(_proyeccionProvider),
+            esqueleto: const SizedBox(
+              height: 420,
+              child: EsqueletoLista(filas: 4, conTarjetas: true),
+            ),
+            listo: (p) {
+              final items = ((p['items'] as List?) ?? []).cast<Map<String, dynamic>>();
+              final neto = numero(p['net']);
+              final porFecha = <String, List<Map<String, dynamic>>>{};
+              for (final i in items) {
+                porFecha.putIfAbsent('${i['on']}', () => []).add(i);
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  RejillaKpi(
+                    hijos: [
+                      Kpi(etiqueta: 'Por entrar', valor: dinero(numero(p['expected_in'])), icono: Icons.south_west, color: Tonos.verde),
+                      Kpi(etiqueta: 'Por salir', valor: dinero(numero(p['expected_out'])), icono: Icons.north_east, color: Tonos.rojo),
+                      Kpi(
+                        etiqueta: 'Balance previsto',
+                        valor: dinero(neto),
+                        icono: Icons.account_balance_wallet_outlined,
+                        color: neto >= 0 ? Tonos.verde : Tonos.rojo,
+                      ),
+                      Kpi(
+                        etiqueta: 'Cuotas vencidas',
+                        valor: dinero(numero(p['overdue_in'])),
+                        icono: Icons.warning_amber_rounded,
+                        color: Tonos.ambar,
+                      ),
+                    ],
+                  ),
+                  if (items.isEmpty)
+                    const EstadoVacio(
+                      icono: Icons.event_available,
+                      titulo: 'Nada previsto',
+                      detalle: 'Aquí aparecen las cuotas de créditos y los gastos fijos que vienen.',
+                    ),
+                  for (final MapEntry(key: fecha, value: del) in porFecha.entries) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
+                      child: Text(fechaCorta(fecha), style: TextStyle(fontWeight: FontWeight.w700, color: tenue)),
+                    ),
+                    for (final i in del)
+                      FilaTarjeta(
+                        icono: i['kind'] == 'gasto_fijo' ? Icons.event_repeat : Icons.payments_outlined,
+                        colorIcono: numero(i['amount']) < 0 ? Tonos.rojo : Tonos.verde,
+                        titulo: '${i['label']}',
+                        subtitulo: i['patient_name'] == null ? 'Gasto fijo' : '${i['patient_name']}',
+                        derecha: Text(
+                          '${numero(i['amount']) < 0 ? '−' : '+'} ${dinero(numero(i['amount']).abs())}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: numero(i['amount']) < 0 ? Tonos.rojo : Tonos.verde,
+                          ),
+                        ),
+                      ),
+                  ],
+                  finDeLista,
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

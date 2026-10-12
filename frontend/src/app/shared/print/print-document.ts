@@ -11,7 +11,15 @@ export interface ClinicIdentity {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  logo_data?: string | null;
+  primary_color?: string | null;
+  slogan?: string | null;
+  document_footer?: string | null;
 }
+
+/** Identidad de la última clínica usada en el encabezado: el pie y el color
+ *  de marca del documento salen de aquí al abrir la ventana. */
+let marca: ClinicIdentity | null = null;
 
 /** Escapa texto antes de meterlo en el HTML: lo escriben usuarios, y el
  *  documento se arma con `document.write`. Sin esto, un `<` en una nota
@@ -25,13 +33,20 @@ export function esc(value: unknown): string {
 }
 
 export function longDate(value: string | Date = new Date()): string {
-  return new Date(value).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Una fecha sola («2026-10-11») es medianoche UTC: en Ecuador eso es el día
+  // anterior. Se lee al mediodía para que la fecha impresa sea la registrada.
+  const d = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value + 'T12:00:00') : new Date(value);
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function clinicBlock(clinic: ClinicIdentity | null): string {
+  marca = clinic;
   if (!clinic) return '';
-  return `
+  const logo = clinic.logo_data && /^data:image\//.test(clinic.logo_data)
+    ? `<img class="logo-doc" src="${esc(clinic.logo_data)}" alt=""><br>` : '';
+  return `${logo}
     <b>${esc(clinic.name)}</b><br>
+    ${clinic.slogan ? `<i>${esc(clinic.slogan)}</i><br>` : ''}
     ${clinic.legal_name && clinic.legal_name !== clinic.name ? esc(clinic.legal_name) + '<br>' : ''}
     ${clinic.tax_id ? 'RUC ' + esc(clinic.tax_id) + '<br>' : ''}
     ${clinic.address ? esc(clinic.address) + '<br>' : ''}
@@ -63,10 +78,15 @@ export const BASE_CSS = `
 export function openPrintWindow(title: string, css: string, body: string): boolean {
   const win = window.open('', '_blank', 'width=820,height=1000');
   if (!win) return false;
+  const color = marca?.primary_color && /^#[0-9a-f]{6}$/i.test(marca.primary_color) ? marca.primary_color : null;
+  const brandCss = `.logo-doc { max-height: 64px; max-width: 200px; object-fit: contain; margin-bottom: 6px; }
+    .pie-marca { margin-top: 28px; padding-top: 10px; border-top: 1px solid #e3e8e8; text-align: center; font-size: 11px; color: #6b7c7e; }
+    ${color ? `h1, h2, .accent { color: ${color} !important; } header { border-bottom-color: ${color} !important; }` : ''}`;
+  if (marca?.document_footer) body += `<div class="pie-marca">${esc(marca.document_footer)}</div>`;
   win.document.write(`<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <title>${esc(title)}</title>
-<style>${BASE_CSS}${css}</style></head><body>
+<style>${(BASE_CSS + css).split('#0d7f76').join(color ?? '#0d7f76')}${brandCss}</style></head><body>
 ${body}
 <script>window.onload = () => { window.focus(); window.print(); };</script>
 </body></html>`);

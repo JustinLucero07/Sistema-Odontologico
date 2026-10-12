@@ -8,6 +8,11 @@ class Settings(BaseSettings):
 
     ENV: str = "development"
     APP_NAME: str = "Sistema Odontologico"
+    # Quien vende y aloja el sistema: aparece en los Términos de uso y en el
+    # contrato de encargo de tratamiento de datos que acepta cada consulta.
+    PROVIDER_NAME: str = "el proveedor del sistema"
+    PROVIDER_TAX_ID: str | None = None
+    PROVIDER_EMAIL: str | None = None
 
     DATABASE_URL: str = "postgresql+asyncpg://odonto:odonto@localhost:5432/odonto"
     REDIS_URL: str = "redis://localhost:6379/0"

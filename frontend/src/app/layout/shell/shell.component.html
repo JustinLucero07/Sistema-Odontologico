@@ -10,11 +10,13 @@
     (transitionend)="container.updateContentMargins()"
   >
     <div class="shell-brand">
-      <span class="brand-mark"><app-tooth-mark [size]="20" [filled]="true" /></span>
+      <span class="brand-mark" [class.con-logo]="branding.logo()">
+        @if (branding.logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="20" [filled]="true" /> }
+      </span>
       @if (!collapsed() || compact()) {
         <span class="brand-name">
-          Sistema Odontológico
-          <small>Gestión clínica</small>
+          {{ branding.name() }}
+          <small>{{ branding.branding()?.slogan || 'Gestión odontológica' }}</small>
         </span>
       }
     </div>
@@ -153,6 +155,13 @@
     </mat-toolbar>
 
     <div class="shell-content" (click)="closeSearch()">
+      @for (a of avisosLegales(); track a.text) {
+        <a class="aviso-legal" [class.peligro]="a.tone === 'danger'" routerLink="/settings/compliance">
+          <mat-icon>{{ a.icon }}</mat-icon>
+          <span>{{ a.text }}</span>
+          <mat-icon class="ir">chevron_right</mat-icon>
+        </a>
+      }
       <router-outlet></router-outlet>
     </div>
   </mat-sidenav-content>

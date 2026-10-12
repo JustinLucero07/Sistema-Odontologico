@@ -28,6 +28,10 @@ import {
 } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { LegalService } from '../../core/services/legal.service';
+import { PatientsService } from '../../core/services/patients.service';
+import { printReceipt } from '../../shared/print/receipt-print';
+import { printStatement } from '../../shared/print/statement-print';
 
 type Pending = { kind: 'payment'; item: Payment } | { kind: 'charge'; item: Charge };
 
@@ -269,6 +273,63 @@ export class AccountTabComponent implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  private readonly legal = inject(LegalService);
+  private readonly patients = inject(PatientsService);
+
+  /** Estado de cuenta imprimible: cuánto se cargó, cuánto abonó y cuánto queda. */
+  async printStatement(): Promise<void> {
+    const acc = this.account();
+    if (!acc) return;
+    const [clinic, p] = await Promise.all([
+      firstValueFrom(this.legal.getController()),
+      firstValueFrom(this.patients.getPatient(this.patientId)),
+    ]);
+    const ok = printStatement(
+      {
+        patient_name: `${p.first_name} ${p.last_name}`,
+        patient_id_number: p.national_id ?? null,
+        total_charged: String(acc.total_charged),
+        total_paid: String(acc.total_paid),
+        balance: String(acc.balance),
+        charges: acc.charges.map((c) => ({
+          description: c.description, issued_on: c.issued_on, amount: String(c.amount), paid: String(c.paid),
+          pending: String(c.pending), status: c.status, voided: !!c.voided_at,
+        })),
+        payments: acc.payments.map((x) => ({
+          received_on: x.received_on, amount: String(x.amount), method_label: this.methodLabel(x.method),
+          reference: x.reference ?? null, voided: !!x.voided_at,
+        })),
+      },
+      clinic,
+    );
+    if (!ok) this.snackBar.open('El navegador bloqueó la ventana de impresión.', 'Cerrar', { duration: 4000 });
+  }
+
+  /** Comprobante de un pago, con el saldo que queda hoy. */
+  async printPaymentReceipt(payment: Payment): Promise<void> {
+    const acc = this.account();
+    const [clinic, p] = await Promise.all([
+      firstValueFrom(this.legal.getController()),
+      firstValueFrom(this.patients.getPatient(this.patientId)),
+    ]);
+    const user = this.auth.currentUser();
+    printReceipt(
+      {
+        number: payment.id.slice(0, 8).toUpperCase(),
+        received_on: payment.received_on,
+        patient_name: `${p.first_name} ${p.last_name}`,
+        patient_id_number: p.national_id ?? null,
+        concept: payment.charge_id ? this.chargeLabel(payment.charge_id) : 'Abono a cuenta',
+        amount: String(payment.amount),
+        method_label: this.methodLabel(payment.method),
+        reference: payment.reference ?? null,
+        received_by: user ? `${user.first_name} ${user.last_name}` : null,
+        balance_after: acc ? String(acc.balance) : null,
+      },
+      clinic,
+    );
   }
 
   methodLabel(code: string): string {

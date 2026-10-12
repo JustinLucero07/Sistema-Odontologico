@@ -11,6 +11,9 @@ import {
   DailyCashReport,
   Expense,
   ExpenseCategory,
+  Projection,
+  RecurringExpense,
+  RecurringInput,
   ExpenseInput,
   FinanceSummary,
   Payment,
@@ -100,6 +103,28 @@ export class FinanceService {
 
   private range(from: string, to: string) {
     return { date_from: from, date_to: to };
+  }
+
+  listRecurring(): Observable<RecurringExpense[]> {
+    return this.http.get<RecurringExpense[]>(`${environment.apiUrl}/finance/recurring-expenses`);
+  }
+
+  saveRecurring(body: RecurringInput, id?: string): Observable<RecurringExpense> {
+    return id
+      ? this.http.put<RecurringExpense>(`${environment.apiUrl}/finance/recurring-expenses/${id}`, body)
+      : this.http.post<RecurringExpense>(`${environment.apiUrl}/finance/recurring-expenses`, body);
+  }
+
+  deleteRecurring(id: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/finance/recurring-expenses/${id}`);
+  }
+
+  registerRecurring(id: string, amount?: string): Observable<Expense> {
+    return this.http.post<Expense>(`${environment.apiUrl}/finance/recurring-expenses/${id}/register`, amount ? { amount } : {});
+  }
+
+  getProjection(days: number): Observable<Projection> {
+    return this.http.get<Projection>(`${environment.apiUrl}/finance/projection`, { params: { days } });
   }
 
   getExpenseCategories(): Observable<ExpenseCategory[]> {

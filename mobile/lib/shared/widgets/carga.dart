@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/marca/marca.dart';
 import '../../core/theme/app_theme.dart';
 import 'tooth_mark.dart';
 
@@ -386,7 +387,7 @@ class _PantallaArranqueState extends State<PantallaArranque>
                             width: 64,
                             top: 0,
                             bottom: 0,
-                            child: const DecoratedBox(
+                            child: DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [AppColors.mint, AppColors.primary],
@@ -425,7 +426,7 @@ class _Aro extends CustomPainter {
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round
       ..shader = SweepGradient(
-        colors: const [
+        colors: [
           Colors.transparent,
           Colors.transparent,
           AppColors.mint,
@@ -450,20 +451,46 @@ class LogoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logo = Marca.logoBytes;
+    final radio = BorderRadius.circular(tamano * 0.27);
+    if (logo != null) {
+      // Logo de la consulta sobre una placa blanca.
+      return Container(
+        width: tamano,
+        height: tamano,
+        padding: EdgeInsets.all(tamano * 0.08),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: radio,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryDark.withValues(alpha: 0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: -8,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(tamano * 0.18),
+          child: Image.memory(logo, fit: BoxFit.contain, gaplessPlayback: true),
+        ),
+      );
+    }
     return Container(
       width: tamano,
       height: tamano,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(tamano * 0.27),
-        gradient: const LinearGradient(
+        borderRadius: radio,
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1FB3A4), AppColors.primary, Color(0xFF074A45)],
-          stops: [0, 0.55, 1],
+          colors: [tono(AppColors.primary, 0.15), AppColors.primary, tono(AppColors.primary, -0.45)],
+          stops: const [0, 0.55, 1],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF074A45).withValues(alpha: 0.45),
+            color: tono(AppColors.primary, -0.45).withValues(alpha: 0.45),
             blurRadius: 24,
             offset: const Offset(0, 12),
             spreadRadius: -8,
@@ -471,7 +498,7 @@ class LogoApp extends StatelessWidget {
         ],
       ),
       foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(tamano * 0.27),
+        borderRadius: radio,
         gradient: RadialGradient(
           center: const Alignment(-0.45, -0.65),
           radius: 0.9,

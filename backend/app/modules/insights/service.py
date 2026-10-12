@@ -27,8 +27,7 @@ from app.modules.payments.constants import money
 ZERO = Decimal("0.00")
 RECALL_MONTHS = 6
 ACTIVE_STATUSES = ("programada", "confirmada", "en_espera", "en_atencion")
-# Horario por defecto para buscar huecos. La agenda no guarda un horario por
-# profesional, así que se usa la jornada típica de una consulta.
+# Horario por defecto si la consulta no configuró el suyo.
 DAY_START = time(8, 0)
 DAY_END = time(19, 0)
 STEP_MINUTES = 15
@@ -250,9 +249,13 @@ async def free_slots(
     limit: int,
 ) -> list[dict]:
     """Primeros huecos donde cabe una cita de `duration` minutos para el
-    profesional, de lunes a sábado en horario de consulta, sin pisar sus citas
-    activas. Las horas pasadas de hoy no cuentan."""
+    profesional, dentro del horario y los días de atención de la consulta, sin
+    pisar sus citas activas. Las horas pasadas de hoy no cuentan."""
     tz = await _clinic_tz(db, clinic_id)
+    clinic = await db.get(Clinic, clinic_id)
+    hora = lambda txt, defecto: time(*map(int, txt.split(":"))) if txt else defecto
+    abre, cierra = hora(clinic.opens_at, DAY_START), hora(clinic.closes_at, DAY_END)
+    dias = set(clinic.work_days or "123456")
     now = datetime.now(timezone.utc)
     first = start_day or now.astimezone(tz).date()
     window_start = datetime.combine(first, time.min, tzinfo=tz)
@@ -275,10 +278,10 @@ async def free_slots(
     slots: list[dict] = []
     for offset in range(days):
         day = first + timedelta(days=offset)
-        if day.weekday() == 6:  # domingo
+        if str(day.isoweekday()) not in dias:
             continue
-        cursor = datetime.combine(day, DAY_START, tzinfo=tz)
-        close = datetime.combine(day, DAY_END, tzinfo=tz)
+        cursor = datetime.combine(day, abre, tzinfo=tz)
+        close = datetime.combine(day, cierra, tzinfo=tz)
         while cursor + length <= close:
             end = cursor + length
             if cursor > now and not any(s < end and e > cursor for s, e in busy):

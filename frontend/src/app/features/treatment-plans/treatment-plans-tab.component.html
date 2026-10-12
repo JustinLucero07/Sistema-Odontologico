@@ -147,6 +147,10 @@
             <mat-icon>request_quote</mat-icon>
             Generar presupuesto
           </button>
+          <button mat-button (click)="printCertificate(plan)" matTooltip="Certificado de los tratamientos terminados">
+            <mat-icon>workspace_premium</mat-icon>
+            Certificado
+          </button>
         </div>
 
         @if (budgetsForPlan(plan.id).length > 0) {

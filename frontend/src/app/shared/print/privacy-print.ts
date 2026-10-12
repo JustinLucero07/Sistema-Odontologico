@@ -71,3 +71,25 @@ export function printConfidentialityAgreement(controller: LegalController, staff
   </div>`,
   );
 }
+
+/** Términos de uso o contrato de encargo, con la constancia de aceptación. */
+export function printLegalDocument(
+  controller: LegalController,
+  doc: { title: string; version: string; sections: { title: string; paragraphs: string[] }[] },
+  acceptance: string | null,
+): boolean {
+  return openPrintWindow(
+    doc.title,
+    '.box { margin-top: 22px; padding: 12px 16px; border: 1px solid #cfd8d9; border-radius: 8px; }',
+    `
+  <header>
+    <div>
+      <h1>${esc(doc.title)}</h1>
+      <div>Versión ${esc(doc.version)}</div>
+    </div>
+    <div class="clinic">${clinicBlock(controller)}</div>
+  </header>
+  ${sections(doc.sections)}
+  ${acceptance ? `<div class="box"><b>Aceptado:</b> ${esc(acceptance)}</div>` : ''}`,
+  );
+}

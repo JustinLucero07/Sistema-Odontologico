@@ -94,6 +94,10 @@ async def crear(args: argparse.Namespace) -> None:
             email=email,
             timezone=args.zona,
             currency="USD",
+            practice_type="independiente" if args.odontologo else "clinica",
+            # Sin fecha: al primer ingreso se abre el asistente para que el
+            # cliente elija su logo, colores, horario y módulos.
+            setup_completed_at=None,
         )
         db.add(clinic)
         await db.flush()

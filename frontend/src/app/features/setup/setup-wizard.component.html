@@ -1,0 +1,238 @@
+<div class="wizard" [class.embebido]="edit">
+  <aside class="lado">
+    <div class="marca">
+      <span class="logo-mini">
+        @if (logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="24" [filled]="true" /> }
+      </span>
+      <div>
+        <strong>{{ nombre || 'Tu ' + tipoTexto().toLowerCase() }}</strong>
+        <small>{{ edit ? 'Personalización' : 'Configuración inicial' }}</small>
+      </div>
+    </div>
+    <ol class="pasos">
+      @for (p of pasos; track p; let i = $index) {
+        <li [class.hecho]="i < paso()" [class.actual]="i === paso()" (click)="i < paso() && paso.set(i)">
+          <span class="num">@if (i < paso()) { <mat-icon>check</mat-icon> } @else { {{ i + 1 }} }</span>
+          {{ p }}
+        </li>
+      }
+    </ol>
+    <p class="nota">Todo esto se puede cambiar después en <b>Configuración › Personalización</b>.</p>
+  </aside>
+
+  <main class="contenido">
+    <div class="barra-progreso"><span [style.width.%]="((paso() + 1) / pasos.length) * 100"></span></div>
+
+    @switch (paso()) {
+      @case (0) {
+        <section class="paso" >
+          <h1>{{ edit ? 'Tipo de consulta' : '¡Bienvenido' + (usuario()?.first_name ? ', ' + usuario()!.first_name : '') + '!' }}</h1>
+          <p class="sub">¿Cómo trabajas? Así mostramos solo lo que necesitas.</p>
+          <div class="tipos">
+            @for (t of [
+              { v: 'independiente', i: 'person', t: 'Trabajo solo', d: 'Odontólogo independiente. Agenda, fichas y cobros sin complicaciones.' },
+              { v: 'consultorio', i: 'group', t: 'Consultorio pequeño', d: 'Dos o tres odontólogos que comparten espacio, cada uno con su agenda.' },
+              { v: 'clinica', i: 'local_hospital', t: 'Clínica con equipo', d: 'Recepción, varios sillones, roles, caja, inventario y laboratorio.' }
+            ]; track t.v) {
+              <button type="button" class="tipo glass-card" [class.on]="tipo() === t.v" (click)="elegirTipo($any(t.v))">
+                <span class="tipo-icono"><mat-icon>{{ t.i }}</mat-icon></span>
+                <strong>{{ t.t }}</strong>
+                <span>{{ t.d }}</span>
+                <mat-icon class="check">check_circle</mat-icon>
+              </button>
+            }
+          </div>
+        </section>
+      }
+      @case (1) {
+        <section class="paso">
+          <h1>Datos de tu {{ tipoTexto().toLowerCase() }}</h1>
+          <p class="sub">Aparecen en recetas, recibos, estados de cuenta y certificados.</p>
+          <div class="campos">
+            <mat-form-field appearance="outline" class="ancho">
+              <mat-label>Nombre comercial</mat-label>
+              <input matInput [(ngModel)]="nombre" placeholder="Ej. Consultorio Dra. Ana Paz" required />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Razón social</mat-label>
+              <input matInput [(ngModel)]="razonSocial" placeholder="Si es distinta" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>RUC</mat-label>
+              <input matInput [(ngModel)]="ruc" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono / WhatsApp</mat-label>
+              <input matInput [(ngModel)]="telefono" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Correo</mat-label>
+              <input matInput type="email" [(ngModel)]="correo" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="ancho">
+              <mat-label>Dirección</mat-label>
+              <input matInput [(ngModel)]="direccion" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="ancho">
+              <mat-label>Eslogan (opcional)</mat-label>
+              <input matInput [(ngModel)]="eslogan" maxlength="200" placeholder="Ej. Tu sonrisa en buenas manos" />
+            </mat-form-field>
+            @if (!edit) {
+              <div class="ancho yo glass-card">
+                <mat-slide-toggle [(ngModel)]="atiendo">Yo también atiendo pacientes</mat-slide-toggle>
+                <span>Te registramos como profesional para que puedas agendar y firmar recetas desde ya.</span>
+                @if (atiendo) {
+                  <div class="fila">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Registro profesional</mat-label>
+                      <input matInput [(ngModel)]="registro" placeholder="Ej. MSP 1234-5678" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Especialidad</mat-label>
+                      <input matInput [(ngModel)]="especialidad" />
+                    </mat-form-field>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+      @case (2) {
+        <section class="paso">
+          <h1>Tu marca</h1>
+          <p class="sub">Sube tu logo y elige tu color. Mira cómo queda al instante.</p>
+          <div class="marca-grid">
+            <div>
+              <h4>Logo</h4>
+              <label class="subir glass-card">
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="subirLogo($event)" hidden />
+                @if (logo(); as l) {
+                  <img [src]="l" alt="Logo" />
+                  <span>Cambiar logo</span>
+                } @else {
+                  <mat-icon>add_photo_alternate</mat-icon>
+                  <span>Subir logo<br /><small>PNG, JPG o SVG</small></span>
+                }
+              </label>
+              @if (logo()) {
+                <button mat-button type="button" (click)="logo.set(null)"><mat-icon>delete_outline</mat-icon>Quitar logo</button>
+              }
+              <h4>Color principal</h4>
+              <div class="colores">
+                @for (c of palette; track c.hex) {
+                  <button type="button" class="color" [style.background]="c.hex" [class.on]="color() === c.hex" [attr.aria-label]="c.name"
+                          [title]="c.name" (click)="elegirColor(c.hex)">
+                    @if (color() === c.hex) { <mat-icon>check</mat-icon> }
+                  </button>
+                }
+                <label class="color libre" title="Otro color">
+                  <input type="color" [value]="color()" (input)="elegirColor($any($event.target).value)" />
+                  <mat-icon>colorize</mat-icon>
+                </label>
+              </div>
+              <mat-form-field appearance="outline" class="pie">
+                <mat-label>Mensaje al pie de los documentos (opcional)</mat-label>
+                <input matInput [(ngModel)]="pie" maxlength="400" placeholder="Ej. Gracias por confiar en nosotros" />
+              </mat-form-field>
+            </div>
+            <div class="vista">
+              <span class="vista-titulo">Vista previa</span>
+              <div class="maqueta glass-card">
+                <div class="m-lado">
+                  <div class="m-logo">
+                    <span class="logo-mini">@if (logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="16" [filled]="true" /> }</span>
+                    <b>{{ nombre || 'Tu consultorio' }}</b>
+                  </div>
+                  <i class="m-item on">Panel</i><i class="m-item">Agenda</i><i class="m-item">Pacientes</i><i class="m-item">Finanzas</i>
+                </div>
+                <div class="m-cuerpo">
+                  <div class="m-hero"><b>Buenos días{{ usuario()?.first_name ? ', ' + usuario()!.first_name : '' }}</b><span>{{ eslogan || 'Hoy tienes 6 citas' }}</span></div>
+                  <div class="m-kpis"><i></i><i></i><i></i></div>
+                  <div class="m-boton">Nueva cita</div>
+                </div>
+              </div>
+              <div class="recibo glass-card">
+                <div class="r-cab">
+                  <span class="logo-mini">@if (logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="14" [filled]="true" /> }</span>
+                  <div><b>Recibo de pago</b><small>{{ nombre || 'Tu consultorio' }}</small></div>
+                </div>
+                <div class="r-monto">$ 45,00</div>
+                <small>{{ pie || 'Constancia de pago' }}</small>
+              </div>
+            </div>
+          </div>
+        </section>
+      }
+      @case (3) {
+        <section class="paso">
+          <h1>Horario de atención</h1>
+          <p class="sub">Lo usamos para sugerirte los huecos libres de tu agenda.</p>
+          <h4>Días que atiendes</h4>
+          <div class="dias">
+            @for (d of dias; track d.n) {
+              <button type="button" class="dia" [class.on]="diasSel().has(d.n)" (click)="alternarDia(d.n)">{{ d.l }}</button>
+            }
+          </div>
+          <div class="fila horas">
+            <mat-form-field appearance="outline">
+              <mat-label>Abre</mat-label>
+              <input matInput type="time" [(ngModel)]="abre" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Cierra</mat-label>
+              <input matInput type="time" [(ngModel)]="cierra" />
+            </mat-form-field>
+          </div>
+          @if (abre >= cierra) { <p class="error">La hora de cierre debe ser posterior a la de apertura.</p> }
+        </section>
+      }
+      @case (4) {
+        <section class="paso">
+          <h1>¿Qué quieres ver en el menú?</h1>
+          <p class="sub">
+            Agenda, pacientes, odontograma y finanzas siempre están. Lo demás lo activas o apagas cuando quieras.
+          </p>
+          <div class="modulos">
+            @for (m of modulos; track m.code) {
+              <label class="modulo glass-card" [class.off]="ocultos().has(m.code)">
+                <span class="m-icono"><mat-icon>{{ m.icon }}</mat-icon></span>
+                <div><strong>{{ m.label }}</strong><span>{{ m.hint }}</span></div>
+                <mat-slide-toggle [checked]="!ocultos().has(m.code)" (change)="alternarModulo(m.code, $event.checked)" />
+              </label>
+            }
+          </div>
+          @if (!edit) {
+            <div class="terminos glass-card">
+              <mat-checkbox [(ngModel)]="aceptaTerminos">
+                He leído y acepto los
+                <a href="#" (click)="verDocumento($event, 'terminos')">Términos de uso</a>
+                y el
+                <a href="#" (click)="verDocumento($event, 'encargo')">Contrato de encargo de tratamiento de datos</a>.
+              </mat-checkbox>
+              <p>Tus pacientes y sus historias son tuyos. Lo que se acepta queda registrado con tu nombre y la fecha.</p>
+            </div>
+          }
+        </section>
+      }
+    }
+
+    @if (error(); as e) {
+      <p class="error"><mat-icon>error_outline</mat-icon>{{ e }}</p>
+    }
+
+    <footer class="acciones">
+      @if (paso() > 0) {
+        <button mat-stroked-button type="button" (click)="atras()"><mat-icon>arrow_back</mat-icon>Atrás</button>
+      }
+      <span class="espacio"></span>
+      @if (edit && paso() < pasos.length - 1) {
+        <button mat-button type="button" (click)="terminar()" [disabled]="guardando() || nombre.trim().length < 2">Guardar ahora</button>
+      }
+      <button mat-flat-button type="button" (click)="siguiente()" [disabled]="!puedeSeguir() || guardando()">
+        {{ paso() < pasos.length - 1 ? 'Continuar' : guardando() ? 'Guardando…' : edit ? 'Guardar cambios' : 'Empezar a usar el sistema' }}
+        <mat-icon iconPositionEnd>{{ paso() < pasos.length - 1 ? 'arrow_forward' : edit ? 'save' : 'rocket_launch' }}</mat-icon>
+      </button>
+    </footer>
+  </main>
+</div>

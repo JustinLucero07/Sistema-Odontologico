@@ -23,6 +23,9 @@ import 'package:odonto_movil/shared/contacto.dart';
 import 'package:odonto_movil/core/api/api_config.dart';
 import 'package:odonto_movil/features/pacientes/paciente_detalle_page.dart';
 import 'package:odonto_movil/features/reportes/reportes_page.dart';
+import 'package:odonto_movil/features/bienvenida/bienvenida_page.dart';
+import 'package:odonto_movil/features/cartera/cartera_page.dart';
+import 'package:odonto_movil/features/legal/cumplimiento_page.dart';
 
 const _pid = 'p1';
 
@@ -259,7 +262,6 @@ final Map<String, Object?> _datos = {
   '/roles': [
     {'id': 'r1', 'name': 'Administrador'},
   ],
-  '/clinics/me': {'name': 'Clínica Demo', 'currency': 'USD'},
   '/patients/$_pid': {
     'id': _pid,
     'first_name': 'María',
@@ -398,6 +400,189 @@ final Map<String, Object?> _datos = {
   '/finance/payment-methods': [
     {'code': 'efectivo', 'label': 'Efectivo'},
   ],
+  '/finance/portfolio': {
+    'summary': {
+      'total_charged': '900.00',
+      'total_paid': '450.00',
+      'receivable': '450.00',
+      'credit_balance': '0.00',
+      'patients_owing': 1,
+      'patients_settled': 1,
+      'patients_credit': 0,
+      'open_charges': 1,
+      'treatments_in_progress': 1,
+      'treatments_in_progress_value': '120.00',
+      'treatments_planned': 0,
+      'treatments_planned_value': '0.00',
+      'collection_rate': 0.5,
+    },
+    'patients': [
+      {
+        'patient_id': 'p1',
+        'patient_name': 'Ana Mora',
+        'national_id': null,
+        'phone': '0991234567',
+        'total_charged': '600.00',
+        'total_paid': '150.00',
+        'balance': '450.00',
+        'status': 'debe',
+        'open_charges': 1,
+        'oldest_pending_on': '2026-09-01',
+        'days_pending': 40,
+        'last_payment_on': '2026-09-20',
+        'in_credit': true,
+      },
+      {
+        'patient_id': 'p2',
+        'patient_name': 'Luis Vera',
+        'national_id': null,
+        'phone': null,
+        'total_charged': '300.00',
+        'total_paid': '300.00',
+        'balance': '0.00',
+        'status': 'saldado',
+        'open_charges': 0,
+        'oldest_pending_on': null,
+        'days_pending': null,
+        'last_payment_on': '2026-10-01',
+        'in_credit': false,
+      },
+    ],
+    'charges': [
+      {
+        'charge_id': 'ch9',
+        'patient_id': 'p1',
+        'patient_name': 'Ana Mora',
+        'description': 'Ortodoncia',
+        'issued_on': '2026-09-01',
+        'amount': '600.00',
+        'paid': '150.00',
+        'pending': '450.00',
+        'status': 'parcial',
+        'in_credit': true,
+        'days_open': 40,
+      },
+    ],
+    'treatments': [
+      {
+        'item_id': 't1',
+        'patient_id': 'p1',
+        'patient_name': 'Ana Mora',
+        'plan_title': 'Plan 1',
+        'treatment': 'Endodoncia',
+        'fdi_number': '36',
+        'status': 'en_progreso',
+        'net_price': '120.00',
+        'professional_name': 'Dra. Paz',
+        'estimated_date': '2026-10-20',
+        'completed_date': null,
+      },
+    ],
+  },
+  '/finance/recurring-expenses': [
+    {
+      'id': 'r1',
+      'description': 'Arriendo del consultorio',
+      'category': 'insumos',
+      'category_label': 'Insumos y materiales',
+      'amount': '400.00',
+      'method': 'efectivo',
+      'method_label': 'Efectivo',
+      'day_of_month': 5,
+      'supplier_name': null,
+      'is_active': true,
+      'last_registered_month': null,
+      'due_this_month': true,
+      'due_on': '2026-10-05',
+    },
+  ],
+  '/finance/projection': {
+    'days': 30,
+    'expected_in': '150.00',
+    'expected_out': '400.00',
+    'net': '-250.00',
+    'overdue_in': '0.00',
+    'items': [
+      {'on': '2026-11-03', 'kind': 'cuota_credito', 'label': 'Cuota 2 · Ortodoncia', 'patient_name': 'Ana Mora', 'amount': '150.00'},
+      {'on': '2026-11-05', 'kind': 'gasto_fijo', 'label': 'Arriendo del consultorio', 'patient_name': null, 'amount': '-400.00'},
+    ],
+  },
+  '/clinics/me': {
+    'id': 'c1',
+    'name': 'Consultorio Dra. Paz',
+    'currency': 'USD',
+    'practice_type': 'independiente',
+    'primary_color': '#7B5BD6',
+    'logo_data': null,
+    'work_days': '12345',
+    'opens_at': '09:00',
+    'closes_at': '17:00',
+    'hidden_modules': ['inventory'],
+    'setup_completed_at': null,
+    'legal_name': 'Ana Paz',
+    'tax_id': '1712345678001',
+    'address': 'Av. Amazonas',
+    'legal_rep_name': null,
+    'dpo_name': 'Ana Paz',
+    'dpo_email': 'datos@paz.ec',
+    'health_permit_number': 'ACESS-1',
+    'health_permit_expires_on': '2027-01-01',
+    'tax_regime': 'general',
+    'keeps_accounting': false,
+    'sri_establishment': '001',
+    'sri_emission_point': '001',
+    'vat_rate': '0.00',
+    'record_retention_years': 15,
+    'privacy_extra': null,
+    'session_timeout_minutes': 30,
+    'terms_version': null,
+    'terms_accepted_at': null,
+    'terms_accepted_by': null,
+    'terms_current_version': '2026-10',
+  },
+  '/legal/catalogs': {
+    'rights_kinds': [
+      {'code': 'acceso', 'label': 'Acceso'},
+    ],
+    'rights_statuses': [
+      {'code': 'pendiente', 'label': 'Pendiente'},
+    ],
+    'tax_regimes': [
+      {'code': 'general', 'label': 'Régimen general'},
+    ],
+  },
+  '/legal/requests': [
+    {
+      'id': 'q1',
+      'patient_id': null,
+      'patient_name': null,
+      'requester_name': 'Rosa Vela',
+      'requester_id_number': null,
+      'contact': null,
+      'kind': 'acceso',
+      'kind_label': 'Acceso',
+      'details': null,
+      'received_on': '2026-09-01',
+      'due_on': '2026-09-16',
+      'status': 'pendiente',
+      'status_label': 'Pendiente',
+      'response': null,
+      'resolved_on': null,
+      'overdue': true,
+      'days_left': -25,
+    },
+  ],
+  '/legal/documents/terminos': {
+    'code': 'terminos',
+    'title': 'Términos de uso del sistema',
+    'version': '2026-10',
+    'sections': [
+      {
+        'title': 'Objeto',
+        'paragraphs': ['Estos términos regulan el uso del sistema.'],
+      },
+    ],
+  },
 };
 
 const _credito = {
@@ -492,6 +677,8 @@ void main() {
     'Más': const Scaffold(body: MasPage()),
     'Oportunidades': const OportunidadesPage(),
     'Huecos libres': const HuecosPage(),
+    'Cartera': const CarteraPage(),
+    'Personalización': const BienvenidaPage(editar: true),
   };
 
   for (final e in paginas.entries) {
@@ -509,6 +696,73 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Guantes'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Cartera: deudores, cargos con abonos y tratamientos', (tester) async {
+    await _abrir(tester, const CarteraPage());
+    expect(find.text('Ana Mora'), findsOneWidget);
+    expect(find.text('Luis Vera'), findsNothing); // filtro «Deben»
+    await tester.tap(find.text('Cargos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Debe \$ 450,00'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'cargos');
+    await tester.tap(find.text('Tratamientos'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Endodoncia'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Finanzas: gastos fijos y proyección', (tester) async {
+    await _abrir(tester, const FinanzasPage());
+    await tester.ensureVisible(find.text('Gastos fijos'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gastos fijos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Arriendo del consultorio'), findsOneWidget);
+    await tester.ensureVisible(find.text('Proyección'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Proyección'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cuota 2 · Ortodoncia'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Asistente de bienvenida: recorre los 5 pasos', (tester) async {
+    await _abrir(tester, const BienvenidaPage());
+    expect(find.text('Trabajo solo'), findsOneWidget);
+    for (final titulo in ['Datos de tu consulta', 'Tu marca', 'Horario de atención', '¿Qué quieres ver?']) {
+      await tester.tap(find.text('Continuar'));
+      await tester.pumpAndSettle();
+      expect(find.text(titulo), findsOneWidget);
+    }
+    expect(find.text('Empezar a usar el sistema'), findsOneWidget);
+    // Sin aceptar los términos no se puede terminar.
+    final boton = tester.widget<FilledButton>(find.ancestor(of: find.text('Empezar a usar el sistema'), matching: find.byType(FilledButton)));
+    expect(boton.onPressed, isNull);
+    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    final listo = tester.widget<FilledButton>(find.ancestor(of: find.text('Empezar a usar el sistema'), matching: find.byType(FilledButton)));
+    expect(listo.onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Legal y cumplimiento: estado, términos y solicitudes', (tester) async {
+    await _abrir(tester, const CumplimientoPage());
+    expect(find.text('Representante legal'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('Leí y acepto'), 300, scrollable: find.descendant(of: find.byType(ListView).first, matching: find.byType(Scrollable)).first);
+    expect(find.textContaining('Leí y acepto'), findsOneWidget);
+    await tester.tap(find.text('Solicitudes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Rosa Vela'), findsOneWidget);
+    expect(find.textContaining('Vencida hace 25'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Documento legal servido por el servidor', (tester) async {
+    await _abrir(tester, const DocumentoLegalPage(codigo: 'terminos'));
+    expect(find.text('Términos de uso del sistema'), findsOneWidget);
+    expect(find.text('Objeto'), findsOneWidget);
   });
 
   testWidgets('Ficha del paciente: las 8 pestañas', (tester) async {

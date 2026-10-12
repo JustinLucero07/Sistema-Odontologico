@@ -25,6 +25,8 @@ import {
   TreatmentPlanItem,
   TreatmentPlanItemStatus,
 } from '../../core/models/treatment.models';
+import { ClinicService } from '../../core/services/clinic.service';
+import { printTreatmentCertificate } from '../../shared/print/certificate-print';
 import { LegalService } from '../../core/services/legal.service';
 import { PatientsService } from '../../core/services/patients.service';
 import { TreatmentPlansService } from '../../core/services/treatment-plans.service';
@@ -355,6 +357,53 @@ export class TreatmentPlansTabComponent implements OnChanges {
   async rejectBudget(budget: Budget): Promise<void> {
     await firstValueFrom(this.plansService.updateBudgetStatus(budget.id, 'rechazado'));
     await this.reload();
+  }
+
+  private readonly clinicService = inject(ClinicService);
+
+  /** Certificado de los tratamientos terminados del plan (o de todo el plan
+   *  si aún no hay ninguno terminado), firmado por el profesional. */
+  async printCertificate(plan: TreatmentPlan): Promise<void> {
+    try {
+      const [clinic, patient, profesionales] = await Promise.all([
+        firstValueFrom(this.legalService.getController()),
+        firstValueFrom(this.patientsService.getPatient(this.patientId)),
+        firstValueFrom(this.clinicService.listProfessionals()),
+      ]);
+      const terminados = plan.items.filter((i) => i.status === 'completado');
+      const items = terminados.length ? terminados : plan.items.filter((i) => !['cancelado', 'rechazado'].includes(i.status));
+      if (!items.length) {
+        this.snackBar.open('El plan no tiene tratamientos para certificar.', 'Cerrar', { duration: 3500 });
+        return;
+      }
+      const pid = items.find((i) => i.professional_id)?.professional_id;
+      const prof = profesionales.find((p) => p.id === pid) ?? profesionales.find((p) => p.is_active);
+      const nota = await promptText(this.dialog, {
+        title: 'Certificado de tratamiento',
+        message: terminados.length
+          ? `Incluye ${terminados.length} tratamiento(s) terminado(s). Puede agregar una observación (opcional).`
+          : 'Aún no hay tratamientos terminados: se certifican los del plan en curso. Puede agregar una observación (opcional).',
+        label: 'Observación',
+        multiline: true,
+        confirmLabel: 'Imprimir',
+        minLength: 0,
+      });
+      if (nota === null) return;
+      printTreatmentCertificate(
+        {
+          patient_name: `${patient.first_name} ${patient.last_name}`,
+          patient_id_number: patient.national_id ?? null,
+          treatments: items.map((i) => ({ name: i.treatment_name, tooth: i.fdi_number, date: i.completed_date ?? i.estimated_date })),
+          professional_name: prof ? `${prof.first_name} ${prof.last_name}` : clinic.name,
+          license_number: prof?.license_number ?? null,
+          city: clinic.address?.split(',').pop()?.trim() ?? null,
+          notes: nota.trim() || null,
+        },
+        clinic,
+      );
+    } catch {
+      this.snackBar.open('No se pudo preparar el certificado', 'Cerrar', { duration: 4000 });
+    }
   }
 
   /** Prints the budget as its own clean document rather than the whole page. */

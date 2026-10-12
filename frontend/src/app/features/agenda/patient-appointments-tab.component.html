@@ -59,6 +59,11 @@
           <span class="status-tag" [style.color]="statusColor(appointment)">
             {{ statusLabels[appointment.status] }}
           </span>
+          @if (appointment.status === 'atendida') {
+            <button mat-icon-button (click)="printAttendance(appointment)" matTooltip="Certificado de asistencia" aria-label="Certificado de asistencia">
+              <mat-icon>verified</mat-icon>
+            </button>
+          }
         </div>
       }
     </section>

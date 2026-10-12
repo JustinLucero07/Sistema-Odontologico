@@ -36,3 +36,9 @@ docs/promocion/escenas/
 docs/promocion/capturas/
 docs/promocion/fuente/*.wav
 docs/promocion/fuente/clips/
+docs/promocion/tomas/
+# Material intermedio del montaje de videos
+docs/promocion/fuente/tomas/
+docs/promocion/fuente/cuadros/
+docs/promocion/fuente/*.wav
+docs/promocion/fuente/*.mp4

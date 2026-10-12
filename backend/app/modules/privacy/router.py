@@ -1,15 +1,32 @@
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser, get_current_user, require_permission
 from app.modules.clinics.models import Clinic
 from app.modules.privacy import service
-from app.modules.privacy.constants import CONFIDENTIALITY_VERSION, PRIVACY_POLICY_VERSION
-from app.modules.privacy.schemas import AccessEntry, ConsentCreate, ConsentOut, LegalController, PrivacyStatus
+from app.modules.privacy.constants import (
+    CONFIDENTIALITY_VERSION,
+    PRIVACY_POLICY_VERSION,
+    RIGHTS_KINDS,
+    RIGHTS_STATUSES,
+    TAX_REGIMES,
+    TERMS_VERSION,
+)
+from app.modules.privacy.documents import DOCUMENTS
+from app.modules.privacy.schemas import (
+    AccessEntry,
+    ConsentCreate,
+    ConsentOut,
+    LegalController,
+    LegalDocument,
+    PrivacyStatus,
+    RightsRequestIn,
+    RightsRequestOut,
+)
 
 patient_router = APIRouter(prefix="/api/v1/patients/{patient_id}/privacy", tags=["privacy"])
 legal_router = APIRouter(prefix="/api/v1/legal", tags=["privacy"])
@@ -75,4 +92,83 @@ async def get_controller(
         email=clinic.email,
         privacy_policy_version=PRIVACY_POLICY_VERSION,
         confidentiality_version=CONFIDENTIALITY_VERSION,
+        legal_rep_name=clinic.legal_rep_name,
+        dpo_name=clinic.dpo_name,
+        dpo_email=clinic.dpo_email,
+        health_permit_number=clinic.health_permit_number,
+        record_retention_years=clinic.record_retention_years,
+        privacy_extra=clinic.privacy_extra,
+        terms_version=TERMS_VERSION,
+        logo_data=clinic.logo_data,
+        primary_color=clinic.primary_color,
+        slogan=clinic.slogan,
+        document_footer=clinic.document_footer,
     )
+
+
+@legal_router.get("/catalogs")
+async def get_catalogs(current_user: CurrentUser = Depends(get_current_user)):
+    """Listas para los formularios de Legal y cumplimiento."""
+    def opciones(d: dict[str, str]) -> list[dict]:
+        return [{"code": k, "label": v} for k, v in d.items()]
+
+    return {
+        "rights_kinds": opciones(RIGHTS_KINDS),
+        "rights_statuses": opciones(RIGHTS_STATUSES),
+        "tax_regimes": opciones(TAX_REGIMES),
+    }
+
+
+@legal_router.get("/documents/{code}", response_model=LegalDocument)
+async def get_document(
+    code: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if code not in DOCUMENTS:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    titulo, generar = DOCUMENTS[code]
+    clinic = await db.get(Clinic, current_user.clinic_id)
+    return LegalDocument(code=code, title=titulo, version=TERMS_VERSION, sections=generar(clinic))
+
+
+@legal_router.get("/requests", response_model=list[RightsRequestOut])
+async def get_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    return await service.list_rights_requests(db, current_user.clinic_id)
+
+
+@legal_router.post("/requests", response_model=RightsRequestOut, status_code=201)
+async def post_request(
+    payload: RightsRequestIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    out = await service.save_rights_request(db, current_user.clinic_id, current_user.id, payload)
+    await db.commit()
+    return out
+
+
+@legal_router.put("/requests/{request_id}", response_model=RightsRequestOut)
+async def put_request(
+    request_id: uuid.UUID,
+    payload: RightsRequestIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    out = await service.save_rights_request(db, current_user.clinic_id, current_user.id, payload, request_id)
+    await db.commit()
+    return out
+
+
+@legal_router.delete("/requests/{request_id}", status_code=204)
+async def delete_request(
+    request_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("settings:manage")),
+):
+    await service.delete_rights_request(db, current_user.clinic_id, current_user.id, request_id)
+    await db.commit()
+    return Response(status_code=204)

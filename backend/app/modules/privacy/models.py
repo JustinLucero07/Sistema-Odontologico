@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -35,3 +35,28 @@ class DataConsent(UUIDPKMixin, TenantMixin, Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class DataRightsRequest(UUIDPKMixin, TenantMixin, Base):
+    """Solicitud de un titular para ejercer sus derechos (acceso, rectificación,
+    eliminación…). Hay que poder demostrar que se respondió y cuándo."""
+
+    __tablename__ = "data_rights_requests"
+
+    patient_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("patients.id"), nullable=True
+    )
+    requester_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    requester_id_number: Mapped[str | None] = mapped_column(String(20))
+    contact: Mapped[str | None] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    details: Mapped[str | None] = mapped_column(Text)
+    received_on: Mapped[date] = mapped_column(Date, nullable=False)
+    due_on: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pendiente")
+    response: Mapped[str | None] = mapped_column(Text)
+    resolved_on: Mapped[date | None] = mapped_column(Date)
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

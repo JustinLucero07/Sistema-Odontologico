@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.modules.privacy.constants import CONSENT_KINDS, CONSENT_METHODS
+from app.modules.privacy.constants import CONSENT_KINDS, CONSENT_METHODS, RIGHTS_KINDS, RIGHTS_STATUSES
 
 
 class ConsentCreate(BaseModel):
@@ -71,3 +71,76 @@ class LegalController(BaseModel):
     email: str | None
     privacy_policy_version: str
     confidentiality_version: str
+    # Identidad visual para los documentos impresos.
+    legal_rep_name: str | None = None
+    dpo_name: str | None = None
+    dpo_email: str | None = None
+    health_permit_number: str | None = None
+    record_retention_years: int = 15
+    privacy_extra: str | None = None
+    terms_version: str = ""
+    logo_data: str | None = None
+    primary_color: str | None = None
+    slogan: str | None = None
+    document_footer: str | None = None
+
+
+class LegalSection(BaseModel):
+    title: str
+    paragraphs: list[str]
+
+
+class LegalDocument(BaseModel):
+    code: str
+    title: str
+    version: str
+    sections: list[LegalSection]
+
+
+class RightsRequestIn(BaseModel):
+    patient_id: uuid.UUID | None = None
+    requester_name: str = Field(min_length=2, max_length=200)
+    requester_id_number: str | None = Field(default=None, max_length=20)
+    contact: str | None = Field(default=None, max_length=200)
+    kind: str
+    details: str | None = Field(default=None, max_length=4000)
+    received_on: date | None = None
+    status: str = "pendiente"
+    response: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("kind")
+    @classmethod
+    def _kind(cls, v):
+        if v not in RIGHTS_KINDS:
+            raise ValueError("Tipo de solicitud no válido")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def _status(cls, v):
+        if v not in RIGHTS_STATUSES:
+            raise ValueError("Estado no válido")
+        return v
+
+
+class RightsRequestOut(BaseModel):
+    id: uuid.UUID
+    patient_id: uuid.UUID | None
+    patient_name: str | None = None
+    requester_name: str
+    requester_id_number: str | None
+    contact: str | None
+    kind: str
+    kind_label: str = ""
+    details: str | None
+    received_on: date
+    due_on: date
+    status: str
+    status_label: str = ""
+    response: str | None
+    resolved_on: date | None
+    overdue: bool = False
+    days_left: int | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -1,0 +1,137 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Cartera</h1>
+      <p class="page-sub">Todo lo que te deben, lo que ya está saldado y los tratamientos en curso de todos tus pacientes</p>
+    </div>
+    <div class="acciones">
+      <button mat-stroked-button (click)="cargar()"><mat-icon>refresh</mat-icon>Actualizar</button>
+      <button mat-flat-button (click)="exportar()" [disabled]="!data()"><mat-icon>download</mat-icon>Exportar a Excel</button>
+    </div>
+  </header>
+
+  @if (loading() && !data()) {
+    <app-skeleton variant="cards" [rows]="4" />
+    <app-skeleton variant="table" [rows]="6" />
+  }
+  @if (!(loading() && !data()) && data(); as d) {
+    <section class="kpis">
+      <article class="glass-card kpi destacado">
+        <span>Por cobrar</span>
+        <strong class="numeric">$ {{ money(d.summary.receivable) }}</strong>
+        <em>{{ d.summary.patients_owing }} {{ d.summary.patients_owing === 1 ? 'paciente debe' : 'pacientes deben' }}</em>
+      </article>
+      <article class="glass-card kpi">
+        <span>Cobrado en total</span>
+        <strong class="numeric ok">$ {{ money(d.summary.total_paid) }}</strong>
+        <div class="barra"><i [style.width.%]="cobranza()"></i></div>
+        <em>{{ cobranza() }} % de lo facturado</em>
+      </article>
+      <article class="glass-card kpi">
+        <span>Tratamientos en curso</span>
+        <strong class="numeric">{{ d.summary.treatments_in_progress }}</strong>
+        <em>$ {{ money(d.summary.treatments_in_progress_value) }} en valor</em>
+      </article>
+      <article class="glass-card kpi">
+        <span>Por iniciar</span>
+        <strong class="numeric">{{ d.summary.treatments_planned }}</strong>
+        <em>$ {{ money(d.summary.treatments_planned_value) }} aprobados o propuestos</em>
+      </article>
+      <article class="glass-card kpi">
+        <span>Pacientes saldados</span>
+        <strong class="numeric ok">{{ d.summary.patients_settled }}</strong>
+        <em>{{ d.summary.patients_credit }} con saldo a favor · $ {{ money(d.summary.credit_balance) }}</em>
+      </article>
+    </section>
+
+    <div class="vistas">
+      @for (v of [{ v: 'pacientes', l: 'Pacientes', i: 'groups' }, { v: 'cargos', l: 'Cargos y abonos', i: 'receipt_long' }, { v: 'tratamientos', l: 'Tratamientos', i: 'medical_services' }]; track v.v) {
+        <button type="button" [class.on]="vista() === v.v" (click)="cambiarVista($any(v.v))"><mat-icon>{{ v.i }}</mat-icon>{{ v.l }}</button>
+      }
+    </div>
+
+    <div class="barra-filtros">
+      <div class="chips">
+        @for (f of filtros(); track f.v) {
+          <button type="button" [class.on]="filtro() === f.v" (click)="filtro.set(f.v)">{{ f.l }} <span>{{ f.c }}</span></button>
+        }
+      </div>
+      <label class="buscar">
+        <mat-icon>search</mat-icon>
+        <input [ngModel]="buscar()" (ngModelChange)="buscar.set($event)" placeholder="Buscar paciente, tratamiento…" />
+      </label>
+    </div>
+
+    <section class="glass-card tabla">
+      @switch (vista()) {
+        @case ('pacientes') {
+          @for (p of pacientes(); track p.patient_id) {
+            <div class="fila">
+              <span class="avatar" [attr.data-estado]="p.status">{{ iniciales(p.patient_name) }}</span>
+              <div class="info">
+                <a [routerLink]="['/patients', p.patient_id]">{{ p.patient_name }}</a>
+                <span>
+                  Cargado $ {{ money(p.total_charged) }} · Pagado $ {{ money(p.total_paid) }}
+                  @if (p.open_charges) { · {{ p.open_charges }} {{ p.open_charges === 1 ? 'cargo abierto' : 'cargos abiertos' }} }
+                  @if (p.days_pending) { · hace {{ p.days_pending }} días }
+                  @if (p.last_payment_on) { · último pago {{ p.last_payment_on | date: 'd MMM' }} }
+                </span>
+              </div>
+              @if (p.in_credit) { <span class="tag credito">Crédito</span> }
+              <div class="monto" [attr.data-estado]="p.status">
+                <strong class="numeric">$ {{ money(p.balance.startsWith('-') ? p.balance.slice(1) : p.balance) }}</strong>
+                <span>{{ p.status === 'debe' ? 'Debe' : p.status === 'a_favor' ? 'A favor' : 'Saldado' }}</span>
+              </div>
+              <div class="botones">
+                @if (p.status === 'debe' && wa(p); as link) {
+                  <a mat-icon-button [href]="link" target="_blank" rel="noopener" matTooltip="Recordar por WhatsApp"><mat-icon>chat</mat-icon></a>
+                }
+                <a mat-icon-button [routerLink]="['/patients', p.patient_id]" [queryParams]="{ tab: 'pagos' }" matTooltip="Ver cuenta"><mat-icon>chevron_right</mat-icon></a>
+              </div>
+            </div>
+          } @empty { <p class="vacio"><mat-icon>task_alt</mat-icon>Nada en esta lista.</p> }
+        }
+        @case ('cargos') {
+          <table>
+            <thead><tr><th>Fecha</th><th>Paciente</th><th>Concepto</th><th class="n">Valor</th><th class="n">Abonado</th><th class="n">Pendiente</th><th>Estado</th></tr></thead>
+            <tbody>
+              @for (c of cargos(); track c.charge_id) {
+                <tr>
+                  <td>{{ c.issued_on | date: 'dd/MM/yyyy' }}</td>
+                  <td><a [routerLink]="['/patients', c.patient_id]">{{ c.patient_name }}</a></td>
+                  <td>{{ c.description }} @if (c.in_credit) { <span class="tag credito">Crédito</span> }</td>
+                  <td class="n numeric">$ {{ money(c.amount) }}</td>
+                  <td class="n numeric">$ {{ money(c.paid) }}</td>
+                  <td class="n numeric"><b>$ {{ money(c.pending) }}</b></td>
+                  <td><span class="tag" [attr.data-estado]="c.status">{{ c.status === 'pagada' ? 'Pagado' : c.status === 'parcial' ? 'Con abono' : 'Sin abono' }}</span>
+                    @if (c.days_open > 30) { <small class="atraso">{{ c.days_open }} d</small> }</td>
+                </tr>
+              } @empty { <tr><td colspan="7" class="vacio">Nada en esta lista.</td></tr> }
+            </tbody>
+          </table>
+        }
+        @case ('tratamientos') {
+          <table>
+            <thead><tr><th>Paciente</th><th>Tratamiento</th><th>Profesional</th><th>Fecha</th><th>Estado</th><th class="n">Valor</th></tr></thead>
+            <tbody>
+              @for (t of tratamientos(); track t.item_id) {
+                <tr>
+                  <td><a [routerLink]="['/patients', t.patient_id]">{{ t.patient_name }}</a></td>
+                  <td>{{ t.treatment }} @if (t.fdi_number) { <small>· pieza {{ t.fdi_number }}</small> }<br /><small class="tenue">{{ t.plan_title }}</small></td>
+                  <td>{{ t.professional_name || '—' }}</td>
+                  <td>{{ (t.completed_date || t.estimated_date) ? ((t.completed_date || t.estimated_date) | date: 'dd/MM/yyyy') : '—' }}</td>
+                  <td><span class="tag" [attr.data-estado]="t.status">{{ estadoTrat[t.status] || t.status }}</span></td>
+                  <td class="n numeric">$ {{ money(t.net_price) }}</td>
+                </tr>
+              } @empty { <tr><td colspan="6" class="vacio">Nada en esta lista.</td></tr> }
+            </tbody>
+          </table>
+        }
+      }
+      <footer class="total">
+        <span>{{ vista() === 'pacientes' ? pacientes().length + ' pacientes' : vista() === 'cargos' ? cargos().length + ' cargos' : tratamientos().length + ' tratamientos' }}</span>
+        <strong class="numeric">Total $ {{ money(totalVista()) }}</strong>
+      </footer>
+    </section>
+  }
+</div>

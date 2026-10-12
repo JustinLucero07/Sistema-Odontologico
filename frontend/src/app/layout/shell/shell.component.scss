@@ -84,10 +84,24 @@
     var(--nav-active-glow);
 }
 
+.brand-mark.con-logo {
+  background: #fff;
+  overflow: hidden;
+  padding: 3px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
 .brand-name {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   line-height: 1.2;
+  white-space: normal;
 
   small {
     font-family: var(--font-body);
@@ -108,6 +122,11 @@
 
 .nav-section {
   padding: 2px 12px 6px;
+
+  // Que el último destino no quede debajo del botón «Contraer menú».
+  &:last-of-type {
+    padding-bottom: 64px;
+  }
 }
 
 .nav-section-title {
@@ -535,4 +554,19 @@ mat-sidenav-content {
   height: 38px;
   border-radius: 999px;
   padding: 0 16px 0 12px;
+}
+
+.aviso-legal {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 14px;
+  border-radius: var(--radius-sm, 12px); text-decoration: none; font-size: 0.86rem; font-weight: 600;
+  background: var(--color-accent-soft); color: var(--color-ink);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  mat-icon { color: var(--color-accent); }
+  span { flex: 1; }
+  .ir { opacity: 0.6; }
+  &.peligro {
+    background: color-mix(in srgb, var(--color-danger, #d0453a) 12%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger, #d0453a) 35%, transparent);
+    mat-icon { color: var(--color-danger, #d0453a); }
+  }
 }

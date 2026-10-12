@@ -42,6 +42,11 @@
     <button role="tab" [class.on]="view() === 'egresos'" (click)="view.set('egresos')">
       <mat-icon>receipt</mat-icon>Egresos <span class="count">{{ liveExpenses().length }}</span>
     </button>
+    <button role="tab" [class.on]="view() === 'fijos'" (click)="view.set('fijos')">
+      <mat-icon>event_repeat</mat-icon>Gastos fijos
+      @if (recurringPending().length) { <span class="count alerta">{{ recurringPending().length }}</span> }
+    </button>
+    <button role="tab" [class.on]="view() === 'proyeccion'" (click)="view.set('proyeccion')"><mat-icon>query_stats</mat-icon>Proyección</button>
     <button role="tab" [class.on]="view() === 'cajas'" (click)="view.set('cajas')"><mat-icon>point_of_sale</mat-icon>Cierres de caja</button>
   </div>
 
@@ -216,6 +221,122 @@
       </section>
     }
 
+
+    @if (view() === 'fijos') {
+      <section class="kpis tres">
+        <article class="glass-card kpi">
+          <span class="kpi-label">Gastos fijos al mes</span>
+          <strong class="numeric out"><small>$</small>{{ money(recurringMonthly()) }}</strong>
+          <span class="kpi-hint">{{ recurring().length }} plantillas activas o pausadas</span>
+        </article>
+        <article class="glass-card kpi">
+          <span class="kpi-label">Pendientes este mes</span>
+          <strong class="numeric"><small>$</small>{{ money(recurringPendingTotal()) }}</strong>
+          <span class="kpi-hint">{{ recurringPending().length }} por registrar</span>
+        </article>
+        <article class="glass-card kpi">
+          <span class="kpi-label">Punto de equilibrio</span>
+          <strong class="numeric"><small>$</small>{{ money(recurringMonthly()) }}</strong>
+          <span class="kpi-hint">Lo mínimo que hay que cobrar al mes para cubrir lo fijo</span>
+        </article>
+      </section>
+      <section class="glass-card table-card">
+        <header class="card-head">
+          <div>
+            <h2>Gastos fijos mensuales</h2>
+            <p class="card-sub">Arriendo, sueldos, internet… El sistema te recuerda cuáles faltan pagar cada mes.</p>
+          </div>
+          @if (canWrite) {
+            <button mat-flat-button (click)="openRecurring(null)"><mat-icon>add</mat-icon>Nuevo gasto fijo</button>
+          }
+        </header>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Día</th><th>Gasto</th><th>Categoría</th><th>Medio</th><th class="num">Monto</th><th>Este mes</th><th></th></tr></thead>
+            <tbody>
+              @for (r of recurring(); track r.id) {
+                <tr [class.is-void]="!r.is_active">
+                  <td class="numeric">{{ r.day_of_month }}</td>
+                  <td><b>{{ r.description }}</b>@if (r.supplier_name) { <br /><span class="muted">{{ r.supplier_name }}</span> }</td>
+                  <td class="muted">{{ r.category_label }}</td>
+                  <td class="muted">{{ r.method_label }}</td>
+                  <td class="num numeric">$ {{ money(r.amount) }}</td>
+                  <td>
+                    @if (!r.is_active) { <span class="estado pausa">Pausado</span> }
+                    @else if (r.due_this_month) { <span class="estado pendiente">Pendiente · vence {{ r.due_on | date: 'd MMM' }}</span> }
+                    @else { <span class="estado ok">Registrado</span> }
+                  </td>
+                  <td class="num acciones-fila">
+                    @if (canWrite && r.due_this_month) {
+                      <button mat-stroked-button (click)="registerRecurring(r)"><mat-icon>check</mat-icon>Registrar pago</button>
+                    }
+                    @if (canWrite) {
+                      <button mat-icon-button (click)="openRecurring(r)" matTooltip="Editar"><mat-icon>edit</mat-icon></button>
+                      <button mat-icon-button (click)="deleteRecurring(r)" matTooltip="Eliminar plantilla"><mat-icon>delete_outline</mat-icon></button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="empty">Agrega tus gastos fijos (arriendo, sueldos, servicios) para saber cuánto necesitas cobrar cada mes.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    @if (view() === 'proyeccion') {
+      <div class="proj-rango">
+        @for (d of [15, 30, 60, 90]; track d) {
+          <button type="button" [class.on]="projDays() === d" (click)="loadProjection(d)">Próximos {{ d }} días</button>
+        }
+      </div>
+      @if (projection(); as p) {
+        <section class="kpis">
+          <article class="glass-card kpi">
+            <span class="kpi-label">Por entrar</span>
+            <strong class="numeric in"><small>$</small>{{ money(p.expected_in) }}</strong>
+            <span class="kpi-hint">Cuotas de pacientes que vencen</span>
+          </article>
+          <article class="glass-card kpi">
+            <span class="kpi-label">Por salir</span>
+            <strong class="numeric out"><small>$</small>{{ money(p.expected_out) }}</strong>
+            <span class="kpi-hint">Gastos fijos del periodo</span>
+          </article>
+          <article class="glass-card kpi net" [class.negative]="+p.net < 0">
+            <span class="kpi-label">Flujo neto esperado</span>
+            <strong class="numeric"><small>$</small>{{ money(p.net) }}</strong>
+            <span class="kpi-hint">Entradas − salidas previstas</span>
+          </article>
+          <article class="glass-card kpi">
+            <span class="kpi-label">Cuotas vencidas</span>
+            <strong class="numeric out"><small>$</small>{{ money(p.overdue_in) }}</strong>
+            <span class="kpi-hint">Ya debían haber entrado</span>
+          </article>
+        </section>
+        <section class="glass-card table-card">
+          <header class="card-head"><div><h2>Calendario de entradas y salidas</h2><p class="card-sub">Lo que debería pasar por tu caja en los próximos {{ p.days }} días</p></div></header>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Fecha</th><th>Concepto</th><th>Paciente</th><th class="num">Monto</th></tr></thead>
+              <tbody>
+                @for (i of p.items; track $index) {
+                  <tr>
+                    <td>{{ i.on | date: 'EEE d MMM' }}</td>
+                    <td><span class="kind" [attr.data-kind]="i.kind">{{ i.kind === 'gasto_fijo' ? 'Gasto fijo' : 'Cuota' }}</span> {{ i.label }}</td>
+                    <td class="muted">{{ i.patient_name || '—' }}</td>
+                    <td class="num numeric" [class.in]="+i.amount > 0" [class.out]="+i.amount < 0">{{ +i.amount > 0 ? '+' : '−' }} $ {{ money(i.amount.replace('-', '')) }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="empty">No hay cuotas ni gastos fijos previstos en este periodo.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+
     @if (view() === 'cajas') {
       <section class="glass-card table-card">
         <header class="card-head">
@@ -264,3 +385,46 @@
     <app-skeleton variant="chart" />
   }
 </div>
+
+<ng-template #recurringDialog>
+  <h2 mat-dialog-title>{{ editingRecurring() ? 'Editar gasto fijo' : 'Nuevo gasto fijo' }}</h2>
+  <mat-dialog-content>
+    <div class="dialog-grid">
+      <mat-form-field appearance="outline" class="span-all">
+        <mat-label>Descripción</mat-label>
+        <input matInput [(ngModel)]="rec.description" placeholder="Ej. Arriendo del consultorio" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Categoría</mat-label>
+        <mat-select [(ngModel)]="rec.category">
+          @for (c of categories(); track c.code) { <mat-option [value]="c.code">{{ c.label }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Monto mensual</mat-label>
+        <span matTextPrefix>$&nbsp;</span>
+        <input matInput [(ngModel)]="rec.amount" inputmode="decimal" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Día de pago (1–28)</mat-label>
+        <input matInput type="number" min="1" max="28" [(ngModel)]="rec.day_of_month" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Medio de pago</mat-label>
+        <mat-select [(ngModel)]="rec.method">
+          @for (m of methods(); track m.code) { <mat-option [value]="m.code">{{ m.label }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="span-all">
+        <mat-label>Proveedor (opcional)</mat-label>
+        <input matInput [(ngModel)]="rec.supplier_name" />
+      </mat-form-field>
+      <mat-slide-toggle class="span-all" [(ngModel)]="rec.is_active">Activo (se recuerda cada mes)</mat-slide-toggle>
+    </div>
+    @if (recurringError(); as e) { <p class="dialog-error">{{ e }}</p> }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-flat-button (click)="saveRecurring()" [disabled]="!rec.description.trim() || !rec.amount">Guardar</button>
+  </mat-dialog-actions>
+</ng-template>

@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { of, switchMap } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -7,9 +8,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../core/auth/auth.service';
 import { LegalService } from '../../core/services/legal.service';
 import { confidentialityAgreement, privacyNotice } from '../../shared/legal/legal-texts';
-import { printConfidentialityAgreement, printPrivacyNotice } from '../../shared/print/privacy-print';
+import { printConfidentialityAgreement, printLegalDocument, printPrivacyNotice } from '../../shared/print/privacy-print';
 
-type Doc = 'privacidad' | 'confidencialidad';
+type Doc = 'privacidad' | 'confidencialidad' | 'terminos' | 'encargo';
 
 @Component({
   selector: 'app-legal-page',
@@ -33,6 +34,14 @@ type Doc = 'privacidad' | 'confidencialidad';
                 (click)="doc.set('confidencialidad')">
           <mat-icon>verified_user</mat-icon> Acuerdo de confidencialidad
         </button>
+        <button role="tab" [class.on]="doc() === 'terminos'" [attr.aria-selected]="doc() === 'terminos'"
+                (click)="doc.set('terminos')">
+          <mat-icon>description</mat-icon> Términos de uso
+        </button>
+        <button role="tab" [class.on]="doc() === 'encargo'" [attr.aria-selected]="doc() === 'encargo'"
+                (click)="doc.set('encargo')">
+          <mat-icon>handshake</mat-icon> Contrato de encargo
+        </button>
       </div>
 
       <div class="layout">
@@ -40,10 +49,8 @@ type Doc = 'privacidad' | 'confidencialidad';
           @if (controller(); as c) {
             <div class="doc-head">
               <div>
-                <h2>{{ doc() === 'privacidad' ? 'Aviso de privacidad' : 'Acuerdo de confidencialidad' }}</h2>
-                <span class="version">
-                  Versión {{ doc() === 'privacidad' ? c.privacy_policy_version : c.confidentiality_version }}
-                </span>
+                <h2>{{ titulo() }}</h2>
+                <span class="version">Versión {{ version() }}</span>
               </div>
               <button mat-stroked-button (click)="print()">
                 <mat-icon>print</mat-icon>
@@ -86,11 +93,12 @@ type Doc = 'privacidad' | 'confidencialidad';
     `
       .page { display: grid; gap: 16px; }
       .segmented {
-        display: inline-flex; gap: 4px; padding: 4px; width: fit-content; max-width: 100%;
+        display: inline-flex; gap: 4px; padding: 4px; width: fit-content; max-width: 100%; overflow-x: auto;
         border-radius: 999px; background: var(--glass-card-bg);
         backdrop-filter: var(--glass-card-blur); -webkit-backdrop-filter: var(--glass-card-blur);
         border: 1px solid var(--glass-card-border); box-shadow: var(--shadow-sm);
         button {
+          white-space: nowrap;
           display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
           border: none; border-radius: 999px; background: transparent; cursor: pointer;
           font: inherit; font-size: 0.86rem; font-weight: 600; color: var(--color-ink-soft);
@@ -127,16 +135,45 @@ export class LegalPageComponent {
   readonly doc = signal<Doc>('privacidad');
   readonly controller = toSignal(this.legal.getController());
 
+  /** Términos y contrato vienen del servidor: el mismo texto que ve el celular. */
+  readonly serverDoc = toSignal(
+    toObservable(this.doc).pipe(
+      switchMap((d) => (d === 'terminos' || d === 'encargo' ? this.legal.getDocument(d) : of(null))),
+    ),
+    { initialValue: null },
+  );
+
+  readonly titulo = computed(() =>
+    ({ privacidad: 'Aviso de privacidad', confidencialidad: 'Acuerdo de confidencialidad', terminos: 'Términos de uso del sistema', encargo: 'Contrato de encargo de tratamiento de datos' })[this.doc()],
+  );
+
+  readonly version = computed(() => {
+    const c = this.controller();
+    const d = this.doc();
+    if (d === 'privacidad') return c?.privacy_policy_version;
+    if (d === 'confidencialidad') return c?.confidentiality_version;
+    return this.serverDoc()?.version ?? c?.terms_version;
+  });
+
   readonly sections = computed(() => {
     const c = this.controller();
     if (!c) return [];
-    return this.doc() === 'privacidad' ? privacyNotice(c) : confidentialityAgreement(c);
+    const d = this.doc();
+    if (d === 'privacidad') return privacyNotice(c);
+    if (d === 'confidencialidad') return confidentialityAgreement(c);
+    const s = this.serverDoc();
+    return s && s.code === d ? s.sections : [];
   });
 
   print(): void {
     const c = this.controller();
     if (!c) return;
     const user = this.auth.currentUser();
+    const d = this.serverDoc();
+    if ((this.doc() === 'terminos' || this.doc() === 'encargo') && d) {
+      if (!printLegalDocument(c, d, null)) this.snackBar.open('El navegador bloqueó la ventana de impresión', 'Cerrar', { duration: 4000 });
+      return;
+    }
     const opened =
       this.doc() === 'privacidad'
         ? printPrivacyNotice(c, null)

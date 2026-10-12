@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_config.dart';
 import '../../core/auth/auth_controller.dart';
+import '../../core/marca/marca.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/carga.dart';
 
@@ -95,11 +96,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0F4C48), Color(0xFF0A3330), Color(0xFF07231F)],
+            colors: [tono(AppColors.primary, -0.55), tono(AppColors.primary, -0.7), tono(AppColors.primary, -0.8)],
           ),
         ),
         child: SafeArea(
@@ -337,7 +338,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.mint, width: 2),
+          borderSide: BorderSide(color: AppColors.mint, width: 2),
         ),
       ),
     );

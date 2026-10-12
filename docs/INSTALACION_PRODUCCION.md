@@ -1,122 +1,246 @@
-# Instalación en producción
+# Instalación en un VPS (paso a paso)
 
-Guía para instalar el sistema para un consultorio o una clínica, en un servidor propio o en la nube, con HTTPS y respaldos automáticos. Toma unos 20 minutos.
+Esta guía deja el sistema funcionando en internet, con su dominio, HTTPS, respaldos diarios y la app del celular conectada. Con el instalador automático toma unos **20–30 minutos**, y no hace falta saber de servidores.
 
-## Qué se necesita
+**Cómo funciona:** todo corre en Docker dentro de un VPS (un servidor virtual alquilado). Un mismo servidor puede atender a **muchos clientes**: odontólogos independientes, consultorios y clínicas. Cada uno ve solo sus datos.
 
-- Un servidor Linux con Docker y Docker Compose. Basta un VPS de 2 GB de RAM y 40 GB de disco para una clínica o para varios consultorios pequeños.
-- Un dominio o subdominio (por ejemplo, `sonrisa.sudominio.com`) apuntando a la IP del servidor.
-- Los puertos 80 y 443 abiertos.
-
-## 1. Configurar
-
-```bash
-git clone <repositorio> /opt/odonto
-cd /opt/odonto/infra
-cp .env.prod.example .env.prod
-nano .env.prod
+```
+Internet ──► Caddy (HTTPS automático) ──► Web (Angular)
+                                       └─► API (FastAPI) ──► PostgreSQL
+                                                          └─► Redis
+           + recordatorios cada 15 min + respaldo diario
 ```
 
-Complete:
+---
 
-| Variable | Qué poner |
-|---|---|
-| `DOMINIO` | El dominio, sin `https://` |
-| `CORREO_TLS` | Un correo para avisos del certificado |
-| `POSTGRES_PASSWORD` | Una clave aleatoria |
-| `JWT_SECRET_KEY` | Otra clave aleatoria, distinta |
+## 0. Qué necesita
 
-Para generar cada clave:
+| Qué | Recomendado | Notas |
+|---|---|---|
+| VPS | **2 vCPU, 4 GB RAM, 40 GB SSD**, Ubuntu 24.04 | Con 2 GB también funciona (el instalador agrega memoria swap). Para más de 30 clientes, suba a 8 GB. |
+| Dominio | Ej. `app.tumarca.com` | Un subdominio de un dominio que ya tenga sirve. |
+| Correo | Cualquiera | Para avisos del certificado HTTPS. |
 
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+**Proveedores de VPS que funcionan bien** (los precios cambian; revise el actual):
 
-## 2. Arrancar
+- **Hetzner Cloud** (CX22 o similar): el mejor precio por rendimiento, desde unos 5 USD al mes.
+- **Contabo**: muy barato y con más disco; el soporte es más lento.
+- **DigitalOcean / Vultr / Linode**: fáciles de usar, desde unos 12 USD al mes con 2 GB.
 
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
+Elija la región más cercana a sus clientes. Para Ecuador suelen ir bien Estados Unidos este (Virginia o Nueva York) y Miami.
 
-Al arrancar, el sistema hace solo lo siguiente:
+---
 
-- Obtiene el certificado HTTPS para el dominio y lo renueva cuando toca.
-- Aplica las migraciones de la base de datos y pone al día los permisos.
-- Se niega a arrancar si la configuración no es segura (claves por defecto, cookies sin HTTPS, etc.).
-- Programa un respaldo diario a las 02:00 en `infra/respaldos/`.
-- Envía los recordatorios de citas cada 15 minutos.
+## 1. Crear el servidor
 
-Compruebe que responde en `https://SU-DOMINIO/api/v1/health`, que debe devolver `{"status":"ok"}`.
+1. En el panel del proveedor, cree un servidor con **Ubuntu 24.04**.
+2. Recomendado: agregue su **llave SSH** en lugar de usar contraseña. En su computadora:
+   ```bash
+   ssh-keygen -t ed25519      # Enter a todo, si aún no tiene una
+   cat ~/.ssh/id_ed25519.pub  # copie esto en el panel del proveedor
+   ```
+3. Anote la **IP pública** del servidor, por ejemplo `203.0.113.10`.
 
-## 3. Crear el consultorio o la clínica del cliente
+## 2. Apuntar el dominio al servidor
 
-**Odontólogo independiente** (él mismo administra y atiende):
+En el panel donde compró el dominio (GoDaddy, Namecheap, Cloudflare, etc.), cree un registro DNS:
 
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend \
-  python nueva_clinica.py \
-    --nombre "Consultorio Dra. Lucía Paz" \
-    --admin-email lucia.paz@correo.ec \
-    --admin-nombre "Lucía" --admin-apellido "Paz" \
-    --odontologo --registro "MSP-12345"
-```
+| Tipo | Nombre | Valor | TTL |
+|---|---|---|---|
+| A | `app` (o `@` si usa el dominio principal) | La IP del servidor | Automático |
 
-Con `--odontologo`, la cuenta queda también como profesional: puede agendar citas y firmar recetas con su registro desde el primer ingreso.
+> Si usa **Cloudflare**, deje la nube en **gris** («Solo DNS») durante la instalación, para que el certificado HTTPS se emita sin problemas. Después puede activarla.
 
-**Clínica con equipo:**
+Compruebe desde su computadora que ya apunta (puede tardar unos minutos):
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend \
-  python nueva_clinica.py \
-    --nombre "Clínica Dental Sonrisa" \
-    --admin-email dra.perez@sonrisa.ec \
-    --admin-nombre "Ana" --admin-apellido "Pérez" \
-    --ruc 1790000000001 --telefono "+593 99 999 9999" \
-    --direccion "Av. Amazonas N24-03, Quito"
+ping app.tumarca.com
 ```
 
-El comando imprime una **contraseña temporal** una sola vez. Entréguela por un canal seguro; el sistema obliga a cambiarla en el primer ingreso. La clínica se crea sin datos de demostración, con roles, permisos y un catálogo inicial de 20 tratamientos con precios orientativos que la clínica ajusta.
+## 3. Entrar al servidor
+
+```bash
+ssh root@203.0.113.10
+```
+
+## 4. Subir el sistema al servidor
+
+**Opción A: desde GitHub (recomendada, facilita actualizar después)**
+
+Como el repositorio es privado, el servidor necesita permiso de solo lectura:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/github -N ""
+cat ~/.ssh/github.pub
+```
+
+Copie esa llave en GitHub, en *Repositorio › Settings › Deploy keys › Add deploy key* (sin marcar «Allow write access»). Luego:
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/github
+EOF
+git clone git@github.com:JustinLucero07/Sistema-Odontologico.git /opt/odonto
+```
+
+**Opción B: copiar desde su computadora**, sin GitHub:
+
+```bash
+# En SU computadora, dentro de la carpeta del sistema:
+rsync -av --exclude node_modules --exclude .venv --exclude build --exclude .dart_tool \
+  ./ root@203.0.113.10:/opt/odonto/
+```
+
+## 5. Ejecutar el instalador
+
+```bash
+cd /opt/odonto
+sudo bash scripts/instalar-vps.sh
+```
+
+El instalador le pregunta tres cosas:
+
+1. El **dominio** (por ejemplo `app.tumarca.com`).
+2. Un **correo** para el certificado HTTPS.
+3. El **nombre de su empresa**, que sale en los Términos de uso que aceptan sus clientes.
+
+Y hace todo lo demás, sin intervención:
+
+- [x] Actualiza Ubuntu y activa las **actualizaciones de seguridad automáticas**.
+- [x] Instala **fail2ban** (bloquea los intentos de adivinar la contraseña de SSH).
+- [x] Agrega **memoria swap** si el servidor tiene poca RAM.
+- [x] Instala **Docker**.
+- [x] Configura el **firewall**: solo SSH, 80 y 443. La base de datos nunca queda expuesta.
+- [x] Crea `infra/.env.prod` con **claves aleatorias seguras**.
+- [x] Comprueba que el dominio apunte al servidor.
+- [x] Compila y arranca todo, con **HTTPS automático** (Let's Encrypt, que se renueva solo).
+- [x] Instala el comando **`odonto`** para administrar el servidor.
+
+Al terminar, abra `https://app.tumarca.com`: debe aparecer la pantalla de ingreso.
+
+> **Guarde una copia de `infra/.env.prod`** en un lugar seguro, como un gestor de contraseñas. Contiene la clave de la base de datos, y sin ella los respaldos no se pueden restaurar en otro servidor.
+
+## 6. Crear su primer cliente
+
+**Odontólogo que trabaja solo** (es administrador y a la vez el profesional que atiende):
+
+```bash
+odonto nueva-clinica --nombre "Consultorio Dra. Ana Paz" \
+  --admin-email ana@correo.com --admin-nombre Ana --admin-apellido Paz \
+  --odontologo --registro "MSP-12345"
+```
+
+**Consultorio pequeño o clínica con equipo:**
+
+```bash
+odonto nueva-clinica --nombre "Clínica Dental Sonrisa" \
+  --admin-email admin@sonrisa.ec --admin-nombre Ana --admin-apellido Pérez \
+  --ruc 1790000000001 --telefono "0991234567" --direccion "Av. Amazonas N24-03, Quito"
+```
+
+El comando muestra una **contraseña temporal una sola vez**. Entréguela al cliente por un canal seguro, por ejemplo por WhatsApp en un mensaje aparte del correo.
+
+**Lo que ve el cliente al entrar la primera vez:**
+
+1. Cambia la contraseña temporal por una propia.
+2. Acepta el acuerdo de confidencialidad.
+3. Sigue el **asistente de bienvenida**: si trabaja solo o es una clínica, sus datos, su logo y sus colores, su horario, qué módulos quiere ver, y la aceptación de los Términos de uso. Se hace una sola vez, en la web o en el celular.
+4. Completa *Configuración › Legal y cumplimiento*: representante legal, SRI, permiso de funcionamiento y delegado de datos.
+5. Ajusta los precios en *Configuración › Tratamientos* y crea los usuarios de su personal.
+
+**App del celular:** en la pantalla de ingreso, toque **«Configurar servidor del consultorio»** y escriba `app.tumarca.com`. Para no tener que hacerlo en cada celular, puede publicar la app con el servidor fijo (vea `docs/PUBLICAR_APP.md`).
 
 > No ejecute `seed.py` en producción: crea una clínica de demostración con contraseñas conocidas.
 
-## 4. Primeros pasos de la clínica
+## 7. Respaldos
 
-1. Entrar con la contraseña temporal y cambiarla.
-2. Aceptar el acuerdo de confidencialidad.
-3. Completar *Configuración › Datos de la clínica* (razón social, RUC, dirección y correo). El aviso de privacidad toma estos datos.
-4. Ajustar precios en *Configuración › Tratamientos*.
-5. Registrar los profesionales y crear los usuarios del personal con su rol.
-6. En la app móvil, pulsar **«Configurar servidor de la clínica»** en el login y escribir el dominio.
+**Automáticos:** cada día a las 02:00 se guardan en `/opt/odonto/infra/respaldos/`:
 
-## 5. Actualizar a una versión nueva
+- `odonto-FECHA.dump`: la base de datos completa.
+- `archivos-FECHA.tar.gz`: radiografías, fotos y documentos.
 
-```bash
-cd /opt/odonto && git pull
-cd infra && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
+Cada volcado se verifica (si no contiene la tabla de pacientes, se marca como `.SOSPECHOSO`) y se guardan 30 días.
 
-Las migraciones y los permisos nuevos se aplican solos.
-
-## 6. Respaldos
-
-- Se guardan cada día en `infra/respaldos/`: `odonto-FECHA.dump` (la base de datos) y `archivos-FECHA.tar.gz` (radiografías y documentos).
-- Cada volcado se verifica: si no contiene la tabla de pacientes, se renombra a `.SOSPECHOSO`.
-- La retención es de 30 días (`RETENCION_DIAS`).
-- **Copie los respaldos fuera del servidor** (otro disco, otra nube). Un respaldo en la misma máquina no protege de perder esa máquina.
-
-Para restaurar un volcado:
+**Respaldos fuera del servidor (muy importante).** Un respaldo dentro del mismo servidor no sirve si se pierde el servidor. Lo más simple es copiarlos cada noche a Google Drive, Dropbox o Backblaze B2 con `rclone`:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T postgres \
-  pg_restore -U odonto -d odonto --clean --if-exists < respaldos/odonto-FECHA.dump
+curl https://rclone.org/install.sh | sudo bash
+rclone config          # cree un «remote», por ejemplo llamado «nube»
+crontab -e             # y agregue esta línea:
+0 4 * * * rclone copy /opt/odonto/infra/respaldos nube:odonto-respaldos --max-age 48h
 ```
 
-## 7. WhatsApp (opcional)
+Además, active en el panel del proveedor los **backups o snapshots automáticos del VPS**. Suelen costar alrededor del 20 % del precio del servidor.
 
-Sin configurar, los recordatorios quedan registrados como «simulado» y nada se envía. Para enviarlos de verdad se necesita una cuenta de WhatsApp Business Cloud API (Meta). Ponga `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID` en `.env.prod` y reinicie.
+**Comandos útiles:**
 
-Los botones de WhatsApp de *Oportunidades* y de la ficha no necesitan esta cuenta: abren WhatsApp en el equipo con el mensaje ya escrito.
+```bash
+odonto respaldar                 # respaldo inmediato (por ejemplo, antes de un cambio grande)
+odonto respaldos                 # ver los que hay
+odonto restaurar 20261011-020000 # volver a ese momento (pide confirmación y respalda antes lo actual)
+```
 
-## 8. Varios consultorios o clínicas en un servidor
+## 8. Uso diario del servidor
 
-Cada consultorio o clínica es un inquilino aislado (`clinic_id`), así que pueden convivir varios en la misma instalación, cada uno viendo solo sus datos. Basta repetir `nueva_clinica.py`. Es la forma más económica de atender a odontólogos independientes. Si prefiere aislamiento total por cliente, haga una instalación por clínica, con su propio dominio.
+```bash
+odonto estado        # qué está funcionando, si responde y cuánto disco queda
+odonto logs backend  # ver errores en vivo (Ctrl+C para salir)
+odonto actualizar    # instalar una versión nueva (hace un respaldo antes)
+odonto reiniciar     # reiniciar todo
+odonto db            # consola de la base de datos (solo si sabe lo que hace)
+```
+
+**Actualizar a una versión nueva:** suba los cambios a GitHub desde su computadora y ejecute en el servidor `odonto actualizar`. Las migraciones de la base de datos se aplican solas.
+
+**Saber si se cae:** cree una cuenta gratis en [UptimeRobot](https://uptimerobot.com) que vigile `https://app.tumarca.com/api/v1/health` cada 5 minutos y le avise por correo o Telegram.
+
+## 9. Opcionales
+
+**WhatsApp automático:** sin configurarlo, los recordatorios quedan registrados como «simulado» y los botones de WhatsApp abren la app con el mensaje ya escrito, que es lo que la mayoría usa. Para envío automático necesita una cuenta de *WhatsApp Business Cloud API* (Meta). Ponga `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID` en `infra/.env.prod` y ejecute `odonto reiniciar`.
+
+**Datos de su empresa** en los Términos de uso: edite `PROVIDER_NAME`, `PROVIDER_TAX_ID` y `PROVIDER_EMAIL` en `infra/.env.prod` y reinicie.
+
+**Más rendimiento:** con 4 GB o más de RAM, ponga `WEB_WORKERS=4` en `infra/.env.prod`.
+
+**Un servidor por cliente:** si una clínica grande pide aislamiento total, repita esta guía en otro VPS con su propio dominio.
+
+## 10. Si algo falla
+
+| Síntoma | Causa probable | Qué hacer |
+|---|---|---|
+| El navegador dice «conexión no segura» o no carga | El dominio aún no apunta al servidor, o el puerto 80/443 está cerrado en el panel del proveedor | `ping` al dominio debe dar la IP del servidor. Revise el firewall del panel del proveedor. Luego `odonto logs caddy` |
+| `odonto estado` muestra el backend reiniciándose | Error al arrancar | `odonto logs backend`: el error aparece al final |
+| La compilación se corta o «Killed» | Poca memoria | El instalador agrega swap. Si persiste, suba a 4 GB de RAM |
+| La app del celular no conecta | Dirección del servidor mal escrita | Escriba solo `app.tumarca.com`, sin `https://` ni barras |
+| Se llenó el disco | Respaldos o registros acumulados | `odonto estado` muestra el disco. Baje `RETENCION_DIAS` o amplíe el disco |
+| Olvidé la contraseña del administrador de un cliente | — | Otro administrador de esa clínica puede restablecerla desde *Usuarios*. Si no hay otro, cree un administrador nuevo con `odonto db` o escríbanos |
+
+## 11. Lista de seguridad antes de vender
+
+- [ ] HTTPS funciona (candado en el navegador).
+- [ ] `infra/.env.prod` guardado fuera del servidor.
+- [ ] Respaldos copiándose fuera del servidor (rclone o snapshots).
+- [ ] Monitoreo con UptimeRobot.
+- [ ] Ingreso por SSH solo con llave (en `/etc/ssh/sshd_config`: `PasswordAuthentication no`, y luego `systemctl restart ssh`).
+- [ ] `PROVIDER_NAME` con el nombre de su empresa.
+- [ ] Textos legales revisados por un abogado (*Privacidad y legal* en el sistema).
+
+---
+
+### Instalación manual (sin el instalador)
+
+Si prefiere hacerlo a mano, o el servidor no es Ubuntu ni Debian:
+
+```bash
+# Docker
+curl -fsSL https://get.docker.com | sh
+# Configuración
+cd /opt/odonto/infra
+cp .env.prod.example .env.prod && nano .env.prod   # DOMINIO, CORREO_TLS y dos claves aleatorias:
+openssl rand -base64 40                            # una para POSTGRES_PASSWORD y otra para JWT_SECRET_KEY
+# Arrancar
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Comando de administración
+ln -sf /opt/odonto/infra/odonto.sh /usr/local/bin/odonto
+```

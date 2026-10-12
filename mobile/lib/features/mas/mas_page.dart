@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/marca/marca.dart';
+import '../bienvenida/bienvenida_page.dart';
 import '../caja/caja_page.dart';
+import '../cartera/cartera_page.dart';
 import '../configuracion/configuracion_pages.dart';
 import '../creditos/creditos_page.dart';
 import '../cuenta/cambiar_clave_page.dart';
 import '../finanzas/finanzas_page.dart';
 import '../inventario/inventario_page.dart';
 import '../laboratorio/laboratorio_page.dart';
+import '../legal/cumplimiento_page.dart';
 import '../oportunidades/oportunidades_page.dart';
 import '../agenda/huecos_page.dart';
 import '../reportes/reportes_page.dart';
@@ -17,17 +21,27 @@ import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
 class _Modulo {
-  const _Modulo(this.titulo, this.icono, this.color, this.permiso, this.pagina);
+  const _Modulo(
+    this.titulo,
+    this.icono,
+    this.color,
+    this.permiso,
+    this.pagina, [
+    this.modulo,
+  ]);
   final String titulo;
   final IconData icono;
   final Color color;
   final String? permiso;
   final Widget Function() pagina;
+
+  /// Código del módulo que la consulta puede ocultar en Personalización.
+  final String? modulo;
 }
 
 final _grupos = <(String, List<_Modulo>)>[
   (
-    'Clínica',
+    'Consulta',
     [
       _Modulo(
         'Oportunidades',
@@ -35,6 +49,7 @@ final _grupos = <(String, List<_Modulo>)>[
         Color(0xFFD81B60),
         'patients:read',
         () => const OportunidadesPage(),
+        'opportunities',
       ),
       _Modulo(
         'Huecos libres',
@@ -54,6 +69,14 @@ final _grupos = <(String, List<_Modulo>)>[
         Tonos.verde,
         'payments:read',
         () => const CajaPage(),
+        'cash',
+      ),
+      _Modulo(
+        'Cartera',
+        Icons.account_balance_wallet_outlined,
+        Tonos.rojo,
+        'payments:read',
+        () => const CarteraPage(),
       ),
       _Modulo(
         'Finanzas',
@@ -68,6 +91,7 @@ final _grupos = <(String, List<_Modulo>)>[
         Tonos.violeta,
         'payments:read',
         () => const CreditosPage(),
+        'credits',
       ),
       _Modulo(
         'Reportes',
@@ -75,6 +99,7 @@ final _grupos = <(String, List<_Modulo>)>[
         Tonos.ambar,
         'reports:read',
         () => const ReportesPage(),
+        'reports',
       ),
       _Modulo(
         'Inventario',
@@ -82,6 +107,7 @@ final _grupos = <(String, List<_Modulo>)>[
         Tonos.rojo,
         'inventory:read',
         () => const InventarioPage(),
+        'inventory',
       ),
       _Modulo(
         'Laboratorio',
@@ -89,6 +115,7 @@ final _grupos = <(String, List<_Modulo>)>[
         Color(0xFF0D7F76),
         'laboratory:read',
         () => const LaboratorioPage(),
+        'laboratory',
       ),
     ],
   ),
@@ -117,7 +144,21 @@ final _grupos = <(String, List<_Modulo>)>[
         () => const UsuariosPage(),
       ),
       _Modulo(
-        'Clínica',
+        'Personalización',
+        Icons.palette_outlined,
+        Tonos.violeta,
+        'settings:manage',
+        () => const BienvenidaPage(editar: true),
+      ),
+      _Modulo(
+        'Legal y cumplimiento',
+        Icons.gavel,
+        Tonos.rojo,
+        'settings:manage',
+        () => const CumplimientoPage(),
+      ),
+      _Modulo(
+        'Datos de la consulta',
         Icons.store_outlined,
         Tonos.ambar,
         'settings:manage',
@@ -134,6 +175,10 @@ class MasPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usuario = ref.watch(authProvider).usuario;
+    final marca = ref.watch(marcaProvider);
+    bool ve(_Modulo m) =>
+        (m.permiso == null || (usuario?.puede(m.permiso!) ?? false)) &&
+        (m.modulo == null || marca.visible(m.modulo!));
     final scheme = Theme.of(context).colorScheme;
 
     return ListView(
@@ -145,9 +190,7 @@ class MasPage extends ConsumerWidget {
       ),
       children: [
         for (final (titulo, modulos) in _grupos)
-          if (modulos.any(
-            (m) => m.permiso == null || (usuario?.puede(m.permiso!) ?? false),
-          )) ...[
+          if (modulos.any(ve)) ...[
             Seccion(titulo),
             GridView.count(
               crossAxisCount: 3,
@@ -158,8 +201,7 @@ class MasPage extends ConsumerWidget {
               childAspectRatio: 0.95,
               children: [
                 for (final m in modulos)
-                  if (m.permiso == null ||
-                      (usuario?.puede(m.permiso!) ?? false))
+                  if (ve(m))
                     GlassCard(
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(builder: (_) => m.pagina()),

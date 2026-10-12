@@ -10,7 +10,10 @@
   <div class="login-split">
     <!-- Brand side: what the product is, before asking who you are. -->
     <section class="login-pitch">
-      <span class="pitch-mark"><app-tooth-mark [size]="30" [filled]="true" /></span>
+      <span class="pitch-mark" [class.con-logo]="branding.logo()">
+        @if (branding.logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="30" [filled]="true" /> }
+      </span>
+      @if (branding.branding(); as b) { <p class="pitch-nombre">{{ b.name }}</p> }
 
       <h1>Tu consultorio o clínica,<br />en una sola pantalla.</h1>
       <p class="pitch-sub">
@@ -45,7 +48,9 @@
     <!-- Form side -->
     <main class="login-card">
       <div class="login-brand">
-        <span class="login-mark"><app-tooth-mark [size]="26" [filled]="true" /></span>
+        <span class="login-mark" [class.con-logo]="branding.logo()">
+          @if (branding.logo(); as l) { <img [src]="l" alt="" /> } @else { <app-tooth-mark [size]="26" [filled]="true" /> }
+        </span>
         <div>
           <h2>Iniciar sesión</h2>
           <p>Ingresa con tu cuenta del consultorio.</p>

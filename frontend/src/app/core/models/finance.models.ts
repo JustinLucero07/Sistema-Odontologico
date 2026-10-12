@@ -220,3 +220,39 @@ export const INSTALLMENT_LABELS: Record<InstallmentState, string> = {
   pendiente: 'Pendiente',
   vencida: 'Vencida',
 };
+
+export interface RecurringInput {
+  description: string;
+  category: string;
+  amount: string;
+  method: string;
+  day_of_month: number;
+  supplier_name: string | null;
+  is_active: boolean;
+}
+
+export interface RecurringExpense extends RecurringInput {
+  id: string;
+  category_label: string;
+  method_label: string;
+  last_registered_month: string | null;
+  due_this_month: boolean;
+  due_on: string;
+}
+
+export interface ProjectionItem {
+  on: string;
+  kind: 'cuota_credito' | 'cuota_cargo' | 'gasto_fijo';
+  label: string;
+  patient_name: string | null;
+  amount: string;
+}
+
+export interface Projection {
+  days: number;
+  expected_in: string;
+  expected_out: string;
+  net: string;
+  overdue_in: string;
+  items: ProjectionItem[];
+}

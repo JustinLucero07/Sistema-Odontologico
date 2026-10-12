@@ -11,6 +11,34 @@ export interface Clinic {
   secondary_color: string | null;
   timezone: string;
   currency: string;
+  practice_type: 'independiente' | 'consultorio' | 'clinica';
+  logo_data: string | null;
+  slogan: string | null;
+  document_footer: string | null;
+  opens_at: string;
+  closes_at: string;
+  work_days: string;
+  hidden_modules: string[];
+  setup_completed_at: string | null;
+  legal_rep_name: string | null;
+  legal_rep_id: string | null;
+  dpo_name: string | null;
+  dpo_email: string | null;
+  health_permit_number: string | null;
+  health_permit_expires_on: string | null;
+  tax_regime: string;
+  keeps_accounting: boolean;
+  special_taxpayer: string | null;
+  sri_establishment: string;
+  sri_emission_point: string;
+  vat_rate: string;
+  record_retention_years: number;
+  privacy_extra: string | null;
+  session_timeout_minutes: number;
+  terms_version: string | null;
+  terms_accepted_at: string | null;
+  terms_accepted_by: string | null;
+  terms_current_version: string;
 }
 
 export interface Specialty {

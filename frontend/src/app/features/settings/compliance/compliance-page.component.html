@@ -1,0 +1,270 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Legal y cumplimiento</h1>
+      <p class="page-sub">Lo que tu consulta necesita tener en regla. Se guarda una vez y se ve igual en la web y en el celular.</p>
+    </div>
+    @if (tab() !== 'resumen' && tab() !== 'terminos' && tab() !== 'solicitudes') {
+      <button mat-flat-button (click)="guardar()" [disabled]="guardando()">
+        <mat-icon>save</mat-icon>{{ guardando() ? 'Guardando…' : 'Guardar' }}
+      </button>
+    }
+    @if (tab() === 'solicitudes') {
+      <button mat-flat-button (click)="abrirSolicitud(null)"><mat-icon>add</mat-icon>Nueva solicitud</button>
+    }
+  </header>
+
+  <nav class="tabs" role="tablist">
+    @for (t of tabs; track t.id) {
+      <button role="tab" [class.on]="tab() === t.id" [attr.aria-selected]="tab() === t.id" (click)="tab.set(t.id)">
+        <mat-icon>{{ t.icon }}</mat-icon>{{ t.label }}
+        @if (t.id === 'solicitudes' && abiertas().length) { <span class="badge">{{ abiertas().length }}</span> }
+      </button>
+    }
+  </nav>
+
+  @if (!clinic()) {
+    <div class="glass-card bloque"><p class="tenue">Cargando…</p></div>
+  } @else {
+    @switch (tab()) {
+      @case ('resumen') {
+        <section class="glass-card bloque">
+          <div class="progreso">
+            <div class="anillo" [style.--p]="(cumplidos() / checklist().length) * 100">
+              <span>{{ cumplidos() }}/{{ checklist().length }}</span>
+            </div>
+            <div>
+              <h2>Estado de cumplimiento</h2>
+              <p class="tenue">
+                @if (cumplidos() === checklist().length) { Todo en regla. }
+                @else { Te faltan {{ checklist().length - cumplidos() }} puntos. Toca cada uno para completarlo. }
+              </p>
+            </div>
+          </div>
+          <ul class="check">
+            @for (i of checklist(); track i.label) {
+              <li [class.ok]="i.ok" (click)="tab.set(i.tab)">
+                <mat-icon>{{ i.ok ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <div><strong>{{ i.label }}</strong><span>{{ i.hint }}</span></div>
+                <mat-icon class="ir">chevron_right</mat-icon>
+              </li>
+            }
+          </ul>
+          <p class="nota">
+            <mat-icon>info</mat-icon>
+            Esta guía sigue la normativa del Ecuador (LOPDP, SRI y ACESS). No reemplaza la asesoría de un abogado o
+            contador: revísala con ellos.
+          </p>
+        </section>
+      }
+
+      @case ('responsable') {
+        <section class="glass-card bloque">
+          <h2>Responsable del tratamiento</h2>
+          <p class="tenue">La persona natural o jurídica dueña de la consulta.</p>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Razón social / nombres completos</mat-label>
+              <input matInput [(ngModel)]="form.legal_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>RUC</mat-label>
+              <input matInput [(ngModel)]="form.tax_id" maxlength="13" /></mat-form-field>
+            <mat-form-field appearance="outline" class="ancho"><mat-label>Dirección matriz</mat-label>
+              <input matInput [(ngModel)]="form.address" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Correo</mat-label>
+              <input matInput type="email" [(ngModel)]="form.email" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Teléfono</mat-label>
+              <input matInput [(ngModel)]="form.phone" /></mat-form-field>
+          </div>
+          <h2>Representante legal</h2>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Nombre</mat-label>
+              <input matInput [(ngModel)]="form.legal_rep_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Cédula</mat-label>
+              <input matInput [(ngModel)]="form.legal_rep_id" maxlength="20" /></mat-form-field>
+          </div>
+          <h2>Permiso de funcionamiento (ACESS)</h2>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Número de permiso</mat-label>
+              <input matInput [(ngModel)]="form.health_permit_number" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Vence el</mat-label>
+              <input matInput type="date" [(ngModel)]="form.health_permit_expires_on" />
+              <mat-hint>Te avisamos 30 días antes.</mat-hint></mat-form-field>
+          </div>
+        </section>
+      }
+
+      @case ('tributario') {
+        <section class="glass-card bloque">
+          <h2>Datos tributarios</h2>
+          <p class="tenue">Salen en tus comprobantes. Pídele a tu contador que los confirme.</p>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Régimen</mat-label>
+              <mat-select [(ngModel)]="form.tax_regime">
+                @for (o of catalogs()?.tax_regimes ?? []; track o.code) { <mat-option [value]="o.code">{{ o.label }}</mat-option> }
+              </mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Contribuyente especial (n.º de resolución)</mat-label>
+              <input matInput [(ngModel)]="form.special_taxpayer" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Establecimiento</mat-label>
+              <input matInput [(ngModel)]="form.sri_establishment" maxlength="3" placeholder="001" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Punto de emisión</mat-label>
+              <input matInput [(ngModel)]="form.sri_emission_point" maxlength="3" placeholder="001" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>IVA de los servicios (%)</mat-label>
+              <input matInput type="number" min="0" max="100" [(ngModel)]="form.vat_rate" />
+              <mat-hint>Los servicios de salud suelen ir con tarifa 0 %.</mat-hint></mat-form-field>
+            <label class="toggle">
+              <mat-slide-toggle [(ngModel)]="form.keeps_accounting" />
+              <span>Obligado a llevar contabilidad</span>
+            </label>
+          </div>
+        </section>
+      }
+
+      @case ('datos') {
+        <section class="glass-card bloque">
+          <h2>Delegado de protección de datos</h2>
+          <p class="tenue">Aparece en el aviso de privacidad como contacto para que los pacientes ejerzan sus derechos.</p>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Nombre</mat-label>
+              <input matInput [(ngModel)]="form.dpo_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Correo</mat-label>
+              <input matInput type="email" [(ngModel)]="form.dpo_email" /></mat-form-field>
+          </div>
+          <h2>Historia clínica</h2>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Años de conservación</mat-label>
+              <input matInput type="number" min="1" max="100" [(ngModel)]="form.record_retention_years" />
+              <mat-hint>Se informa al paciente. El sistema nunca borra registros clínicos.</mat-hint></mat-form-field>
+          </div>
+          <h2>Cláusulas propias del aviso de privacidad</h2>
+          <mat-form-field appearance="outline" class="completo"><mat-label>Texto adicional (opcional)</mat-label>
+            <textarea matInput rows="5" [(ngModel)]="form.privacy_extra"
+              placeholder="Ej. La recepción cuenta con cámaras de seguridad…"></textarea></mat-form-field>
+          <p class="tenue">Puedes ver e imprimir el aviso completo en <b>Privacidad y legal</b>.</p>
+        </section>
+      }
+
+      @case ('seguridad') {
+        <section class="glass-card bloque">
+          <h2>Cierre de sesión por inactividad</h2>
+          <p class="tenue">
+            Si nadie usa el sistema durante este tiempo, se cierra la sesión en la web y la app se bloquea al volver a
+            abrirla. Protege las historias clínicas en una pantalla olvidada.
+          </p>
+          <div class="grid">
+            <mat-form-field appearance="outline"><mat-label>Cerrar tras</mat-label>
+              <mat-select [(ngModel)]="form.session_timeout_minutes">
+                @for (t of timeouts; track t.v) { <mat-option [value]="t.v">{{ t.l }}</mat-option> }
+              </mat-select></mat-form-field>
+          </div>
+          <ul class="medidas">
+            <li><mat-icon>verified_user</mat-icon>Contraseñas seguras obligatorias y cambio de la clave temporal.</li>
+            <li><mat-icon>visibility</mat-icon>Cada apertura de una historia clínica queda registrada.</li>
+            <li><mat-icon>admin_panel_settings</mat-icon>Permisos por rol: cada persona ve solo lo que necesita.</li>
+            <li><mat-icon>history</mat-icon>Auditoría de cambios: nada clínico se borra, se anula con motivo.</li>
+            <li><mat-icon>handshake</mat-icon>Acuerdo de confidencialidad que acepta todo el personal.</li>
+          </ul>
+        </section>
+      }
+
+      @case ('terminos') {
+        <section class="glass-card bloque">
+          <h2>Términos de uso y contrato de encargo</h2>
+          @if (clinic()!.terms_version === clinic()!.terms_current_version) {
+            <p class="estado ok"><mat-icon>check_circle</mat-icon>
+              Aceptados (versión {{ clinic()!.terms_version }}) por {{ clinic()!.terms_accepted_by }}
+              el {{ clinic()!.terms_accepted_at | date: 'dd/MM/yyyy HH:mm' }}.</p>
+          } @else {
+            <p class="estado pendiente"><mat-icon>pending</mat-icon>
+              Pendiente aceptar la versión {{ clinic()!.terms_current_version }}.</p>
+          }
+          <div class="docs">
+            <button class="doc glass-card" (click)="verDocumento('terminos')">
+              <mat-icon>description</mat-icon><strong>Términos de uso del sistema</strong>
+              <span>Licencia, datos del cliente, responsabilidades</span></button>
+            <button class="doc glass-card" (click)="verDocumento('encargo')">
+              <mat-icon>handshake</mat-icon><strong>Contrato de encargo de tratamiento</strong>
+              <span>LOPDP: tú eres responsable, el proveedor es encargado</span></button>
+          </div>
+          @if (clinic()!.terms_version !== clinic()!.terms_current_version) {
+            <button mat-flat-button (click)="aceptarTerminos()"><mat-icon>gavel</mat-icon>Leí y acepto</button>
+          }
+        </section>
+      }
+
+      @case ('solicitudes') {
+        <section class="glass-card bloque">
+          <h2>Solicitudes de los pacientes sobre sus datos</h2>
+          <p class="tenue">Acceso, rectificación, eliminación, oposición, portabilidad o suspensión. Plazo de respuesta: 15 días.</p>
+          @if (requests().length === 0) {
+            <div class="vacio"><mat-icon>inbox</mat-icon><p>No hay solicitudes registradas.</p></div>
+          } @else {
+            <table class="tabla">
+              <thead><tr><th>Recibida</th><th>Solicitante</th><th>Tipo</th><th>Estado</th><th>Plazo</th><th></th></tr></thead>
+              <tbody>
+                @for (r of requests(); track r.id) {
+                  <tr [class.vencida]="r.overdue">
+                    <td>{{ r.received_on | date: 'dd/MM/yyyy' }}</td>
+                    <td><strong>{{ r.requester_name }}</strong>@if (r.patient_name) { <span class="tenue"> · paciente</span> }</td>
+                    <td>{{ r.kind_label }}</td>
+                    <td><span class="pill" [attr.data-s]="r.status">{{ r.status_label }}</span></td>
+                    <td>
+                      @if (r.days_left === null) { <span class="tenue">{{ r.resolved_on | date: 'dd/MM/yyyy' }}</span> }
+                      @else if (r.overdue) { <span class="rojo">Vencida hace {{ -r.days_left }} d</span> }
+                      @else { {{ r.days_left }} días }
+                    </td>
+                    <td class="acciones">
+                      <button mat-icon-button matTooltip="Editar / responder" (click)="abrirSolicitud(r)"><mat-icon>edit</mat-icon></button>
+                      <button mat-icon-button matTooltip="Eliminar" (click)="eliminarSolicitud(r)"><mat-icon>delete_outline</mat-icon></button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </section>
+      }
+    }
+  }
+</div>
+
+<ng-template #requestDialog>
+  <h2 mat-dialog-title>{{ editando ? 'Solicitud de ' + editando.requester_name : 'Nueva solicitud' }}</h2>
+  <mat-dialog-content>
+    <div class="grid dialogo">
+      <mat-form-field appearance="outline" class="completo"><mat-label>Paciente (opcional)</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [ngModel]="pacienteTexto" (ngModelChange)="buscarPaciente($event)" placeholder="Buscar por nombre o cédula" />
+      </mat-form-field>
+      @if (pacientes().length) {
+        <ul class="sugerencias completo">
+          @for (p of pacientes(); track p.id) {
+            <li (click)="elegirPaciente(p)">{{ p.first_name }} {{ p.last_name }} <span class="tenue">{{ p.national_id }}</span></li>
+          }
+        </ul>
+      }
+      <mat-form-field appearance="outline"><mat-label>Solicitante</mat-label>
+        <input matInput required [(ngModel)]="solicitud.requester_name" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Cédula</mat-label>
+        <input matInput [(ngModel)]="solicitud.requester_id_number" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Contacto</mat-label>
+        <input matInput [(ngModel)]="solicitud.contact" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Recibida el</mat-label>
+        <input matInput type="date" [(ngModel)]="solicitud.received_on" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Tipo</mat-label>
+        <mat-select [(ngModel)]="solicitud.kind">
+          @for (o of catalogs()?.rights_kinds ?? []; track o.code) { <mat-option [value]="o.code">{{ o.label }}</mat-option> }
+        </mat-select></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Estado</mat-label>
+        <mat-select [(ngModel)]="solicitud.status">
+          @for (o of catalogs()?.rights_statuses ?? []; track o.code) { <mat-option [value]="o.code">{{ o.label }}</mat-option> }
+        </mat-select></mat-form-field>
+      <mat-form-field appearance="outline" class="completo"><mat-label>Qué pide</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="solicitud.details"></textarea></mat-form-field>
+      <mat-form-field appearance="outline" class="completo"><mat-label>Respuesta dada</mat-label>
+        <textarea matInput rows="2" [(ngModel)]="solicitud.response"></textarea></mat-form-field>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-flat-button (click)="guardarSolicitud()" [disabled]="solicitud.requester_name.trim().length < 2">Guardar</button>
+  </mat-dialog-actions>
+</ng-template>
