@@ -22,6 +22,7 @@ import 'package:odonto_movil/features/agenda/huecos_page.dart';
 import 'package:odonto_movil/shared/contacto.dart';
 import 'package:odonto_movil/core/api/api_config.dart';
 import 'package:odonto_movil/features/pacientes/paciente_detalle_page.dart';
+import 'package:odonto_movil/features/pacientes/pestanas.dart' show EditorPresupuesto;
 import 'package:odonto_movil/features/reportes/reportes_page.dart';
 import 'package:odonto_movil/features/bienvenida/bienvenida_page.dart';
 import 'package:odonto_movil/features/cartera/cartera_page.dart';
@@ -540,6 +541,16 @@ final Map<String, Object?> _datos = {
     'terms_accepted_by': null,
     'terms_current_version': '2026-10',
   },
+  '/patients/p1/documents': [
+    {'id': 'd1', 'title': 'Informe radiológico', 'document_type': 'informe', 'mime_type': 'application/pdf', 'created_at': '2026-10-01T10:00:00Z', 'archived_at': null},
+  ],
+  '/patients/p1/consents': [
+    {'id': 'k1', 'title': 'Consentimiento de endodoncia', 'body': 'Texto', 'status': 'pendiente', 'created_at': '2026-10-01T10:00:00Z', 'signed_at': null, 'voided_at': null},
+  ],
+  '/patients/p1/budgets': [
+    {'id': 'b1', 'treatment_plan_id': 'pl1', 'status': 'borrador', 'total': '80.00', 'tax_rate': 0, 'notes': null, 'created_at': '2026-10-01T10:00:00Z',
+     'items': [{'description': 'Resina 16', 'price': 40, 'discount': 0, 'quantity': 2, 'treatment_plan_item_id': null}]},
+  ],
   '/legal/catalogs': {
     'rights_kinds': [
       {'code': 'acceso', 'label': 'Acceso'},
@@ -765,7 +776,19 @@ void main() {
     expect(find.text('Objeto'), findsOneWidget);
   });
 
-  testWidgets('Ficha del paciente: las 8 pestañas', (tester) async {
+  testWidgets('Editor de presupuesto: líneas y total', (tester) async {
+    await _abrir(tester, EditorPresupuesto(presupuesto: const {
+      'id': 'b1', 'tax_rate': 12, 'notes': null,
+      'items': [{'description': 'Resina 16', 'price': 40, 'discount': 0, 'quantity': 2}],
+    }, alGuardar: () async {}));
+    expect(find.text('Resina 16'), findsOneWidget);
+    expect(find.textContaining('89,60'), findsOneWidget); // 80 + 12 %
+    await tester.tap(find.byTooltip('Quitar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Resina 16'), findsNothing);
+  });
+
+  testWidgets('Ficha del paciente: las 10 pestañas', (tester) async {
     await _abrir(
       tester,
       const PacienteDetallePage(pacienteId: _pid, nombre: 'María Gómez'),
@@ -779,12 +802,16 @@ void main() {
       'Imágenes',
       'Citas',
       'Cuenta',
+      'Documentos',
+      'Consentimientos',
     ]) {
+      await tester.ensureVisible(find.widgetWithText(Tab, pestana));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(Tab, pestana));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: pestana);
     }
-    expect(find.text('Corona'), findsWidgets); // cargo en la cuenta
+    expect(find.text('Consentimiento de endodoncia'), findsOneWidget);
   });
 
   testWidgets('Formulario emergente: valida y muestra campos', (tester) async {

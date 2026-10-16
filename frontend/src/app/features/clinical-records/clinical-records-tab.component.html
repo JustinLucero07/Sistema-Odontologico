@@ -31,16 +31,23 @@
     }
 
     @for (item of evolutions(); track item.id) {
-      <mat-card class="record-card">
+      <mat-card class="record-card" [class.voided]="item.voided_at">
         <div class="record-head">
           <strong>{{ item.procedure }}</strong>
+          @if (item.voided_at) { <span class="void-badge">Anulada</span> }
           <span class="record-date">{{ item.created_at | date: 'd MMM y, HH:mm' }}</span>
-          @if (canWriteEvolutions()) {
+          @if (canWriteEvolutions() && !item.voided_at) {
             <button mat-button class="print-btn" (click)="correctEvolution(item)">
               <mat-icon>edit_note</mat-icon> Corregir
             </button>
+            <button mat-button color="warn" (click)="voidEvolution(item)">
+              <mat-icon>block</mat-icon> Anular
+            </button>
           }
         </div>
+        @if (item.voided_at) {
+          <p class="void-reason">Anulada el {{ item.voided_at | date: 'd MMM y' }}: {{ item.void_reason }}</p>
+        }
         <dl class="record-grid">
           @if (item.fdi_numbers) { <div><dt>Piezas</dt><dd>{{ item.fdi_numbers }}</dd></div> }
           @if (item.anesthesia) { <div><dt>Anestesia</dt><dd>{{ item.anesthesia }}</dd></div> }

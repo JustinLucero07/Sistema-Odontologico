@@ -24,6 +24,10 @@ class Api {
 
   Future<dynamic> delete(String ruta) => _enviar(() => _dio.delete(ruta));
 
+  /// Archivo binario (documentos, imágenes) con la sesión del usuario.
+  Future<List<int>> bytes(String ruta) async =>
+      List<int>.from(await _enviar(() => _dio.get<List<int>>(ruta, options: Options(responseType: ResponseType.bytes))) as List);
+
   /// Lista: el servidor a veces responde `{items: [...]}` y a veces `[...]`.
   Future<List<Map<String, dynamic>>> lista(
     String ruta, {

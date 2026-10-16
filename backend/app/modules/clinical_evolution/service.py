@@ -60,6 +60,8 @@ async def update_evolution(
     """Corrections are allowed, but every change is recorded with its previous
     value — a clinical note is never silently rewritten."""
     entry = await get_or_404(db, clinic_id, evolution_id)
+    if entry.voided_at is not None:
+        raise HTTPException(status_code=409, detail="La evolución está anulada: no se puede editar")
     data = payload.model_dump(exclude_unset=True)
     before = {field: getattr(entry, field) for field in data}
     for field, value in data.items():
@@ -67,5 +69,25 @@ async def update_evolution(
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="clinical_evolution",
         entity_id=str(evolution_id), before=before, after=data,
+    )
+    return entry
+
+
+async def void_evolution(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, evolution_id: uuid.UUID, reason: str
+) -> ClinicalEvolution:
+    """Una evolución registrada por error se anula con su motivo; el texto
+    original se conserva para la historia clínica."""
+    from datetime import datetime, timezone
+
+    entry = await get_or_404(db, clinic_id, evolution_id)
+    if entry.voided_at is not None:
+        raise HTTPException(status_code=409, detail="La evolución ya está anulada")
+    entry.voided_at = datetime.now(timezone.utc)
+    entry.void_reason = reason.strip()
+    entry.voided_by_id = actor_id
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="void", entity_type="clinical_evolution",
+        entity_id=str(evolution_id), after={"reason": entry.void_reason},
     )
     return entry

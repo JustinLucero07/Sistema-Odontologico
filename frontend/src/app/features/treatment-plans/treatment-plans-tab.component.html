@@ -63,10 +63,11 @@
     }
 
     @for (plan of plans(); track plan.id) {
-      <mat-card class="plan-card">
+      <mat-card class="plan-card" [class.cancelado]="plan.cancelled_at">
         <div class="plan-header">
           <h3>
             {{ plan.title }}
+            @if (plan.cancelled_at) { <span class="void-badge">Cancelado</span> }
             @if (canEditItems()) {
               <button mat-icon-button class="inline-edit" (click)="renamePlan(plan)" matTooltip="Renombrar plan" aria-label="Renombrar plan">
                 <mat-icon>edit</mat-icon>
@@ -138,7 +139,11 @@
         }
 
 
+        @if (plan.cancelled_at) {
+          <p class="void-reason">Cancelado el {{ plan.cancelled_at | date: 'd MMM y' }}: {{ plan.cancel_reason }}</p>
+        }
         <div class="plan-actions">
+          @if (!plan.cancelled_at) {
           <button mat-button *appHasPermission="'treatments:write'" (click)="startAddingItem(plan.id)">
             <mat-icon>add</mat-icon>
             Agregar ítem
@@ -147,10 +152,18 @@
             <mat-icon>request_quote</mat-icon>
             Generar presupuesto
           </button>
+          }
           <button mat-button (click)="printCertificate(plan)" matTooltip="Certificado de los tratamientos terminados">
             <mat-icon>workspace_premium</mat-icon>
             Certificado
           </button>
+          @if (!plan.cancelled_at) {
+            <button mat-button color="warn" *appHasPermission="'treatments:write'" (click)="cancelPlan(plan)"
+                    matTooltip="Cancela lo pendiente; lo ya realizado se conserva">
+              <mat-icon>block</mat-icon>
+              Cancelar plan
+            </button>
+          }
         </div>
 
         @if (budgetsForPlan(plan.id).length > 0) {
@@ -158,7 +171,8 @@
             @for (budget of budgetsForPlan(plan.id); track budget.id) {
               <div class="budget-row">
                 <div class="budget-info">
-                  <mat-chip [class.status-aceptado]="budget.status === 'aceptado'" [class.status-rechazado]="budget.status === 'rechazado'">
+                  <mat-chip [class.status-aceptado]="budget.status === 'aceptado'" [class.status-rechazado]="budget.status === 'rechazado' || budget.status === 'anulado'"
+                            [matTooltip]="budget.void_reason ?? ''">
                     {{ budgetStatusLabels[budget.status] }}
                   </mat-chip>
                   <span>{{ budget.created_at | date: 'shortDate' }}</span>
@@ -172,8 +186,14 @@
                   @if (budgetNextStatus[budget.status]; as next) {
                     <button mat-button (click)="advanceBudgetStatus(budget)">{{ next.label }}</button>
                   }
-                  @if (budget.status !== 'aceptado' && budget.status !== 'rechazado') {
+                  @if (budgetEditable(budget)) {
+                    <button mat-button (click)="editBudget(budget)"><mat-icon>edit</mat-icon>Editar</button>
+                  }
+                  @if (budget.status !== 'aceptado' && budget.status !== 'rechazado' && budget.status !== 'anulado') {
                     <button mat-button color="warn" (click)="rejectBudget(budget)">Rechazar</button>
+                  }
+                  @if (budget.status !== 'anulado') {
+                    <button mat-button color="warn" (click)="voidBudget(budget)"><mat-icon>block</mat-icon>Anular</button>
                   }
                 </div>
               </div>
@@ -289,4 +309,33 @@
             </button>
           </form>
   </mat-dialog-content>
+</ng-template>
+
+<ng-template #budgetDialog>
+  <h2 mat-dialog-title>Editar presupuesto</h2>
+  <form [formGroup]="budgetForm" (ngSubmit)="saveBudget()">
+    <mat-dialog-content class="budget-edit">
+      <div formArrayName="items" class="budget-lines">
+        @for (line of budgetLines.controls; track $index; let i = $index) {
+          <div class="budget-line" [formGroupName]="i">
+            <mat-form-field appearance="outline" class="desc"><mat-label>Concepto</mat-label><input matInput formControlName="description" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Precio</mat-label><input matInput type="number" min="0" formControlName="price" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Descuento</mat-label><input matInput type="number" min="0" formControlName="discount" /></mat-form-field>
+            <mat-form-field appearance="outline" class="cant"><mat-label>Cant.</mat-label><input matInput type="number" min="1" formControlName="quantity" /></mat-form-field>
+            <button mat-icon-button type="button" (click)="removeBudgetLine(i)" [disabled]="budgetLines.length === 1" aria-label="Quitar línea"><mat-icon>delete_outline</mat-icon></button>
+          </div>
+        }
+      </div>
+      <button mat-button type="button" (click)="addBudgetLine()"><mat-icon>add</mat-icon>Agregar línea</button>
+      <div class="budget-extra">
+        <mat-form-field appearance="outline"><mat-label>IVA (%)</mat-label><input matInput type="number" min="0" max="100" formControlName="tax_rate" /></mat-form-field>
+        <mat-form-field appearance="outline" class="desc"><mat-label>Notas</mat-label><input matInput formControlName="notes" /></mat-form-field>
+      </div>
+      <p class="budget-total">Total: <strong>$ {{ budgetDraftTotal() | number: '1.2-2' }}</strong></p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="budgetForm.invalid">Guardar cambios</button>
+    </mat-dialog-actions>
+  </form>
 </ng-template>

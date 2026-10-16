@@ -87,6 +87,8 @@ export interface TreatmentPlan {
   items: TreatmentPlanItem[];
   progress_percent: number;
   total_price: number;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
 }
 
 export interface TreatmentPlanCreate {
@@ -95,7 +97,7 @@ export interface TreatmentPlanCreate {
   items: TreatmentPlanItemCreate[];
 }
 
-export type BudgetStatus = 'borrador' | 'enviado' | 'visto' | 'aceptado' | 'rechazado';
+export type BudgetStatus = 'borrador' | 'enviado' | 'visto' | 'aceptado' | 'rechazado' | 'anulado';
 
 export interface BudgetItem {
   id: string;
@@ -117,6 +119,7 @@ export interface Budget {
   tax_rate: number;
   notes: string | null;
   responded_at: string | null;
+  void_reason?: string | null;
   items: BudgetItem[];
   subtotal: number;
   tax_amount: number;

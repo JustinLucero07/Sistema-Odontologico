@@ -39,6 +39,11 @@ final planesProvider = FutureProvider.autoDispose
           ref.watch(apiProvider).lista('/patients/$id/treatment-plans'),
     );
 
+final presupuestosProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>(
+      (ref, id) => ref.watch(apiProvider).lista('/patients/$id/budgets'),
+    );
+
 class _Clinico {
   const _Clinico(this.evoluciones, this.recetas, this.diagnosticos);
   final List<Map<String, dynamic>> evoluciones;
@@ -648,18 +653,47 @@ class PestanaTratamientos extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          IconButton(
-                            tooltip: 'Editar plan',
-                            icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => editarPlan(
-                              context,
-                              ref,
-                              pacienteId,
-                              plan: plan,
-                            ),
+                          if (plan['cancelled_at'] != null)
+                            const Pastilla('Cancelado', color: Tonos.rojo),
+                          PopupMenuButton<String>(
+                            tooltip: 'Opciones del plan',
+                            onSelected: (op) async {
+                              final api = ref.read(apiProvider);
+                              if (op == 'editar') {
+                                editarPlan(context, ref, pacienteId, plan: plan);
+                              } else if (op == 'presupuesto') {
+                                if (await intentar(context, () => api.post('/patients/$pacienteId/budgets', {'treatment_plan_id': plan['id']}), exito: 'Presupuesto generado')) {
+                                  ref.invalidate(presupuestosProvider(pacienteId));
+                                }
+                              } else if (op == 'cancelar') {
+                                anularConMotivo(
+                                  context,
+                                  que: 'plan (lo ya realizado se conserva)',
+                                  alAnular: (m) async {
+                                    await api.post('/treatment-plans/${plan['id']}/cancel', {'reason': m});
+                                    ref.invalidate(planesProvider(pacienteId));
+                                  },
+                                );
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'editar', child: Text('Editar plan')),
+                              if (plan['cancelled_at'] == null) ...[
+                                const PopupMenuItem(value: 'presupuesto', child: Text('Generar presupuesto')),
+                                const PopupMenuItem(value: 'cancelar', child: Text('Cancelar plan')),
+                              ],
+                            ],
                           ),
                         ],
                       ),
+                      if (plan['cancelled_at'] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6, right: 8),
+                          child: Text(
+                            'Cancelado: ${plan['cancel_reason']}',
+                            style: const TextStyle(fontSize: 12.5, color: Tonos.rojo),
+                          ),
+                        ),
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ClipRRect(
@@ -712,16 +746,18 @@ class PestanaTratamientos extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      TextButton.icon(
-                        onPressed: () => _editarItem(
-                          context,
-                          ref,
-                          pacienteId,
-                          '${plan['id']}',
+                      if (plan['cancelled_at'] == null)
+                        TextButton.icon(
+                          onPressed: () => _editarItem(
+                            context,
+                            ref,
+                            pacienteId,
+                            '${plan['id']}',
+                          ),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Agregar tratamiento'),
                         ),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Agregar tratamiento'),
-                      ),
+                      _PresupuestosDelPlan(pacienteId: pacienteId, planId: '${plan['id']}', titulo: '${plan['title']}'),
                     ],
                   ),
                 ),
@@ -987,10 +1023,48 @@ class PestanaClinica extends ConsumerWidget {
                   if (e['diagnosis'] != null) '${e['diagnosis']}',
                   if (e['instructions'] != null)
                     'Indicaciones: ${e['instructions']}',
+                  if (e['voided_at'] != null) 'Anulada: ${e['void_reason']}',
                 ].join('\n'),
-                derecha: const Icon(Icons.edit_outlined, size: 18),
-                alTocar: () =>
-                    registrarEvolucion(context, ref, pacienteId, evolucion: e),
+                tachado: e['voided_at'] != null,
+                derecha: e['voided_at'] != null ? null : const Icon(Icons.more_vert, size: 18),
+                alTocar: e['voided_at'] != null
+                    ? null
+                    : () => showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (hoja) => SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.edit_outlined),
+                                title: const Text('Corregir'),
+                                subtitle: const Text('El texto anterior queda en la auditoría.'),
+                                onTap: () {
+                                  Navigator.pop(hoja);
+                                  registrarEvolucion(context, ref, pacienteId, evolucion: e);
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+                                title: const Text('Anular'),
+                                subtitle: const Text('Queda tachada con su motivo; no se borra.'),
+                                onTap: () {
+                                  Navigator.pop(hoja);
+                                  anularConMotivo(
+                                    context,
+                                    que: 'evolución',
+                                    alAnular: (m) async {
+                                      await api.post('/evolutions/${e['id']}/void', {'reason': m});
+                                      ref.invalidate(clinicoProvider(pacienteId));
+                                    },
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             Seccion('Recetas (${c.recetas.length})'),
             if (c.recetas.isEmpty) const _Vacio('Sin recetas'),
@@ -1904,6 +1978,263 @@ class PestanaCuenta extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+
+// ------------------------------------------------------------- Presupuestos
+
+const _estadosPresupuesto = {
+  'borrador': ('Borrador', Tonos.gris),
+  'enviado': ('Enviado', Tonos.azul),
+  'visto': ('Visto', Tonos.violeta),
+  'aceptado': ('Aceptado', Tonos.verde),
+  'rechazado': ('Rechazado', Tonos.rojo),
+  'anulado': ('Anulado', Tonos.rojo),
+};
+const _siguiente = {
+  'borrador': ('enviado', 'Marcar como enviado'),
+  'enviado': ('visto', 'Marcar como visto'),
+  'visto': ('aceptado', 'Marcar como aceptado (genera el cargo)'),
+};
+
+class _PresupuestosDelPlan extends ConsumerWidget {
+  const _PresupuestosDelPlan({required this.pacienteId, required this.planId, required this.titulo});
+
+  final String pacienteId;
+  final String planId;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lista = (ref.watch(presupuestosProvider(pacienteId)).valueOrNull ?? [])
+        .where((b) => b['treatment_plan_id'] == planId)
+        .toList();
+    if (lista.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, right: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(),
+          const Text('Presupuestos', style: TextStyle(fontWeight: FontWeight.w700)),
+          for (final b in lista)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.request_quote_outlined),
+              title: Text(dinero(numero(b['total'])), style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text([
+                fechaCorta(b['created_at']),
+                if (b['void_reason'] != null) 'Anulado: ${b['void_reason']}',
+              ].join(' · ')),
+              trailing: Pastilla(
+                (_estadosPresupuesto[b['status']] ?? ('${b['status']}', Tonos.gris)).$1,
+                color: (_estadosPresupuesto[b['status']] ?? ('', Tonos.gris)).$2,
+              ),
+              onTap: b['status'] == 'anulado' ? null : () => _acciones(context, ref, b),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _acciones(BuildContext context, WidgetRef ref, Map<String, dynamic> b) {
+    final api = ref.read(apiProvider);
+    final sig = _siguiente[b['status']];
+    final editable = const {'borrador', 'enviado', 'visto'}.contains(b['status']);
+    Future<void> refrescar() async {
+      ref.invalidate(presupuestosProvider(pacienteId));
+      ref.invalidate(planesProvider(pacienteId));
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (hoja) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (sig != null)
+              ListTile(
+                leading: const Icon(Icons.arrow_forward),
+                title: Text(sig.$2),
+                onTap: () async {
+                  Navigator.pop(hoja);
+                  if (await intentar(context, () => api.put('/budgets/${b['id']}/status', {'status': sig.$1}))) await refrescar();
+                },
+              ),
+            if (editable)
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Editar líneas, IVA y notas'),
+                onTap: () {
+                  Navigator.pop(hoja);
+                  Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => EditorPresupuesto(presupuesto: b, alGuardar: refrescar),
+                  ));
+                },
+              ),
+            if (editable)
+              ListTile(
+                leading: const Icon(Icons.thumb_down_alt_outlined),
+                title: const Text('Rechazado por el paciente'),
+                onTap: () async {
+                  Navigator.pop(hoja);
+                  if (await intentar(context, () => api.put('/budgets/${b['id']}/status', {'status': 'rechazado'}))) await refrescar();
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+              title: const Text('Anular'),
+              subtitle: b['status'] == 'aceptado' ? const Text('Si ya generó un cargo, anúlelo primero en Cuenta.') : null,
+              onTap: () {
+                Navigator.pop(hoja);
+                anularConMotivo(
+                  context,
+                  que: 'presupuesto',
+                  alAnular: (m) async {
+                    await api.post('/budgets/${b['id']}/void', {'reason': m});
+                    await refrescar();
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Edición de un presupuesto: líneas (concepto, precio, descuento, cantidad),
+/// IVA y notas. Se guarda todo de una vez.
+class EditorPresupuesto extends ConsumerStatefulWidget {
+  const EditorPresupuesto({super.key, required this.presupuesto, required this.alGuardar});
+
+  final Map<String, dynamic> presupuesto;
+  final Future<void> Function() alGuardar;
+
+  @override
+  ConsumerState<EditorPresupuesto> createState() => _EditorPresupuestoState();
+}
+
+class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
+  late List<Map<String, dynamic>> _lineas;
+  late double _iva;
+  String? _notas;
+  bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lineas = [
+      for (final i in (widget.presupuesto['items'] as List? ?? []).cast<Map<String, dynamic>>())
+        {
+          'description': i['description'],
+          'price': numero(i['price']),
+          'discount': numero(i['discount']),
+          'quantity': (i['quantity'] as num?)?.toInt() ?? 1,
+          'treatment_plan_item_id': i['treatment_plan_item_id'],
+        },
+    ];
+    _iva = numero(widget.presupuesto['tax_rate']);
+    _notas = widget.presupuesto['notes'] as String?;
+  }
+
+  double get _total =>
+      _lineas.fold<double>(0, (a, l) => a + ((l['price'] as num) - (l['discount'] as num)) * (l['quantity'] as num)) * (1 + _iva / 100);
+
+  Future<void> _linea([int? i]) async {
+    final l = i == null ? null : _lineas[i];
+    await mostrarFormulario(
+      context,
+      titulo: i == null ? 'Nueva línea' : 'Editar línea',
+      icono: Icons.receipt_long_outlined,
+      campos: [
+        Campo('description', 'Concepto', requerido: true, inicial: l?['description']),
+        Campo('price', 'Precio', tipo: TipoCampo.dinero, requerido: true, inicial: l?['price'], mitad: true),
+        Campo('discount', 'Descuento', tipo: TipoCampo.dinero, inicial: l?['discount'] ?? 0, mitad: true),
+        Campo('quantity', 'Cantidad', tipo: TipoCampo.entero, requerido: true, inicial: l?['quantity'] ?? 1),
+      ],
+      alGuardar: (v) async {
+        final nueva = {
+          'description': v['description'],
+          'price': double.tryParse('${v['price']}') ?? 0,
+          'discount': double.tryParse('${v['discount'] ?? 0}') ?? 0,
+          'quantity': (v['quantity'] as int?) ?? 1,
+          'treatment_plan_item_id': l?['treatment_plan_item_id'],
+        };
+        setState(() => i == null ? _lineas.add(nueva) : _lineas[i] = nueva);
+      },
+    );
+  }
+
+  Future<void> _datos() => mostrarFormulario(
+    context,
+    titulo: 'IVA y notas',
+    icono: Icons.percent,
+    campos: [
+      Campo('tax_rate', 'IVA (%)', tipo: TipoCampo.numero, inicial: _iva),
+      Campo('notes', 'Notas', tipo: TipoCampo.multilinea, inicial: _notas),
+    ],
+    alGuardar: (v) async => setState(() {
+      _iva = double.tryParse('${v['tax_rate'] ?? 0}') ?? 0;
+      _notas = v['notes'] as String?;
+    }),
+  );
+
+  Future<void> _guardar() async {
+    if (_lineas.isEmpty) return avisar(context, 'Agregue al menos una línea.');
+    setState(() => _guardando = true);
+    final ok = await intentar(
+      context,
+      () => ref.read(apiProvider).put('/budgets/${widget.presupuesto['id']}', {'tax_rate': _iva, 'notes': _notas, 'items': _lineas}),
+      exito: 'Presupuesto actualizado',
+    );
+    if (mounted) setState(() => _guardando = false);
+    if (ok) {
+      await widget.alGuardar();
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PaginaModulo(
+      titulo: 'Editar presupuesto',
+      acciones: [
+        TextButton(onPressed: _guardando ? null : _guardar, child: Text(_guardando ? 'Guardando…' : 'Guardar')),
+      ],
+      accion: FloatingActionButton.extended(onPressed: () => _linea(), icon: const Icon(Icons.add), label: const Text('Línea')),
+      cuerpo: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          for (var i = 0; i < _lineas.length; i++)
+            FilaTarjeta(
+              icono: Icons.receipt_long_outlined,
+              titulo: '${_lineas[i]['description']}',
+              subtitulo: '${dinero(_lineas[i]['price'] as num)} − ${dinero(_lineas[i]['discount'] as num)} × ${_lineas[i]['quantity']}',
+              alTocar: () => _linea(i),
+              derecha: IconButton(
+                tooltip: 'Quitar',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => setState(() => _lineas.removeAt(i)),
+              ),
+            ),
+          FilaTarjeta(
+            icono: Icons.percent,
+            titulo: 'IVA ${_iva.toStringAsFixed(_iva % 1 == 0 ? 0 : 2)} %',
+            subtitulo: _notas?.isNotEmpty == true ? _notas : 'Sin notas',
+            alTocar: _datos,
+            derecha: const Icon(Icons.chevron_right),
+          ),
+          const SizedBox(height: 8),
+          Text('Total ${dinero(_total)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          finDeLista,
+        ],
       ),
     );
   }

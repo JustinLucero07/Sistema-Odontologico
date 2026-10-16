@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.clinical_evolution import service
-from app.modules.clinical_evolution.schemas import EvolutionCreate, EvolutionOut, EvolutionUpdate
+from app.modules.clinical_evolution.schemas import EvolutionCreate, EvolutionOut, EvolutionUpdate, EvolutionVoid
 
 patient_router = APIRouter(prefix="/api/v1/patients/{patient_id}/evolutions", tags=["evolutions"])
 router = APIRouter(prefix="/api/v1/evolutions", tags=["evolutions"])
@@ -41,5 +41,17 @@ async def put_evolution(
     current_user: CurrentUser = Depends(require_permission("evolutions:write")),
 ):
     entry = await service.update_evolution(db, current_user.clinic_id, current_user.id, evolution_id, payload)
+    await db.commit()
+    return entry
+
+
+@router.post("/{evolution_id}/void", response_model=EvolutionOut)
+async def post_void_evolution(
+    evolution_id: uuid.UUID,
+    payload: EvolutionVoid,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("evolutions:write")),
+):
+    entry = await service.void_evolution(db, current_user.clinic_id, current_user.id, evolution_id, payload.reason)
     await db.commit()
     return entry

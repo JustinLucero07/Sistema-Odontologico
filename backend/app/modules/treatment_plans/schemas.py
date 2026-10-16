@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -97,6 +97,8 @@ class TreatmentPlanOut(BaseModel):
     items: list[TreatmentPlanItemOut]
     progress_percent: float
     total_price: float
+    cancelled_at: datetime | None = None
+    cancel_reason: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -114,4 +116,9 @@ class TreatmentPlanOut(BaseModel):
             items=[TreatmentPlanItemOut.from_item(i) for i in plan.items],
             progress_percent=round(progress, 1),
             total_price=sum(i.net_price for i in plan.items),
+            cancelled_at=getattr(plan, 'cancelled_at', None), cancel_reason=getattr(plan, 'cancel_reason', None),
         )
+
+
+class TreatmentPlanCancel(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)

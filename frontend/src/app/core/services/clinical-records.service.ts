@@ -131,6 +131,10 @@ export class ClinicalRecordsService {
   }
 
   /** Corrige una evolución; el servidor guarda el valor anterior en la auditoría. */
+  voidEvolution(evolutionId: string, reason: string): Observable<ClinicalEvolution> {
+    return this.http.post<ClinicalEvolution>(`${this.api}/evolutions/${evolutionId}/void`, { reason });
+  }
+
   updateEvolution(evolutionId: string, payload: Partial<ClinicalEvolution>): Observable<ClinicalEvolution> {
     return this.http.put<ClinicalEvolution>(`${this.api}/evolutions/${evolutionId}`, payload);
   }

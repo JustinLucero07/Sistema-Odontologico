@@ -61,6 +61,21 @@ export class TreatmentPlansService {
     return this.http.put<Budget>(`${this.api}/budgets/${budgetId}/status`, { status });
   }
 
+  updateBudget(
+    budgetId: string,
+    payload: { tax_rate?: number; notes?: string | null; items?: { description: string; price: number; discount: number; quantity: number; treatment_plan_item_id?: string | null }[] },
+  ): Observable<Budget> {
+    return this.http.put<Budget>(`${this.api}/budgets/${budgetId}`, payload);
+  }
+
+  voidBudget(budgetId: string, reason: string): Observable<Budget> {
+    return this.http.post<Budget>(`${this.api}/budgets/${budgetId}/void`, { reason });
+  }
+
+  cancelPlan(planId: string, reason: string): Observable<TreatmentPlan> {
+    return this.http.post<TreatmentPlan>(`${this.api}/treatment-plans/${planId}/cancel`, { reason });
+  }
+
   updatePlan(planId: string, payload: { title: string; notes: string | null }): Observable<TreatmentPlan> {
     return this.http.put<TreatmentPlan>(`${this.api}/treatment-plans/${planId}`, payload);
   }

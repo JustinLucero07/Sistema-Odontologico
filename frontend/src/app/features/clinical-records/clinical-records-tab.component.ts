@@ -138,6 +138,18 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     if (this.patientId) await this.reload();
   }
 
+  async voidEvolution(item: ClinicalEvolution): Promise<void> {
+    const reason = await promptVoidReason(this.dialog, 'evolución');
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.service.voidEvolution(item.id, reason));
+      this.snackBar.open('Evolución anulada', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch {
+      this.snackBar.open('No se pudo anular la evolución', 'Cerrar', { duration: 3500 });
+    }
+  }
+
   async voidPrescription(prescription: Prescription): Promise<void> {
     const reason = await promptVoidReason(this.dialog, 'receta');
     if (!reason) return;

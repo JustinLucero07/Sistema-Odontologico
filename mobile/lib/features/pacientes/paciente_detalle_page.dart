@@ -14,6 +14,7 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 import '../agenda/cita_form.dart';
+import 'documentos_consentimientos.dart';
 import 'pestanas.dart';
 import '../../shared/contacto.dart';
 
@@ -49,6 +50,8 @@ const _pestanas = [
   'Imágenes',
   'Citas',
   'Cuenta',
+  'Documentos',
+  'Consentimientos',
 ];
 
 /// La ficha del paciente con todo lo que tiene la web: datos, historia
@@ -160,6 +163,10 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
             (d.cuenta['charges'] as List? ?? []).cast<Map<String, dynamic>>(),
           );
         });
+      case 8 when puede('documents:write'):
+        return fab(Icons.upload_file, 'Subir', () => menuDocumento(context, ref, _id));
+      case 9 when puede('consents:write'):
+        return fab(Icons.draw_outlined, 'Nuevo', () => nuevoConsentimiento(context, ref, _id));
       default:
         return null;
     }
@@ -189,6 +196,8 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
             PestanaImagenes(pacienteId: _id),
             PestanaCitas(pacienteId: _id),
             PestanaCuenta(pacienteId: _id),
+            PestanaDocumentos(pacienteId: _id),
+            PestanaConsentimientos(pacienteId: _id),
           ],
         ),
         floatingActionButton: _boton(),

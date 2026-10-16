@@ -264,7 +264,7 @@ class ProfesionalesPage extends ConsumerWidget {
                 runSpacing: 8,
                 children: [
                   for (final e in especialidades)
-                    ActionChip(
+                    InputChip(
                       label: Text('${e['name']}'),
                       onPressed: () => mostrarFormulario(
                         context,
@@ -285,6 +285,20 @@ class ProfesionalesPage extends ConsumerWidget {
                           ref.invalidate(_especialidadesProvider);
                         },
                       ),
+                      deleteButtonTooltipMessage: 'Eliminar',
+                      onDeleted: () async {
+                        if (await confirmar(
+                              context,
+                              titulo: '¿Eliminar «${e['name']}»?',
+                              mensaje: 'Solo se puede si ningún profesional la tiene asignada.',
+                              textoConfirmar: 'Eliminar',
+                              peligro: true,
+                            ) &&
+                            context.mounted &&
+                            await intentar(context, () => ref.read(apiProvider).delete('/specialties/${e['id']}'))) {
+                          ref.invalidate(_especialidadesProvider);
+                        }
+                      },
                     ),
                 ],
               ),

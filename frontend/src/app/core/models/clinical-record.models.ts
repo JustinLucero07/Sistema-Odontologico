@@ -13,6 +13,8 @@ export interface ClinicalEvolution {
   evolution: string | null;
   instructions: string | null;
   next_appointment_notes: string | null;
+  voided_at?: string | null;
+  void_reason?: string | null;
 }
 
 export interface EvolutionCreate {

@@ -43,5 +43,11 @@ class EvolutionOut(BaseModel):
     evolution: str | None
     instructions: str | None
     next_appointment_notes: str | None
+    voided_at: datetime | None = None
+    void_reason: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class EvolutionVoid(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)

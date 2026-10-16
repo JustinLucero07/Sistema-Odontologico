@@ -80,6 +80,10 @@ async def update_status(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget_id: uuid.UUID, new_status: str
 ) -> Budget:
     budget = await get_budget_or_404(db, clinic_id, budget_id)
+    if budget.status == "anulado":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El presupuesto está anulado")
+    if new_status == "anulado":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Para anular use «Anular» e indique el motivo")
 
     if new_status == "rechazado":
         pass  # can be rejected from any non-final state
@@ -107,5 +111,65 @@ async def update_status(
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="budget",
         entity_id=str(budget_id), before={"status": before_status}, after={"status": new_status},
+    )
+    return budget
+
+
+async def update_budget(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget_id: uuid.UUID, payload) -> Budget:
+    """Corrige precios, descuentos, ítems o notas mientras el paciente no lo
+    haya aceptado. Uno aceptado ya generó su cargo: ese no se toca."""
+    from app.modules.budgets.constants import EDITABLE_STATUSES
+
+    budget = await get_budget_or_404(db, clinic_id, budget_id)
+    if budget.status not in EDITABLE_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Un presupuesto «{budget.status}» ya no se puede editar",
+        )
+    before = {"total": budget.total, "tax_rate": float(budget.tax_rate)}
+    data = payload.model_dump(exclude_unset=True)
+    if "tax_rate" in data and data["tax_rate"] is not None:
+        budget.tax_rate = data["tax_rate"]
+    if "notes" in data:
+        budget.notes = data["notes"]
+    if data.get("items") is not None:
+        budget.items.clear()
+        await db.flush()
+        for item in payload.items:
+            budget.items.append(BudgetItem(clinic_id=clinic_id, **item.model_dump()))
+    await db.flush()
+    budget = await get_budget_or_404(db, clinic_id, budget_id)
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="budget",
+        entity_id=str(budget_id), before=before, after={"total": budget.total, "tax_rate": float(budget.tax_rate)},
+    )
+    return budget
+
+
+async def void_budget(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget_id: uuid.UUID, reason: str) -> Budget:
+    """Anula un presupuesto con su motivo. Si ya fue aceptado, primero hay que
+    anular el cargo que generó (en Pagos), para que la cuenta no quede mal."""
+    from sqlalchemy import select
+
+    from app.modules.payments.models import Charge
+
+    budget = await get_budget_or_404(db, clinic_id, budget_id)
+    if budget.status == "anulado":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El presupuesto ya está anulado")
+    if budget.status == "aceptado":
+        cargo = (
+            await db.execute(select(Charge).where(Charge.budget_id == budget.id, Charge.voided_at.is_(None)))
+        ).scalar_one_or_none()
+        if cargo is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este presupuesto ya generó un cargo. Anule primero el cargo en la pestaña Pagos.",
+            )
+    before = budget.status
+    budget.status = "anulado"
+    budget.void_reason = reason.strip()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="void", entity_type="budget",
+        entity_id=str(budget_id), before={"status": before}, after={"status": "anulado", "reason": budget.void_reason},
     )
     return budget

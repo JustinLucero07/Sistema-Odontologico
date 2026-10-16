@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, Input, OnChanges, TemplateRef, ViewChild, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -49,6 +49,7 @@ const BUDGET_STATUS_LABELS: Record<BudgetStatus, string> = {
   visto: 'Visto',
   aceptado: 'Aceptado',
   rechazado: 'Rechazado',
+  anulado: 'Anulado',
 };
 
 const BUDGET_NEXT_STATUS: Partial<Record<BudgetStatus, { next: BudgetStatus; label: string }>> = {
@@ -95,6 +96,91 @@ export class TreatmentPlansTabComponent implements OnChanges {
   @ViewChild('diagnosisDialog') private diagnosisDialog!: TemplateRef<unknown>;
   @ViewChild('planDialog') private planDialog!: TemplateRef<unknown>;
   @ViewChild('addItemDialog') private addItemDialog!: TemplateRef<unknown>;
+  @ViewChild('budgetDialog') private budgetDialog!: TemplateRef<unknown>;
+  private budgetRef: MatDialogRef<unknown> | null = null;
+  readonly editingBudget = signal<Budget | null>(null);
+  readonly budgetForm = this.fb.group({
+    tax_rate: [0, [Validators.min(0), Validators.max(100)]],
+    notes: [''],
+    items: this.fb.array<ReturnType<TreatmentPlansTabComponent['budgetLine']>>([]),
+  });
+  get budgetLines(): FormArray { return this.budgetForm.get('items') as FormArray; }
+
+  private budgetLine(i?: { description: string; price: number; discount: number; quantity: number; treatment_plan_item_id?: string | null }) {
+    return this.fb.group({
+      description: [i?.description ?? '', [Validators.required, Validators.maxLength(300)]],
+      price: [i?.price ?? 0, [Validators.required, Validators.min(0)]],
+      discount: [i?.discount ?? 0, [Validators.min(0)]],
+      quantity: [i?.quantity ?? 1, [Validators.required, Validators.min(1)]],
+      treatment_plan_item_id: [i?.treatment_plan_item_id ?? null],
+    });
+  }
+
+  budgetEditable(b: Budget): boolean {
+    return b.status === 'borrador' || b.status === 'enviado' || b.status === 'visto';
+  }
+
+  editBudget(b: Budget): void {
+    this.editingBudget.set(b);
+    this.budgetLines.clear();
+    b.items.forEach((i) => this.budgetLines.push(this.budgetLine(i)));
+    this.budgetForm.patchValue({ tax_rate: b.tax_rate, notes: b.notes ?? '' });
+    this.budgetRef = this.dialog.open(this.budgetDialog, { width: '760px', maxWidth: '96vw', panelClass: 'app-dialog' });
+  }
+
+  addBudgetLine(): void { this.budgetLines.push(this.budgetLine()); }
+  removeBudgetLine(i: number): void { if (this.budgetLines.length > 1) this.budgetLines.removeAt(i); }
+
+  budgetDraftTotal(): number {
+    const v = this.budgetForm.getRawValue();
+    const sub = (v.items as { price: number; discount: number; quantity: number }[]).reduce(
+      (a, i) => a + (Number(i.price) - Number(i.discount)) * Number(i.quantity), 0);
+    return sub * (1 + Number(v.tax_rate || 0) / 100);
+  }
+
+  async saveBudget(): Promise<void> {
+    const b = this.editingBudget();
+    if (!b || this.budgetForm.invalid) return;
+    const v = this.budgetForm.getRawValue();
+    try {
+      await firstValueFrom(this.plansService.updateBudget(b.id, {
+        tax_rate: Number(v.tax_rate), notes: v.notes || null,
+        items: (v.items as any[]).map((i) => ({ ...i, price: Number(i.price), discount: Number(i.discount), quantity: Number(i.quantity) })),
+      }));
+      this.budgetRef?.close();
+      this.snackBar.open('Presupuesto actualizado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch (err: unknown) {
+      const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
+      this.snackBar.open(typeof detail === 'string' ? detail : 'No se pudo guardar', 'Cerrar', { duration: 4000 });
+    }
+  }
+
+  async voidBudget(b: Budget): Promise<void> {
+    const reason = await promptVoidReason(this.dialog, 'presupuesto');
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.plansService.voidBudget(b.id, reason));
+      this.snackBar.open('Presupuesto anulado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    } catch (err: unknown) {
+      const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
+      this.snackBar.open(typeof detail === 'string' ? detail : 'No se pudo anular', 'Cerrar', { duration: 5000 });
+    }
+  }
+
+  async cancelPlan(plan: TreatmentPlan): Promise<void> {
+    const reason = await promptVoidReason(this.dialog, 'plan de tratamiento');
+    if (!reason) return;
+    try {
+      await firstValueFrom(this.plansService.cancelPlan(plan.id, reason));
+      this.snackBar.open('Plan cancelado. Lo ya realizado se conserva.', 'Cerrar', { duration: 3500 });
+      await this.reload();
+    } catch (err: unknown) {
+      const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
+      this.snackBar.open(typeof detail === 'string' ? detail : 'No se pudo cancelar', 'Cerrar', { duration: 4000 });
+    }
+  }
   private formRef: MatDialogRef<unknown> | null = null;
   private itemDialogRef: MatDialogRef<unknown> | null = null;
   /** Ítem que se edita en el diálogo, con el plan al que pertenece. */

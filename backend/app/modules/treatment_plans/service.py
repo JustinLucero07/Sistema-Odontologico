@@ -77,6 +77,8 @@ async def add_item(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, plan_id: uuid.UUID, payload: TreatmentPlanItemCreate
 ) -> TreatmentPlan:
     plan = await get_plan_or_404(db, clinic_id, plan_id)
+    if plan.cancelled_at is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El plan está cancelado")
     item = await _build_item(db, clinic_id, payload)
     item.plan_id = plan.id
     db.add(item)
@@ -123,4 +125,28 @@ async def update_item(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="treatment_plan_item",
         entity_id=str(item_id), after=data,
     )
+    return await get_plan_or_404(db, clinic_id, plan_id)
+
+
+async def cancel_plan(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, plan_id: uuid.UUID, reason: str) -> TreatmentPlan:
+    """Cancela el plan completo: lo pendiente pasa a «cancelado» y se guarda el
+    motivo. Lo que ya se realizó queda tal cual en la historia."""
+    from datetime import datetime, timezone
+
+    from app.modules.treatment_plans.constants import COMPLETED_STATUSES, VOID_STATUSES
+
+    plan = await get_plan_or_404(db, clinic_id, plan_id)
+    if plan.cancelled_at is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El plan ya está cancelado")
+    cancelados = 0
+    for item in plan.items:
+        if item.status not in COMPLETED_STATUSES and item.status not in VOID_STATUSES:
+            item.status = "cancelado"; cancelados += 1
+    plan.cancelled_at = datetime.now(timezone.utc)
+    plan.cancel_reason = reason.strip()
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="cancel", entity_type="treatment_plan",
+        entity_id=str(plan_id), after={"reason": plan.cancel_reason, "items_cancelados": cancelados},
+    )
+    await db.flush()
     return await get_plan_or_404(db, clinic_id, plan_id)

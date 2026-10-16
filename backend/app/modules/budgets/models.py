@@ -19,6 +19,7 @@ class Budget(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     tax_rate: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, default=0)
     notes: Mapped[str | None] = mapped_column(Text)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    void_reason: Mapped[str | None] = mapped_column(Text)
 
     items: Mapped[list["BudgetItem"]] = relationship(
         back_populates="budget", cascade="all, delete-orphan", order_by="BudgetItem.created_at"

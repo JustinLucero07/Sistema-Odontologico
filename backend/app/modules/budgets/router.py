@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.budgets import service
-from app.modules.budgets.schemas import BudgetCreate, BudgetOut, BudgetStatusUpdate
+from app.modules.budgets.schemas import BudgetCreate, BudgetOut, BudgetStatusUpdate, BudgetUpdate, BudgetVoid
 
 patient_budgets_router = APIRouter(prefix="/api/v1/patients/{patient_id}/budgets", tags=["budgets"])
 budgets_router = APIRouter(prefix="/api/v1/budgets", tags=["budgets"])
@@ -52,5 +52,29 @@ async def put_budget_status(
     current_user: CurrentUser = Depends(require_permission("budgets:write")),
 ):
     budget = await service.update_status(db, current_user.clinic_id, current_user.id, budget_id, payload.status)
+    await db.commit()
+    return BudgetOut.from_budget(budget)
+
+
+@budgets_router.put("/{budget_id}", response_model=BudgetOut)
+async def put_budget(
+    budget_id: uuid.UUID,
+    payload: BudgetUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("budgets:write")),
+):
+    budget = await service.update_budget(db, current_user.clinic_id, current_user.id, budget_id, payload)
+    await db.commit()
+    return BudgetOut.from_budget(budget)
+
+
+@budgets_router.post("/{budget_id}/void", response_model=BudgetOut)
+async def post_void_budget(
+    budget_id: uuid.UUID,
+    payload: BudgetVoid,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("budgets:write")),
+):
+    budget = await service.void_budget(db, current_user.clinic_id, current_user.id, budget_id, payload.reason)
     await db.commit()
     return BudgetOut.from_budget(budget)

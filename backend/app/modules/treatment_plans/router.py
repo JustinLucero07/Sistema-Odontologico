@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.treatment_plans import service
 from app.modules.treatment_plans.schemas import (
+    TreatmentPlanCancel,
     TreatmentPlanCreate,
     TreatmentPlanItemCreate,
     TreatmentPlanItemUpdate,
@@ -83,5 +84,17 @@ async def put_plan_item(
     current_user: CurrentUser = Depends(require_permission("treatments:write")),
 ):
     plan = await service.update_item(db, current_user.clinic_id, current_user.id, plan_id, item_id, payload)
+    await db.commit()
+    return TreatmentPlanOut.from_plan(plan)
+
+
+@plans_router.post("/{plan_id}/cancel", response_model=TreatmentPlanOut)
+async def post_cancel_plan(
+    plan_id: uuid.UUID,
+    payload: TreatmentPlanCancel,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("treatments:write")),
+):
+    plan = await service.cancel_plan(db, current_user.clinic_id, current_user.id, plan_id, payload.reason)
     await db.commit()
     return TreatmentPlanOut.from_plan(plan)

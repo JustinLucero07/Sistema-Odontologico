@@ -53,6 +53,16 @@ class BudgetStatusUpdate(BaseModel):
         return value
 
 
+class BudgetUpdate(BaseModel):
+    tax_rate: float | None = Field(default=None, ge=0, le=100)
+    notes: str | None = None
+    items: list[BudgetItemCreate] | None = Field(default=None, min_length=1)
+
+
+class BudgetVoid(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+
 class BudgetOut(BaseModel):
     id: uuid.UUID
     patient_id: uuid.UUID
@@ -63,6 +73,7 @@ class BudgetOut(BaseModel):
     tax_rate: float
     notes: str | None
     responded_at: datetime | None
+    void_reason: str | None = None
     items: list[BudgetItemOut]
     subtotal: float
     tax_amount: float
@@ -76,6 +87,7 @@ class BudgetOut(BaseModel):
             id=budget.id, patient_id=budget.patient_id, treatment_plan_id=budget.treatment_plan_id,
             created_by_id=budget.created_by_id, created_at=budget.created_at, status=budget.status,
             tax_rate=float(budget.tax_rate), notes=budget.notes, responded_at=budget.responded_at,
+            void_reason=budget.void_reason,
             items=[BudgetItemOut.from_item(i) for i in budget.items],
             subtotal=budget.subtotal, tax_amount=budget.tax_amount, total=budget.total,
         )
