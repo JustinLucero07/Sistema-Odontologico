@@ -199,6 +199,33 @@ Los respaldos se guardan 90 días en la nube (`RETENCION_EXTERNA_DIAS` en `infra
 
 Además, active en el panel del proveedor los **snapshots automáticos del VPS** (suelen costar alrededor del 20 % del servidor): permiten volver a levantar el servidor entero en minutos.
 
+#### Copia también en su computadora
+
+Además de la nube, puede bajar los respaldos a su propia computadora (Linux o Mac). Se ejecuta **en su computadora**, no en el servidor, y usa el mismo acceso SSH con el que entra al VPS:
+
+```bash
+# Bajar ahora (solo trae lo nuevo y verifica cada respaldo):
+scripts/bajar-respaldos.sh root@IP-DEL-SERVIDOR
+
+# Que baje solo todos los días a las 09:00 y al encender la computadora:
+scripts/bajar-respaldos.sh root@IP-DEL-SERVIDOR --programar
+```
+
+- Quedan en `~/Respaldos-Odonto/IP-DEL-SERVIDOR/`; se guardan 60 días (`DIAS_LOCALES=90 scripts/bajar-respaldos.sh …` para cambiarlo).
+- Con varios clientes, prográmelo una vez por servidor: cada uno va a su carpeta.
+- Si su SSH usa otro puerto o llave: `SSH_OPCIONES="-p 2222 -i ~/.ssh/vps" scripts/bajar-respaldos.sh …`
+- Sin el script, una sola vez: `scp -r root@IP-DEL-SERVIDOR:/opt/odonto/infra/respaldos ~/Respaldos-Odonto/`
+- Estos archivos **no van cifrados**: contienen historias clínicas. Use una computadora con el disco cifrado y con contraseña.
+
+Para abrir un respaldo en su computadora y revisarlo (necesita PostgreSQL o Docker):
+
+```bash
+createdb copia_clinica
+pg_restore --no-owner -d copia_clinica ~/Respaldos-Odonto/IP-DEL-SERVIDOR/odonto-FECHA.dump
+```
+
+Y para volver a subirlo a un servidor y restaurarlo: copie el archivo a `/opt/odonto/infra/respaldos/` en el servidor y ejecute `odonto restaurar FECHA`.
+
 #### Si se pierde el servidor
 
 1. Cree un VPS nuevo e instale el sistema (pasos 1 a 5 de esta guía).
