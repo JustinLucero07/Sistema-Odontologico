@@ -88,8 +88,17 @@ export function openPrintWindow(title: string, css: string, body: string): boole
 <title>${esc(title)}</title>
 <style>${(BASE_CSS + css).split('#0d7f76').join(color ?? '#0d7f76')}${brandCss}</style></head><body>
 ${body}
-<script>window.onload = () => { window.focus(); window.print(); };</script>
 </body></html>`);
   win.document.close();
+  lanzarImpresion(win);
   return true;
+}
+
+/** Imprime desde la app y no con un script dentro del documento: la política
+ *  de seguridad (CSP) del sistema no permite scripts en línea. */
+export function lanzarImpresion(win: Window): void {
+  const imprimir = () => { win.focus(); win.print(); };
+  const imgs = Array.from(win.document.images);
+  Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise((ok) => { i.onload = i.onerror = () => ok(null); }))))
+    .then(() => setTimeout(imprimir, 150));
 }

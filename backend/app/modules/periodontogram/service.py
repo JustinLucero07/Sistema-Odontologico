@@ -79,7 +79,7 @@ async def create_snapshot(
         key = (m.fdi_number, m.site)
         if key in seen:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail=f"Medición duplicada para la pieza {m.fdi_number} en {m.site}",
             )
         seen.add(key)

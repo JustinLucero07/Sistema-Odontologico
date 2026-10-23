@@ -24,6 +24,7 @@ Uso: odonto <comando>
   iniciar                Arranca todo
 
   nueva-clinica ...      Crea un cliente nuevo (mismos parámetros que nueva_clinica.py)
+  restablecer-clave CORREO  Clave temporal para un usuario que olvidó la suya
   respaldar [etiqueta]   Hace un respaldo ahora mismo
   respaldos              Lista los respaldos guardados
   restaurar ID           Restaura base y archivos de un respaldo
@@ -58,6 +59,8 @@ case "${1:-}" in
   iniciar)   "${DC[@]}" up -d ;;
   nueva-clinica)
     shift; "${DC[@]}" exec backend python nueva_clinica.py "$@" ;;
+  restablecer-clave)
+    shift; "${DC[@]}" exec backend python restablecer_clave.py "$@" ;;
   respaldar)
     mkdir -p "$INFRA/respaldos"
     ID="${SELLO}${2:+-$2}"

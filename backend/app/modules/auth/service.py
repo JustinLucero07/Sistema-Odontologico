@@ -163,7 +163,7 @@ async def change_own_password(db: AsyncSession, user: User, current_password: st
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta")
     if verify_password(new_password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="La nueva contraseña debe ser distinta de la actual."
+            status_code=422, detail="La nueva contraseña debe ser distinta de la actual."
         )
     enforce(new_password, email=user.email, names=(user.first_name, user.last_name))
     user.hashed_password = hash_password(new_password)

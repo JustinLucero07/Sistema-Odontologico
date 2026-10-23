@@ -21,6 +21,8 @@ from app.modules.credits.schemas import (
 )
 from app.shared.voiding import VoidRequest
 
+from app.modules.patients.service import get_patient_or_404
+
 router = APIRouter(prefix="/api/v1/credits", tags=["credits"])
 patient_router = APIRouter(prefix="/api/v1/patients/{patient_id}/credits", tags=["credits"])
 
@@ -128,6 +130,8 @@ async def get_patient_credits(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("payments:read")),
 ):
+    # Un paciente de otra clínica responde 404, igual que en el resto de la API.
+    await get_patient_or_404(db, current_user.clinic_id, patient_id)
     return await service.list_credits(db, current_user.clinic_id, patient_id=patient_id)
 
 

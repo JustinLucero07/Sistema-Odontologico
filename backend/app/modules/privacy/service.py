@@ -72,7 +72,7 @@ async def record_consent(
         )
     if patient.age is not None and patient.age < 18 and not (payload.signed_by_name or "").strip():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail="El paciente es menor de edad: indique el nombre de su representante legal.",
         )
     consent = DataConsent(

@@ -1,4 +1,6 @@
 import uuid
+
+from app.shared.archivos import cabeceras_archivo
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
@@ -86,10 +88,7 @@ async def get_image_file(
         media_type=image.mime_type or "application/octet-stream",
         # Inline, not an attachment: the viewer shows these in place. Clinical
         # images are never cached by a shared proxy.
-        headers={
-            "Content-Disposition": f'inline; filename="{image.original_filename}"',
-            "Cache-Control": "private, max-age=300",
-        },
+        headers={**cabeceras_archivo(image.original_filename, en_linea=True), "Cache-Control": "private, max-age=300"},
     )
 
 

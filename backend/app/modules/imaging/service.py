@@ -126,13 +126,17 @@ async def upload_image(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="La imagen supera el máximo de 60 MB",
         )
-    if mime_type and not (
-        mime_type in ALLOWED_MIME_TYPES or mime_type.startswith(ALLOWED_MIME_PREFIXES)
-    ):
+    # Se reconoce por el contenido, no por el tipo que declara el navegador:
+    # un SVG o un HTML disfrazado de imagen no entra.
+    from app.shared.archivos import tipo_de_imagen
+
+    mime_real = tipo_de_imagen(content)
+    if mime_real is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El archivo no es una imagen que el visor pueda mostrar",
+            detail="El archivo no es una imagen que el visor pueda mostrar (PNG, JPG, WebP, GIF, BMP o TIFF)",
         )
+    mime_type = mime_real
     if taken_on and taken_on > date.today():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

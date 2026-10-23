@@ -133,10 +133,18 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                     padding: EdgeInsets.only(
                       bottom: 110 + MediaQuery.paddingOf(context).bottom,
                     ),
-                    itemCount: lista.length,
+                    itemCount: lista.length + (lista.length >= 300 ? 1 : 0),
                     separatorBuilder: (_, __) =>
                         const Divider(height: 1, indent: 72),
                     itemBuilder: (context, i) {
+                      // Lista paginada en el servidor: con muchos pacientes se
+                      // muestran los primeros 300 y la búsqueda encuentra al resto.
+                      if (i == lista.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text('Se muestran los primeros 300 por nombre. Use la búsqueda para encontrar al resto.', textAlign: TextAlign.center),
+                        );
+                      }
                       final p = lista[i];
                       return ListTile(
                         leading: CircleAvatar(

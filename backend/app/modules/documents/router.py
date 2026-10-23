@@ -1,5 +1,7 @@
 import uuid
 
+from app.shared.archivos import cabeceras_archivo
+
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +73,7 @@ async def download_document(
     return Response(
         content=content,
         media_type=document.mime_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{document.original_filename}"'},
+        headers=cabeceras_archivo(document.original_filename, en_linea=False),
     )
 
 

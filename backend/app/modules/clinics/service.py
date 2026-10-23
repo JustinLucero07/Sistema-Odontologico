@@ -170,7 +170,7 @@ async def complete_setup(db: AsyncSession, clinic_id: uuid.UUID, user, payload) 
     clinic = await get_clinic_or_404(db, clinic_id)
     if not payload.accept_terms:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail="Debe aceptar los Términos de uso y el contrato de encargo de tratamiento de datos.",
         )
     data = payload.model_dump(

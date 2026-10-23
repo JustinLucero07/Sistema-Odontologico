@@ -72,6 +72,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count"],
     # Browsers cache a preflight — including a failed one. The default 600s
     # means a restart during development can lock the UI out for ten minutes.
     max_age=60,
@@ -126,4 +127,16 @@ app.include_router(patient_credits_router)
 
 @app.get("/api/v1/health")
 async def health():
+    # Comprueba la base de datos de verdad: un «ok» con la base caída engaña
+    # al monitoreo y a Docker, que no reiniciarían nada.
+    from fastapi.responses import JSONResponse
+    from sqlalchemy import text
+
+    from app.core.database import async_session_factory
+
+    try:
+        async with async_session_factory() as s:
+            await s.execute(text("SELECT 1"))
+    except Exception:
+        return JSONResponse({"status": "error", "database": "sin conexión"}, status_code=503)
     return {"status": "ok"}

@@ -16,6 +16,8 @@ from app.modules.portal.schemas import (
 )
 
 # Staff-facing: issuing and revoking links.
+from app.modules.patients.service import get_patient_or_404
+
 admin_router = APIRouter(prefix="/api/v1/patients/{patient_id}/portal", tags=["portal"])
 manage_router = APIRouter(prefix="/api/v1/portal", tags=["portal"])
 # Patient-facing and UNAUTHENTICATED: the token in the path is the credential.
@@ -28,6 +30,8 @@ async def get_links(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:read")),
 ):
+    # Un paciente de otra clínica responde 404, igual que en el resto de la API.
+    await get_patient_or_404(db, current_user.clinic_id, patient_id)
     return await service.list_links(db, current_user.clinic_id, patient_id)
 
 

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import Response, APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,11 +13,19 @@ router = APIRouter(prefix="/api/v1/patients", tags=["patients"])
 
 @router.get("", response_model=list[PatientListItem])
 async def get_patients(
+    response: Response,
     search: str | None = Query(default=None),
+    limit: int = Query(default=300, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:read")),
 ):
-    return await service.list_patients(db, current_user.clinic_id, search)
+    # Paginado: una clínica con miles de pacientes no descarga la lista entera
+    # en cada apertura (en el celular, con datos móviles, eso pesa). El total
+    # va en X-Total-Count; la búsqueda encuentra a cualquiera.
+    pacientes, total = await service.list_patients(db, current_user.clinic_id, search, limit, offset)
+    response.headers["X-Total-Count"] = str(total)
+    return pacientes
 
 
 @router.post("", response_model=PatientOut, status_code=201)

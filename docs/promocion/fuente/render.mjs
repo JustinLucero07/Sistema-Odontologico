@@ -12,13 +12,15 @@ const W = f === 'v' ? 1080 : 1920, H = f === 'v' ? 1920 : 1080;
 const p = await b.newPage({ viewport: { width: W, height: H } });
 p.on('pageerror', (e) => console.error('ERROR', e.message));
 await p.addInitScript((t) => { window.TOTALES = t; }, TOTALES);
-await p.goto(`http://localhost:5077/film.html?f=${f}&v=${v}&c=${encodeURIComponent(contacto)}`);
+const CAMP = v === 'campana';
+await p.goto(`http://localhost:5077/${CAMP ? 'campana' : 'film'}.html?f=${f}&v=${v}&c=${encodeURIComponent(CAMP ? (arg('--contacto') || '') : contacto)}`);
+await p.evaluate((c) => { window.OBJ = c ? window.CAMPANA : window.FILM; }, CAMP);
 await p.evaluate(() => document.fonts.ready);
 await new Promise((r) => setTimeout(r, 800));
-const dur = await p.evaluate(() => FILM.dur);
+const dur = await p.evaluate(() => OBJ.dur);
 if (muestras) {
   for (const t of muestras.split(',').map(Number)) {
-    await p.evaluate((t) => FILM.render(t), t);
+    await p.evaluate((t) => OBJ.render(t), t);
     await p.screenshot({ path: `muestra-${v}-${f}-${t}.jpg`, type: 'jpeg', quality: 85 });
   }
   await b.close(); process.exit(0);
@@ -29,7 +31,7 @@ const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-fr
 const N = Math.round(dur * 30);
 const t0 = Date.now();
 for (let i = 0; i < N; i++) {
-  await p.evaluate((t) => FILM.render(t), i / 30);
+  await p.evaluate((t) => OBJ.render(t), i / 30);
   const img = await p.screenshot({ type: 'jpeg', quality: 94 });
   if (!ff.stdin.write(img)) await new Promise((r) => ff.stdin.once('drain', r));
   if (i % 150 === 0) console.log(`  ${v}-${f}: ${i}/${N} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);

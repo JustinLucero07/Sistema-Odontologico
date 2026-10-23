@@ -4,7 +4,10 @@
       <h1>Pacientes</h1>
       <p class="page-sub">
         @if (!loading()) {
-          {{ patients().length }} {{ searching() ? 'resultado(s)' : 'paciente(s) registrados' }}
+          {{ total() }} {{ searching() ? 'resultado(s)' : 'paciente(s) registrados' }}
+          @if (total() > patients().length) {
+            · se muestran los primeros {{ patients().length }} por nombre; use la búsqueda para encontrar al resto
+          }
         }
       </p>
     </div>

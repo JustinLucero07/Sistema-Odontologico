@@ -378,7 +378,7 @@ async def create_payment(
         # own arithmetic honest; genuine extra money is taken on account.
         if amount > pending:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail=(
                     f"El pago ({amount}) supera el saldo pendiente del cargo ({pending}). "
                     "Registre el excedente como pago a cuenta."

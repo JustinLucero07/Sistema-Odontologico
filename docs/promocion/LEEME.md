@@ -4,7 +4,32 @@ Todo está pensado para vender a **odontólogos que trabajan solos, consultorios
 
 **Estilo:** anuncio para redes con bloques de color sólido que cambian al ritmo (sin degradados), tipografía grande con resaltador amarillo y las pantallas reales **completas**: la web en una laptop y la app en un celular, lado a lado. Música original estilo house pop (120 BPM) con gancho, drop y segundo drop en el cierre.
 
-## Videos
+## Campaña principal (la más profesional)
+
+| Archivo | Formato | Para qué |
+|---|---|---|
+| `campana-horizontal.mp4` | 1920×1080, 46 s | YouTube, página web, presentaciones comerciales |
+| `campana-vertical.mp4` | 1080×1920, 46 s | Instagram y Facebook Reels, TikTok, estados de WhatsApp |
+
+Estilo premium: fondo oscuro con luz ambiental sutil, laptop y celular con reflejo, acercamientos suaves de cámara y tipografía sobria. Todo lo que se ve son pantallas reales del sistema; no hay funciones inventadas. Cada formato tiene su propia composición: en horizontal, la laptop protagoniza con acercamientos a lo importante; en vertical, la web se ve completa arriba y el celular o una lupa abajo, dentro de las zonas seguras de Reels y TikTok.
+
+| Tiempo | Escena |
+|---|---|
+| 0–5 s | Apertura: línea de luz, logo y «Toda tu consulta dental. Un solo sistema.» |
+| 5–10 s | Presentación: la laptop se enciende con el panel real |
+| 10–31 s | 7 funciones: agenda, odontograma, oportunidades, cartera, finanzas, comprobantes con logo y personalización |
+| 31–37 s | Web y app móvil con los mismos datos (el mismo odontograma y la misma cartera en los dos) |
+| 37–41 s | Beneficios reales |
+| 41–46 s | Cierre: logo y «Solicita una demostración» |
+
+Para agregar su contacto al cierre (solo aparece si lo indica):
+
+```bash
+cd docs/promocion/fuente
+CONTACTO="WhatsApp 099 123 4567" ./armar-todo.sh solo-montaje
+```
+
+## Otros videos
 
 | Archivo | Formato | Para qué |
 |---|---|---|

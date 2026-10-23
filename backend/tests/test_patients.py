@@ -69,3 +69,15 @@ async def test_deactivated_patient_disappears_from_listing_and_404s(client, clin
 
     listing = await client.get("/api/v1/patients", headers=_auth(token))
     assert all(p["id"] != patient_id for p in listing.json())
+
+
+async def test_lista_de_pacientes_paginada_con_total(client, clinic_with_users):
+    r = await client.post("/api/v1/auth/login", json={"email": "admin@clinicatest.io", "password": "Admin123!"})
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    for i in range(5):
+        await client.post("/api/v1/patients", json={"first_name": f"P{i}", "last_name": "Pagina"}, headers=h)
+    pagina = await client.get("/api/v1/patients", params={"limit": 2, "offset": 2}, headers=h)
+    assert pagina.status_code == 200 and len(pagina.json()) == 2
+    assert pagina.headers["x-total-count"] == "5"
+    assert [p["first_name"] for p in pagina.json()] == ["P2", "P3"]
+    assert (await client.get("/api/v1/patients", params={"limit": 5000}, headers=h)).status_code == 422

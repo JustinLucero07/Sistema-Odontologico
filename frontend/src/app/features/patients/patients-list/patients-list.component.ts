@@ -55,12 +55,14 @@ export class PatientsListComponent implements OnInit {
     this.reload();
   }
 
+  readonly total = signal(0);
+
   async reload(search?: string): Promise<void> {
     this.loading.set(true);
     try {
-      this.patients.set(
-        await firstValueFrom(this.patientsService.listPatients(search || undefined)),
-      );
+      const pagina = await firstValueFrom(this.patientsService.listPatientsPage(search || undefined));
+      this.patients.set(pagina.items);
+      this.total.set(pagina.total);
     } finally {
       this.loading.set(false);
     }

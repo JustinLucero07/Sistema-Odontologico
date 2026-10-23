@@ -48,4 +48,4 @@ def problems(password: str, *, email: str = "", names: tuple[str, ...] = ()) -> 
 def enforce(password: str, *, email: str = "", names: tuple[str, ...] = ()) -> None:
     found = problems(password, email=email, names=names)
     if found:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=" ".join(found))
+        raise HTTPException(status_code=422, detail=" ".join(found))

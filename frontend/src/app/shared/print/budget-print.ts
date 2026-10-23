@@ -1,4 +1,4 @@
-import { ClinicIdentity } from './print-document';
+import { ClinicIdentity, lanzarImpresion } from './print-document';
 import { Budget } from '../../core/models/treatment.models';
 
 /** Escapes text before it goes into the printed HTML. Treatment descriptions
@@ -125,7 +125,7 @@ export function printBudget(
     Presupuesto con validez de 30 días desde su emisión, salvo indicación en contrario.
     Este documento no es un comprobante de venta ni tiene validez tributaria.
   </footer>
-  <script>window.onload = () => { window.focus(); window.print(); };</script>
 </body></html>`);
   win.document.close();
+  lanzarImpresion(win);
 }

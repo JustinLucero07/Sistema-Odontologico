@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import record_audit
@@ -10,7 +10,9 @@ from app.modules.patients.models import Patient
 from app.modules.patients.schemas import PatientCreate, PatientUpdate
 
 
-async def list_patients(db: AsyncSession, clinic_id: uuid.UUID, search: str | None = None) -> list[Patient]:
+async def list_patients(
+    db: AsyncSession, clinic_id: uuid.UUID, search: str | None = None, limit: int = 300, offset: int = 0
+) -> tuple[list[Patient], int]:
     query = select(Patient).where(Patient.clinic_id == clinic_id, Patient.deleted_at.is_(None))
     if search:
         term = f"%{search.strip()}%"
@@ -23,9 +25,10 @@ async def list_patients(db: AsyncSession, clinic_id: uuid.UUID, search: str | No
                 Patient.email.ilike(term),
             )
         )
-    query = query.order_by(Patient.first_name, Patient.last_name)
+    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+    query = query.order_by(Patient.first_name, Patient.last_name, Patient.id).limit(limit).offset(offset)
     result = await db.execute(query)
-    return list(result.scalars().all())
+    return list(result.scalars().all()), total or 0
 
 
 async def get_patient_or_404(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> Patient:

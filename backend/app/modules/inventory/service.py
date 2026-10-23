@@ -185,7 +185,7 @@ async def record_movement(
         # someone has to look at the shelf.
         if amount > on_hand:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail=(
                     f"No hay existencias suficientes de «{item.name}»: "
                     f"quedan {on_hand} {item.unit} y se intentan retirar {amount}."

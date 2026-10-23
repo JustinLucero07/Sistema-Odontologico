@@ -186,7 +186,7 @@ async def create_suggestion(
             db, clinic_id=clinic_id, user_id=actor_id, action="blocked", entity_type="ai_suggestion",
             entity_id=str(patient_id), after={"kind": exc.kind, "excerpt": exc.excerpt},
         )
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc))
 
     settings = get_settings()
     suggestion = AiSuggestion(

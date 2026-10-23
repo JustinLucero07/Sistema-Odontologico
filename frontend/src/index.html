@@ -13,16 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <script>
-    // El tema se aplica antes de pintar nada: sin esto, quien usa el modo
-    // oscuro ve un destello blanco mientras arranca la aplicación.
-    (function () {
-      var pref = 'system';
-      try { pref = localStorage.getItem('odonto.theme') || 'system'; } catch (e) {}
-      var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    })();
-  </script>
+  <script src="tema.js"></script>
   <style>
     /* Pantalla de arranque: vive aquí, en línea, porque tiene que verse antes
        de que cargue Angular. Angular la reemplaza al iniciar. */

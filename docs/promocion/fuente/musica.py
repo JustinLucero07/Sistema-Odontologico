@@ -194,6 +194,71 @@ def teaser():
     add(music, colchon([48, 60, 64, 67, 72], 2.6, 2200), 18.0, 1.8)
     return drums, music, fx, D
 
+# ---------- Campaña premium (46 s): tecnológica, elegante, con impulso ----------
+PROG_C = [(50, [62, 65, 69]), (46, [62, 65, 70]), (41, [60, 65, 69]), (48, [60, 64, 67])]  # Rem–Sib–Fa–Do
+
+def arpegio(ch, t0, compases, brillo_ini=900, brillo_fin=4200, g=1.0, dst=None):
+    notas = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[1] + 24]
+    n = compases * 16
+    for k in range(n):
+        f = brillo_ini + (brillo_fin - brillo_ini) * k / max(1, n - 1)
+        m = notas[k % 4]
+        nn = int(0.16 * SR)
+        x = sum(saw(hz(m), nn, d) for d in (-0.004, 0.005))
+        x = lowpass(x, f) * env(nn, 0.002, 0.07) * 0.06 * g
+        add(dst, x, t0 + k * S)
+
+def sub_pulso(m, dur):
+    n = int(dur * SR); t = np.arange(n) / SR
+    s = np.sin(2 * np.pi * hz(m) * t) + 0.2 * np.sin(4 * np.pi * hz(m) * t)
+    return s * env(n, 0.004, 0.12, 0.5, hold=dur - 0.02, r=0.02) * 0.33
+
+def tic(g=1.0):
+    n = int(0.06 * SR); t = np.arange(n) / SR
+    return np.sin(2 * np.pi * 2400 * t) * np.exp(-t * 90) * 0.07 * g
+
+def campana_anuncio():
+    D = 46.6; drums, music, fx = buf(D), buf(D), buf(D)
+    # Apertura: colchón, línea de luz y logo.
+    add(music, colchon([50, 57, 62, 65], 5.0, 1100), 0.0, 1.5)
+    arpegio(PROG_C[0][1], 1.0, 2, 500, 2600, 0.8, music)
+    add(fx, campana(86, 1.6), 1.3, 0.9); add(fx, campana(93, 1.6), 2.1, 0.6)
+    add(fx, subida(1.8, 9000), 3.2)
+    add(fx, impacto(0.9), 5.0)
+    # Producto y demostración: pulso continuo, elegante.
+    def bloque(a, b, bombo=True, palmas=True, arp=True, g_arp=1.0):
+        t = a; c = 0
+        while t < b - 1e-6:
+            raiz, ch = PROG_C[c % 4]
+            add(music, colchon(ch, min(4 * B, b - t), 1400), t, 0.8)
+            if arp: arpegio(ch, t, 1, 1800, 4200, g_arp, music)
+            for k in range(4):
+                tb = t + k * B
+                if tb >= b: break
+                if bombo: add(drums, kick(0.75), tb)
+                if palmas and k % 2 == 1: add(drums, clap(0.7), tb)
+                add(drums, hat(False, 0.8), tb + B / 2)
+                add(drums, hat(False, 0.35), tb + B / 4); add(drums, hat(False, 0.35), tb + 3 * B / 4)
+                for q in (1, 3): add(music, sub_pulso(raiz - 12, B / 4), tb + q * S)
+            t += 4 * B; c += 1
+    bloque(5.0, 10.0, palmas=False)
+    bloque(10.0, 31.0)
+    for k in range(7): add(fx, barrido(0.45, 0.7), 10.0 + 3 * k - 0.22)
+    for k in range(7): add(fx, tic(), 10.45 + 3 * k)
+    # Experiencia: misma base, más aire.
+    add(fx, barrido(0.6, 0.8), 30.75)
+    bloque(31.0, 37.0, palmas=True, g_arp=0.8)
+    # Beneficios: sin bombo, subida al cierre.
+    bloque(37.0, 41.0, bombo=False, palmas=False, g_arp=0.7)
+    for k in range(4): add(fx, tic(1.2), 37.5 + k * 0.5)
+    add(fx, subida(2.0, 10000), 39.0); add(drums, redoble(1.0), 40.0)
+    add(fx, impacto(1.1), 41.0)
+    bloque(41.0, 43.0, palmas=True)
+    add(music, colchon([38, 50, 57, 62, 65, 69], 3.6, 2400), 43.0, 1.8)
+    add(fx, campana(86, 2.5), 43.0, 0.7)
+    return drums, music, fx, D
+
+
 def mezclar(drums, music, fx, D, nombre):
     # Bombeo: la música baja con cada bombo (estilo house).
     pulso = np.zeros(len(music)); n = int(B * SR)
@@ -223,4 +288,4 @@ def mezclar(drums, music, fx, D, nombre):
 
 if __name__ == '__main__':
     q = sys.argv[1]
-    mezclar(*(anuncio() if q == 'anuncio' else teaser()), f'{q}.wav')
+    mezclar(*({'anuncio': anuncio, 'teaser': teaser, 'campana': campana_anuncio}[q])(), f'{q}.wav')

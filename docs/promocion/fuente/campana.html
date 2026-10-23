@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=block" rel="stylesheet">
+<style>
+/* Campaña premium: fondo oscuro, luz ambiental sutil, dispositivos con
+   reflejo, tipografía sobria. Las pantallas son tomas reales del sistema. */
+:root{ --fondo:#081011; --tinta:#eef5f4; --gris:#93a5a6; --acento:#3cc4b4; --verde:#0d7f76; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;overflow:hidden}
+#stage{position:relative;overflow:hidden;background:var(--fondo);color:var(--tinta);font-family:'Inter',sans-serif}
+.abs{position:absolute}
+.capa{position:absolute;inset:0}
+.titulo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;letter-spacing:-.035em;line-height:1.04}
+.marcaTexto{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;letter-spacing:-.02em}
+.etiqueta{font-family:'Inter',sans-serif;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--acento)}
+.cuerpo{font-family:'Inter',sans-serif;font-weight:400;line-height:1.45;color:var(--gris)}
+.palabra{display:inline-block;white-space:pre;will-change:transform,opacity}
+.mundo{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+/* Laptop: aluminio oscuro, borde con brillo y reflejo en el piso. */
+.laptop{position:absolute;transform-origin:50% 60%;-webkit-box-reflect:below 4px linear-gradient(transparent 86%,rgba(255,255,255,.06))}
+.laptop .tapa{position:relative;background:#0d1314;border-radius:20px 20px 8px 8px;padding:14px 14px 16px;
+  box-shadow:0 0 0 1.5px #2a3637,0 0 0 2.5px #0b1112,0 50px 90px -40px rgba(0,0,0,.9)}
+.laptop .tapa::before{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.14);pointer-events:none}
+.laptop .camara{position:absolute;top:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#26302f}
+.laptop .pantalla{position:relative;overflow:hidden;border-radius:3px;background:#000}
+.laptop .pantalla img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.laptop .base{height:20px;margin:0 -5%;border-radius:2px 2px 18px 18px;background:#20292a;box-shadow:inset 0 2px 0 #3a4647,inset 0 -3px 6px rgba(0,0,0,.5)}
+.laptop .base::after{content:'';display:block;margin:0 auto;width:15%;height:6px;border-radius:0 0 8px 8px;background:#111819}
+.brillo{position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.16) 48%,transparent 60%);mix-blend-mode:screen}
+.telefono{position:absolute;border-radius:52px;padding:9px;background:#0d1314;box-shadow:0 0 0 1.5px #2f3b3c,0 50px 80px -36px rgba(0,0,0,.9);
+  -webkit-box-reflect:below 4px linear-gradient(transparent 88%,rgba(255,255,255,.05))}
+.telefono .pantalla{position:relative;overflow:hidden;border-radius:44px;width:100%;height:100%;background:#fff}
+.telefono .isla{position:absolute;top:11px;left:50%;width:30%;height:25px;margin-left:-15%;background:#0d1314;border-radius:15px;z-index:2}
+.telefono img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lupa{position:absolute;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 0 0 1.5px rgba(255,255,255,.18),0 40px 70px -30px rgba(0,0,0,.9)}
+.lupa img{position:absolute;max-width:none}
+.tarjeta{border-radius:22px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.icono{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:14px;background:rgba(60,196,180,.12);box-shadow:inset 0 0 0 1px rgba(60,196,180,.35)}
+.icono svg{fill:var(--acento)}
+.boton{display:inline-flex;align-items:center;gap:14px;border-radius:999px;font-family:'Plus Jakarta Sans';font-weight:700;white-space:nowrap;background:var(--tinta);color:#081011}
+.particula{position:absolute;border-radius:50%;background:#bff3ec}
+.linea{position:absolute;height:2px;background:linear-gradient(90deg,transparent,#bff3ec 30%,#fff 50%,#bff3ec 70%,transparent);transform-origin:center}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="campana.js"></script>
+</body>
+</html>

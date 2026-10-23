@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -16,6 +16,15 @@ import {
 export class PatientsService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/patients`;
+
+  /** Una página de la lista con el total de pacientes (cabecera X-Total-Count). */
+  listPatientsPage(search?: string): Observable<{ items: PatientListItem[]; total: number }> {
+    let params = new HttpParams();
+    if (search) params = params.set('search', search);
+    return this.http
+      .get<PatientListItem[]>(this.base, { params, observe: 'response' })
+      .pipe(map((r) => ({ items: r.body ?? [], total: Number(r.headers.get('X-Total-Count') ?? r.body?.length ?? 0) })));
+  }
 
   listPatients(search?: string): Observable<PatientListItem[]> {
     let params = new HttpParams();

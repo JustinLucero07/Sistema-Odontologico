@@ -166,7 +166,7 @@ def _destination(patient: Patient, channel: str) -> str:
     if not address:
         field = "WhatsApp o teléfono" if channel in ("whatsapp", "sms") else "correo electrónico"
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=f"El paciente no tiene {field} registrado",
         )
     return address

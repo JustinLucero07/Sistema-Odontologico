@@ -283,7 +283,7 @@ async def create_credit(
     pending = money(charge.amount - _paid_on(charge))
     if payload.down_payment >= pending:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=f"La entrada ({payload.down_payment}) cubre todo el saldo ({pending}): no hay nada que financiar.",
         )
 
@@ -387,7 +387,7 @@ async def pay(
     pending = money(sum((r.amount for r in rows), ZERO) - paid)
     if payload.amount > pending:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             detail=f"El pago ({payload.amount}) supera lo que falta del crédito ({pending}).",
         )
 

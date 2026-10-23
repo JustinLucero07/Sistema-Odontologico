@@ -14,6 +14,8 @@ from app.modules.ai_assist.schemas import (
     SuggestionRequest,
 )
 
+from app.modules.patients.service import get_patient_or_404
+
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 patient_router = APIRouter(prefix="/api/v1/patients/{patient_id}/ai", tags=["ai"])
 
@@ -49,6 +51,8 @@ async def get_suggestions(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("medical_history:read")),
 ):
+    # Un paciente de otra clínica responde 404, igual que en el resto de la API.
+    await get_patient_or_404(db, current_user.clinic_id, patient_id)
     return await service.list_suggestions(db, current_user.clinic_id, patient_id)
 
 
