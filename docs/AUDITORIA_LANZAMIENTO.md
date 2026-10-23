@@ -119,7 +119,7 @@ Instalación de producción local, 2 procesos del backend. Volumen: 5.000 pacien
 |---|---|---|
 | C1 | **Facturación electrónica del SRI** | El sistema emite recibos, estados de cuenta y presupuestos con la leyenda «no es comprobante de venta». La clínica necesita otro sistema para facturar. Es lo primero que preguntará un cliente. |
 | C2 | **Revisión legal de los textos** | Aviso de privacidad, acuerdo de confidencialidad, Términos de uso y contrato de encargo (LOPDP) son una base razonable, pero los debe revisar un abogado ecuatoriano antes de firmar con clientes. También falta el contrato comercial del servicio (precio, nivel de servicio, soporte, terminación). |
-| C3 | **Respaldos fuera del servidor automáticos** | Hoy el respaldo diario queda en el mismo servidor; copiarlo fuera (rclone o snapshots) está documentado pero hay que configurarlo a mano en cada instalación. Si se pierde el VPS sin esa copia, se pierde todo. |
+| C3 | ~~Respaldos fuera del servidor automáticos~~ **RESUELTO** | Servicio `respaldo-externo`: cada noche sube los respaldos **cifrados** a la nube (Backblaze B2, Cloudflare R2, Google Drive, S3…). Se activa con `odonto nube-configurar`. Verificado con una nube simulada: subida cifrada, recuperación idéntica byte a byte, recuperación desde un servidor nuevo con solo las claves guardadas, y rechazo con una clave equivocada. **NO VERIFICADO** con una cuenta real de Backblaze/R2: hágalo en la instalación de ensayo. |
 | C4 | **Instalación real en un VPS con dominio** | El instalador `scripts/instalar-vps.sh` y el certificado de Let's Encrypt **NO VERIFICADOS** en un VPS real: aquí se probó con `localhost` y certificado interno. Hacer una instalación completa de ensayo antes del primer cliente. |
 
 ### Importantes
@@ -174,7 +174,7 @@ Instalación de producción local, 2 procesos del backend. Volumen: 5.000 pacien
 ## 7. Lista de verificación para el primer cliente
 
 - [ ] Instalación de ensayo en un VPS real con dominio y HTTPS válido (C4).
-- [ ] Respaldos copiándose fuera del servidor y una restauración de prueba en otro servidor (C3).
+- [ ] `odonto nube-configurar` con una cuenta real (Backblaze B2 recomendado), claves de cifrado guardadas fuera del servidor y una recuperación de prueba en otro servidor (C3).
 - [ ] Textos legales revisados por un abogado y contrato de servicio firmado (C2).
 - [ ] Acordar con el cliente cómo facturará mientras no exista la integración con el SRI (C1).
 - [ ] UptimeRobot vigilando `/api/v1/health` (M1).

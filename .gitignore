@@ -42,3 +42,6 @@ docs/promocion/fuente/tomas/
 docs/promocion/fuente/cuadros/
 docs/promocion/fuente/*.wav
 docs/promocion/fuente/*.mp4
+# Credenciales de la nube y estado de los respaldos externos (nunca al repositorio)
+infra/rclone/
+infra/estado/

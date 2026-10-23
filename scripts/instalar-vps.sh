@@ -172,5 +172,6 @@ el cliente la cambia y sigue el asistente de bienvenida (logo, colores,
 horario y módulos).
 
 Respaldos: cada día a las ${HORA_RESPALDO:-02}:00 en ${INFRA}/respaldos.
-Cópielos fuera del servidor (ver docs/INSTALACION_PRODUCCION.md, paso 7).
+IMPORTANTE: active la copia cifrada en la nube con «odonto nube-configurar»
+(ver docs/INSTALACION_PRODUCCION.md, paso 7).
 EOF

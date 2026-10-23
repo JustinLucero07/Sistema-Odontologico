@@ -150,6 +150,23 @@ services:
       postgres:
         condition: service_healthy
 
+  # Copia diaria de los respaldos a la nube, cifrada (Backblaze B2, Cloudflare
+  # R2, Google Drive, Hetzner Storage Box, S3…). Se configura con
+  # «odonto nube-configurar»; sin configurar, solo espera.
+  respaldo-externo:
+    <<: *logs
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    environment:
+      RETENCION_EXTERNA_DIAS: ${RETENCION_EXTERNA_DIAS:-90}
+      HORA_RESPALDO_EXTERNO: ${HORA_RESPALDO:-02}
+    volumes:
+      - ./respaldos:/respaldos:ro
+      - ./rclone:/config/rclone
+      - ./estado:/estado
+      - ./respaldo-externo.sh:/respaldo-externo.sh:ro
+    entrypoint: ["sh", "/respaldo-externo.sh"]
+
 volumes:
   pgdata:
   storage:

@@ -162,21 +162,58 @@ El comando muestra una **contraseña temporal una sola vez**. Entréguela al cli
 
 Cada volcado se verifica (si no contiene la tabla de pacientes, se marca como `.SOSPECHOSO`) y se guardan 30 días.
 
-**Respaldos fuera del servidor (muy importante).** Un respaldo dentro del mismo servidor no sirve si se pierde el servidor. Lo más simple es copiarlos cada noche a Google Drive, Dropbox o Backblaze B2 con `rclone`:
+**Respaldos fuera del servidor (muy importante).** Un respaldo en el mismo servidor no sirve si se pierde el servidor. El sistema trae un servicio que cada noche (a las 02:30) **copia los respaldos a la nube, cifrados antes de salir del servidor**: el proveedor de la nube no puede leerlos.
+
+Se configura una sola vez:
 
 ```bash
-curl https://rclone.org/install.sh | sudo bash
-rclone config          # cree un «remote», por ejemplo llamado «nube»
-crontab -e             # y agregue esta línea:
-0 4 * * * rclone copy /opt/odonto/infra/respaldos nube:odonto-respaldos --max-age 48h
+odonto nube-configurar
 ```
 
-Además, active en el panel del proveedor los **backups o snapshots automáticos del VPS**. Suelen costar alrededor del 20 % del precio del servidor.
+El asistente le pregunta dónde guardarlos:
+
+| Opción | Costo aproximado | Comentario |
+|---|---|---|
+| **Backblaze B2** (recomendado) | 10 GB gratis, luego ~6 USD por TB al mes | El más usado para respaldos |
+| **Cloudflare R2** | 10 GB gratis | No cobra por descargar |
+| **Otro** | Según el servicio | Google Drive, Hetzner Storage Box, Amazon S3, OneDrive… con el asistente de rclone |
+
+**Ejemplo con Backblaze B2:**
+
+1. Cree una cuenta en backblaze.com.
+2. En *B2 Cloud Storage › Buckets › Create a Bucket*, cree uno **privado**, por ejemplo `odonto-respaldos-miempresa`.
+3. En *Application Keys › Add a New Application Key*, cree una con acceso de lectura y escritura **solo a ese bucket**.
+4. Ejecute `odonto nube-configurar`, elija `1` y pegue el *keyID*, la *applicationKey* y el nombre del bucket.
+5. El asistente muestra **una contraseña y una sal de cifrado**. **Guárdelas fuera del servidor** (gestor de contraseñas o papel en un lugar seguro). Sin ellas, los respaldos de la nube no se pueden abrir.
+6. Sube los respaldos actuales para comprobar que todo funciona.
+
+**Para revisarlo:**
+
+```bash
+odonto estado        # muestra «✔ Copia en la nube: fecha (N respaldos)» o el error
+odonto nube-listar   # lo que hay en la nube
+odonto nube-subir    # subir ahora (por ejemplo, antes de un cambio grande)
+```
+
+Los respaldos se guardan 90 días en la nube (`RETENCION_EXTERNA_DIAS` en `infra/.env.prod`).
+
+Además, active en el panel del proveedor los **snapshots automáticos del VPS** (suelen costar alrededor del 20 % del servidor): permiten volver a levantar el servidor entero en minutos.
+
+#### Si se pierde el servidor
+
+1. Cree un VPS nuevo e instale el sistema (pasos 1 a 5 de esta guía).
+2. Ejecute `odonto nube-configurar`, elija el mismo proveedor y el mismo bucket, y responda **«s»** a *¿Es un servidor NUEVO…?*. Ingrese la contraseña y la sal que guardó.
+3. `odonto nube-listar` muestra los respaldos disponibles. Elija el más reciente:
+   ```bash
+   odonto nube-recuperar 20261023-020000
+   odonto restaurar 20261023-020000
+   ```
+4. Restaure también su copia de `infra/.env.prod` (o cree una nueva y cambie las contraseñas de los usuarios).
 
 **Comandos útiles:**
 
 ```bash
-odonto respaldar                 # respaldo inmediato (por ejemplo, antes de un cambio grande)
+odonto respaldar                 # respaldo inmediato (local) (por ejemplo, antes de un cambio grande)
 odonto respaldos                 # ver los que hay
 odonto restaurar 20261011-020000 # volver a ese momento (pide confirmación y respalda antes lo actual)
 ```
