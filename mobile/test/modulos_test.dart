@@ -27,6 +27,9 @@ import 'package:odonto_movil/features/reportes/reportes_page.dart';
 import 'package:odonto_movil/features/bienvenida/bienvenida_page.dart';
 import 'package:odonto_movil/features/cartera/cartera_page.dart';
 import 'package:odonto_movil/features/legal/cumplimiento_page.dart';
+import 'package:odonto_movil/features/configuracion/roles_plantillas.dart';
+import 'package:odonto_movil/features/pacientes/periodontograma.dart';
+import 'package:odonto_movil/features/pacientes/comunicacion.dart';
 
 const _pid = 'p1';
 
@@ -261,8 +264,59 @@ final Map<String, Object?> _datos = {
     },
   ],
   '/roles': [
-    {'id': 'r1', 'name': 'Administrador'},
+    {
+      'id': 'r1',
+      'name': 'Administrador',
+      'is_system': true,
+      'description': null,
+      'permissions': [
+        {'id': 'x1', 'code': 'patients:read', 'module': 'patients', 'description': 'Ver pacientes'},
+      ],
+    },
+    {'id': 'r2', 'name': 'Recepción', 'is_system': false, 'description': 'Agenda y caja', 'permissions': <Object>[]},
   ],
+  '/permissions': [
+    {'id': 'x1', 'code': 'patients:read', 'module': 'patients', 'description': 'Ver pacientes'},
+    {'id': 'x2', 'code': 'patients:write', 'module': 'patients', 'description': 'Editar pacientes'},
+    {'id': 'x3', 'code': 'appointments:read', 'module': 'appointments', 'description': 'Ver agenda'},
+  ],
+  '/consents/templates': [
+    {'id': 'ct1', 'name': 'Endodoncia', 'procedure_type': 'endodoncia', 'body': 'Autorizo el tratamiento de conductos.', 'is_active': true},
+    {'id': 'ct2', 'name': 'Blanqueamiento', 'procedure_type': null, 'body': 'Texto antiguo.', 'is_active': false},
+  ],
+  '/messaging/status': {'provider': 'simulado', 'is_live': false, 'message': 'Sin proveedor: los envíos quedan como simulados.'},
+  '/messaging/templates': [
+    {'id': 'mt1', 'code': 'recordatorio', 'name': 'Recordatorio', 'channel': 'whatsapp', 'body': 'Hola {paciente}, su cita es el {fecha} a las {hora}.', 'is_active': true},
+  ],
+  '/messaging/messages': [
+    {'id': 'm1', 'patient_id': 'p1', 'channel': 'whatsapp', 'to_address': '593999', 'body': 'Hola María, su cita es mañana.', 'status': 'simulado', 'error': null, 'created_at': '2026-10-20T10:00:00Z'},
+  ],
+  '/ai/status': {'provider': 'ninguno', 'is_available': false, 'model': null, 'message': 'El asistente no está configurado.'},
+  '/patients/$_pid/ai/suggestions': <Object>[],
+  '/patients/$_pid/portal': [
+    {'id': 'pl1', 'patient_id': 'p1', 'expires_at': '2026-11-20T10:00:00Z', 'created_at': '2026-10-20T10:00:00Z', 'last_used_at': null, 'use_count': 2, 'revoked_at': null, 'is_active': true},
+  ],
+  '/patients/$_pid/periodontogram/versions': [
+    {'id': 'pv1', 'created_at': '2026-10-20T10:00:00Z', 'type': 'initial'},
+  ],
+  '/patients/$_pid/periodontogram': {
+    'id': 'pv1',
+    'patient_id': 'p1',
+    'created_at': '2026-10-20T10:00:00Z',
+    'type': 'initial',
+    'notes': 'Control en 3 meses',
+    'teeth': [
+      {'fdi_number': '18', 'absent': true, 'implant': false, 'mobility': null, 'furcation': null, 'notes': null},
+    ],
+    'measurements': [
+      {'fdi_number': '16', 'site': 'vestibular_mesial', 'probing_depth': 6, 'recession': 1, 'bleeding': true, 'suppuration': false, 'plaque': true},
+      {'fdi_number': '36', 'site': 'lingual_central', 'probing_depth': 3, 'recession': null, 'bleeding': false, 'suppuration': false, 'plaque': false},
+    ],
+    'indices': {
+      'sites_recorded': 2, 'bleeding_sites': 1, 'plaque_sites': 1, 'bleeding_index': 50, 'plaque_index': 50,
+      'mean_probing_depth': 4.5, 'max_probing_depth': 6, 'sites_over_3mm': 1, 'sites_over_5mm': 1,
+    },
+  },
   '/patients/$_pid': {
     'id': _pid,
     'first_name': 'María',
@@ -690,6 +744,10 @@ void main() {
     'Huecos libres': const HuecosPage(),
     'Cartera': const CarteraPage(),
     'Personalización': const BienvenidaPage(editar: true),
+    'Roles': const RolesPage(),
+    'Permisos de un rol': const RolPermisosPage(rolId: 'r2'),
+    'Plantillas de mensajes': const PlantillasMensajePage(),
+    'Plantillas de consentimiento': const PlantillasConsentimientoPage(),
   };
 
   for (final e in paginas.entries) {
@@ -788,7 +846,7 @@ void main() {
     expect(find.text('Resina 16'), findsNothing);
   });
 
-  testWidgets('Ficha del paciente: las 10 pestañas', (tester) async {
+  testWidgets('Ficha del paciente: las 12 pestañas', (tester) async {
     await _abrir(
       tester,
       const PacienteDetallePage(pacienteId: _pid, nombre: 'María Gómez'),
@@ -797,10 +855,12 @@ void main() {
     for (final pestana in [
       'Historia',
       'Odontograma',
+      'Periodontograma',
       'Tratamientos',
       'Clínico',
       'Imágenes',
       'Citas',
+      'Comunicación',
       'Cuenta',
       'Documentos',
       'Consentimientos',
@@ -859,5 +919,32 @@ void main() {
       ApiConfig.normalizar('192.168.1.50:8000'),
       'http://192.168.1.50:8000',
     );
+  });
+
+  testWidgets('Periodontograma: índices, arcadas y editor', (tester) async {
+    await _abrir(tester, const Scaffold(body: PestanaPeriodontograma(pacienteId: _pid)));
+    expect(find.text('50 %'), findsNWidgets(2));
+    expect(find.text('Control en 3 meses'), findsOneWidget);
+    await tester.pumpWidget(_app(const EditorPeriodontograma(pacienteId: _pid)));
+    await tester.pumpAndSettle();
+    expect(find.text('Pieza 18'), findsOneWidget);
+    await tester.tap(find.byTooltip('Pieza siguiente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pieza 17'), findsOneWidget);
+    // Sondaje: el primer + pone 2 mm, la lectura más común.
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pumpAndSettle();
+    expect(find.text('2'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Comunicación: mensajes y portal', (tester) async {
+    await _abrir(tester, const Scaffold(body: PestanaComunicacion(pacienteId: _pid)));
+    expect(find.text('Hola María, su cita es mañana.'), findsOneWidget);
+    expect(find.text('Simulado'), findsOneWidget);
+    await tester.tap(find.text('Portal'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Usado 2 veces'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

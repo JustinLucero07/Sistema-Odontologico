@@ -24,7 +24,12 @@ import {
 } from './tooth-layout';
 
 interface RenderedTooth extends ToothLayout {
+  /** El hallazgo de pieza completa más reciente: es el que da color a la corona. */
   wholeCondition: ToothCondition | null;
+  /** Todos los de pieza completa, para dibujar cada símbolo (corona + endodoncia…). */
+  wholeCodes: Set<string>;
+  /** Cuántos hallazgos tiene la pieza en total. */
+  count: number;
   surfaceConditions: Partial<Record<ToothSurface, ToothCondition>>;
   /** Region -> surface, already resolved for this tooth's arch/side. */
   regionSurface: { top: ToothSurface; bottom: ToothSurface; left: ToothSurface; right: ToothSurface };
@@ -124,7 +129,8 @@ export class OdontogramChartComponent {
     const byFdi = this.conditionsByFdi();
     return layout.map((tooth, index) => {
       const toothConditions = byFdi.get(tooth.fdi) ?? [];
-      const wholeCondition = toothConditions.find((c) => c.surface === 'whole') ?? null;
+      const wholeList = toothConditions.filter((c) => c.surface === 'whole');
+      const wholeCondition = wholeList[wholeList.length - 1] ?? null;
       const surfaceConditions: Partial<Record<ToothSurface, ToothCondition>> = {};
       for (const c of toothConditions) {
         if (c.surface !== 'whole') surfaceConditions[c.surface] = c;
@@ -140,15 +146,18 @@ export class OdontogramChartComponent {
         right: mesialRegionSide === 'right' ? 'mesial' : 'distal',
       } as { top: ToothSurface; bottom: ToothSurface; left: ToothSurface; right: ToothSurface };
 
-      const conditionLabel = wholeCondition
-        ? TOOTH_CONDITION_BY_CODE[wholeCondition.condition]?.label
-        : Object.entries(surfaceConditions)
-            .map(([surface, c]) => `${SURFACE_LABELS[surface]}: ${TOOTH_CONDITION_BY_CODE[c.condition]?.label}`)
-            .join(' · ');
+      const conditionLabel = toothConditions
+        .map((c) => {
+          const label = TOOTH_CONDITION_BY_CODE[c.condition]?.label ?? c.condition;
+          return c.surface === 'whole' ? label : `${SURFACE_LABELS[c.surface]}: ${label}`;
+        })
+        .join(' · ');
 
       return {
         ...tooth,
         wholeCondition,
+        wholeCodes: new Set(wholeList.map((c) => c.condition)),
+        count: toothConditions.length,
         surfaceConditions,
         regionSurface,
         anatomy: anatomyFor(tooth.fdi, tooth.arch),
@@ -179,10 +188,7 @@ export class OdontogramChartComponent {
   }
 
   isAbsent(tooth: RenderedTooth): boolean {
-    return (
-      tooth.wholeCondition?.condition === 'ausente' ||
-      tooth.wholeCondition?.condition === 'extraccion_realizada'
-    );
+    return tooth.wholeCodes.has('ausente') || tooth.wholeCodes.has('extraccion_realizada');
   }
 
   onSurfaceClick(tooth: RenderedTooth, surface: ToothSurface): void {

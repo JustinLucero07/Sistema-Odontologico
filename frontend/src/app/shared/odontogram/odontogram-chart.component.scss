@@ -287,6 +287,22 @@
   }
 }
 
+// Cuántos hallazgos tiene la pieza cuando hay más de uno.
+.tooth-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.6rem;
+  line-height: 1;
+  vertical-align: 1px;
+}
+
 .has-activity .tooth-number {
   color: var(--color-primary);
 }

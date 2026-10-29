@@ -160,16 +160,17 @@ class Seccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 14, 0, 8),
+      padding: const EdgeInsets.fromLTRB(4, 22, 0, 10),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+              titulo.toUpperCase(),
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.5,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),

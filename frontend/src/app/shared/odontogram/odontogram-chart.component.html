@@ -64,23 +64,21 @@
         <line x1="32" y1="14" x2="8" y2="56" class="absent-mark" />
       }
       <!-- Símbolos clínicos: el color solo no basta para leer el hallazgo. -->
-      @switch (tooth.wholeCondition?.condition) {
-        @case ('extraccion_indicada') {
-          <line x1="8" y1="14" x2="32" y2="56" class="mark-extract" />
-          <line x1="32" y1="14" x2="8" y2="56" class="mark-extract" />
-        }
-        @case ('endodoncia') {
-          <line x1="20" y1="6" x2="20" y2="58" class="mark-endo" />
-        }
-        @case ('implante') {
-          <path d="M14 22h12M15 29h10M16 36h8M17 43h6" class="mark-implant" />
-        }
-        @case ('fractura') {
-          <path d="M12 16l8 10-6 8 9 9-5 9" class="mark-fracture" />
-        }
-        @case ('movilidad') {
-          <path d="M5 30c-3 4-3 8 0 12M35 30c3 4 3 8 0 12" class="mark-mobility" />
-        }
+      @if (tooth.wholeCodes.has('extraccion_indicada')) {
+        <line x1="8" y1="14" x2="32" y2="56" class="mark-extract" />
+        <line x1="32" y1="14" x2="8" y2="56" class="mark-extract" />
+      }
+      @if (tooth.wholeCodes.has('endodoncia')) {
+        <line x1="20" y1="6" x2="20" y2="58" class="mark-endo" />
+      }
+      @if (tooth.wholeCodes.has('implante')) {
+        <path d="M14 22h12M15 29h10M16 36h8M17 43h6" class="mark-implant" />
+      }
+      @if (tooth.wholeCodes.has('fractura')) {
+        <path d="M12 16l8 10-6 8 9 9-5 9" class="mark-fracture" />
+      }
+      @if (tooth.wholeCodes.has('movilidad')) {
+        <path d="M5 30c-3 4-3 8 0 12M35 30c3 4 3 8 0 12" class="mark-mobility" />
       }
     </svg>
 
@@ -123,6 +121,11 @@
       <circle cx="20" cy="20" r="18" class="wheel-outline" />
     </svg>
 
-    <button type="button" class="tooth-number" (click)="onToothClick(tooth)">{{ tooth.fdi }}</button>
+    <button type="button" class="tooth-number" (click)="onToothClick(tooth)">
+      {{ tooth.fdi }}
+      @if (tooth.count > 1) {
+        <span class="tooth-count" [attr.aria-label]="tooth.count + ' hallazgos'">{{ tooth.count }}</span>
+      }
+    </button>
   </div>
 </ng-template>

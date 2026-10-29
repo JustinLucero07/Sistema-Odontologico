@@ -110,3 +110,25 @@ async def test_dentist_without_write_permission_gets_403(client, clinic_with_use
         headers=_auth(dentist_token),
     )
     assert response.status_code == 403
+
+
+async def test_tooth_keeps_several_conditions_at_once(client, clinic_with_users):
+    """Una pieza puede tener varios hallazgos: corona y endodoncia en la pieza
+    completa, y caries en dos caras distintas. Ninguno pisa al otro."""
+    token = await _login(client, "admin@clinicatest.io", "Admin123!")
+    patient_id = await _create_patient(client, token)
+
+    conditions = [
+        {"fdi_number": "36", "surface": "whole", "condition": "endodoncia"},
+        {"fdi_number": "36", "surface": "whole", "condition": "corona"},
+        {"fdi_number": "36", "surface": "mesial", "condition": "caries"},
+        {"fdi_number": "36", "surface": "oclusal", "condition": "restauracion"},
+    ]
+    created = await client.post(
+        f"/api/v1/patients/{patient_id}/odontogram", json={"conditions": conditions}, headers=_auth(token)
+    )
+    assert created.status_code == 201
+
+    latest = await client.get(f"/api/v1/patients/{patient_id}/odontogram", headers=_auth(token))
+    saved = {(c["surface"], c["condition"]) for c in latest.json()["conditions"]}
+    assert saved == {(c["surface"], c["condition"]) for c in conditions}

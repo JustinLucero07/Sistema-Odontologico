@@ -134,8 +134,15 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                       bottom: 110 + MediaQuery.paddingOf(context).bottom,
                     ),
                     itemCount: lista.length + (lista.length >= 300 ? 1 : 0),
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, indent: 72),
+                    // Lista agrupada: una sola tarjeta blanca con separadores
+                    // finos, en vez de filas sueltas sobre el fondo.
+                    separatorBuilder: (_, i) => i >= lista.length - 1
+                        ? const SizedBox.shrink()
+                        : Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            color: Theme.of(context).colorScheme.surface,
+                            child: const Divider(height: 1, indent: 72),
+                          ),
                     itemBuilder: (context, i) {
                       // Lista paginada en el servidor: con muchos pacientes se
                       // muestran los primeros 300 y la búsqueda encuentra al resto.
@@ -146,17 +153,31 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                         );
                       }
                       final p = lista[i];
-                      return ListTile(
+                      final tono = tonoAvatar(p.id, Theme.of(context).brightness);
+                      final radio = Radius.circular(22);
+                      return Container(
+                        margin: EdgeInsets.fromLTRB(16, i == 0 ? 6 : 0, 16, 0),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.vertical(
+                            top: i == 0 ? radio : Radius.zero,
+                            bottom: i == lista.length - 1 ? radio : Radius.zero,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: ListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(14, 4, 10, 4),
                         leading: CircleAvatar(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.14),
+                          radius: 22,
+                          backgroundColor: tono.$1,
                           child: Text(
                             p.iniciales,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.5,
                               fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: tono.$2,
                             ),
                           ),
                         ),
@@ -171,7 +192,11 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                             if (p.telefono != null) p.telefono!,
                           ].join(' · '),
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 15,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                        ),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => PacienteDetallePage(
@@ -179,6 +204,8 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                               nombre: p.nombreCompleto,
                             ),
                           ),
+                        ),
+                      ),
                         ),
                       );
                     },
@@ -191,4 +218,27 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
       ),
     );
   }
+}
+
+/// Fondo y tinta del avatar de una persona: siempre el mismo tono para el
+/// mismo paciente, elegido de una paleta apagada que combina con la marca.
+(Color, Color) tonoAvatar(String id, Brightness brillo) {
+  const claros = [
+    (Color(0xFFE3EFEC), Color(0xFF1F5F57)),
+    (Color(0xFFF3EADB), Color(0xFF7A5420)),
+    (Color(0xFFE6ECF4), Color(0xFF2E4D74)),
+    (Color(0xFFECE7F1), Color(0xFF5A4277)),
+    (Color(0xFFEAEFE3), Color(0xFF46602B)),
+    (Color(0xFFF2E6E3), Color(0xFF7D3A2F)),
+  ];
+  const oscuros = [
+    (Color(0xFF1C3532), Color(0xFF9FD8CE)),
+    (Color(0xFF382D1E), Color(0xFFE5C38F)),
+    (Color(0xFF1F2B3B), Color(0xFFA9C3E6)),
+    (Color(0xFF2C2537), Color(0xFFCDB8E6)),
+    (Color(0xFF26301E), Color(0xFFBCD69B)),
+    (Color(0xFF3A2523), Color(0xFFEDB3A9)),
+  ];
+  final i = id.codeUnits.fold<int>(0, (a, c) => (a * 31 + c) & 0x7fffffff) % claros.length;
+  return brillo == Brightness.dark ? oscuros[i] : claros[i];
 }

@@ -165,21 +165,22 @@ export class OdontogramComponent implements OnChanges {
     this.picker.set(null);
   }
 
+  /** Una pieza puede tener varios hallazgos a la vez (corona y endodoncia,
+   *  caries en dos caras…): aplicar uno nuevo lo SUMA, no borra lo anterior.
+   *  Tocar otra vez con el mismo pincel lo quita, y «Sano» limpia esa cara o,
+   *  sobre la pieza completa, toda la pieza. */
   private apply(target: { fdi: string; surface: ToothSurface }, code: string): void {
     const current = this.draftConditions();
-    const same = current.some(
-      (c) => c.fdi_number === target.fdi && c.surface === target.surface && c.condition === code,
-    );
-    const rest = current.filter((c) => {
-      if (c.fdi_number !== target.fdi) return true;
-      if (target.surface === 'whole') return false; // la pieza completa reemplaza todo lo de esa pieza
-      return c.surface !== 'whole' && c.surface !== target.surface;
-    });
-    // Tocar otra vez con el mismo pincel lo quita: corregir un toque de más es un toque.
-    if (code !== 'sano' && !same) {
-      rest.push({ fdi_number: target.fdi, surface: target.surface, condition: code });
+    const isTarget = (c: ToothCondition) => c.fdi_number === target.fdi && c.surface === target.surface;
+    let rest: ToothCondition[];
+    if (code === 'sano') {
+      rest = current.filter((c) => c.fdi_number !== target.fdi || (target.surface !== 'whole' && c.surface !== target.surface));
+    } else if (current.some((c) => isTarget(c) && c.condition === code)) {
+      rest = current.filter((c) => !(isTarget(c) && c.condition === code));
+    } else {
+      rest = [...current, { fdi_number: target.fdi, surface: target.surface, condition: code }];
     }
-    if (JSON.stringify(rest) === JSON.stringify(current)) return;
+    if (rest.length === current.length && rest.every((c, i) => c === current[i])) return;
     this.history.set([...this.history(), current]);
     this.draftConditions.set(rest);
   }

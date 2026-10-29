@@ -11,13 +11,13 @@ const bajar = async (dy, ms = 1300) => { await mover(p, 200, 500, 300); await ru
 await p.goto('http://localhost:5050/'); await sleep(6000);
 await g('app-01-ingreso', async () => {
   await sleep(500);
-  await tocar(p, 199, 440); await escribir(p, 'admin@clinicademo.com', 35);
-  await tocar(p, 199, 502); await escribir(p, 'Admin123!', 60);
-  await tocar(p, 199, 572, 200); await sleep(4200);
+  await tocar(p, 199, 639); await escribir(p, 'admin@clinicademo.com', 35);
+  await tocar(p, 199, 699); await escribir(p, 'Admin123!', 60);
+  await tocar(p, 199, 767, 200); await sleep(4200);
 });
 if (p.url() && SOLO.length && !SOLO.includes('app-01-ingreso')) {
-  await tocar(p, 199, 440); await escribir(p, 'admin@clinicademo.com', 5);
-  await tocar(p, 199, 502); await escribir(p, 'Admin123!', 5); await tocar(p, 199, 572); await sleep(5000);
+  await tocar(p, 199, 639); await escribir(p, 'admin@clinicademo.com', 5);
+  await tocar(p, 199, 699); await escribir(p, 'Admin123!', 5); await tocar(p, 199, 767); await sleep(5000);
 }
 
 await inicio();

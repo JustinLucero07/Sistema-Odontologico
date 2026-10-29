@@ -1,3 +1,5 @@
+import 'comunicacion.dart';
+import 'periodontograma.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -45,10 +47,12 @@ const _pestanas = [
   'Ficha',
   'Historia',
   'Odontograma',
+  'Periodontograma',
   'Tratamientos',
   'Clínico',
   'Imágenes',
   'Citas',
+  'Comunicación',
   'Cuenta',
   'Documentos',
   'Consentimientos',
@@ -119,25 +123,27 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
           if (h == null) return;
           if (mounted) await nuevaVersionHistoria(context, ref, _id, h);
         });
-      case 3 when puede('treatment_plans:write'):
+      case 3 when puede('periodontogram:write'):
+        return fab(Icons.add_chart, 'Nuevo examen', () => nuevoPeriodontograma(context, ref, _id));
+      case 4 when puede('treatment_plans:write'):
         return fab(
           Icons.assignment_add,
           'Nuevo plan',
           () => editarPlan(context, ref, _id),
         );
-      case 4:
+      case 5:
         return fab(
           Icons.edit_note,
           'Registrar',
           () => menuClinico(context, ref, _id),
         );
-      case 5 when puede('imaging:write'):
+      case 6 when puede('imaging:write'):
         return fab(
           Icons.add_a_photo_outlined,
           'Subir',
           () => menuImagen(context, ref, _id),
         );
-      case 6 when puede('appointments:write'):
+      case 7 when puede('appointments:write'):
         return fab(Icons.event_available, 'Agendar', () async {
           if (await editarCita(
             context,
@@ -148,7 +154,9 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
             ref.invalidate(citasPacienteProvider(_id));
           }
         });
-      case 7 when puede('payments:write'):
+      case 8 when puede('appointments:write'):
+        return fab(Icons.send_rounded, 'Mensaje', () => enviarMensaje(context, ref, _id));
+      case 9 when puede('payments:write'):
         return fab(Icons.payments_outlined, 'Cobrar', () async {
           final d = await cargarOAvisar(
             context,
@@ -163,9 +171,9 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
             (d.cuenta['charges'] as List? ?? []).cast<Map<String, dynamic>>(),
           );
         });
-      case 8 when puede('documents:write'):
+      case 10 when puede('documents:write'):
         return fab(Icons.upload_file, 'Subir', () => menuDocumento(context, ref, _id));
-      case 9 when puede('consents:write'):
+      case 11 when puede('consents:write'):
         return fab(Icons.draw_outlined, 'Nuevo', () => nuevoConsentimiento(context, ref, _id));
       default:
         return null;
@@ -191,10 +199,12 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
             _Ficha(pacienteId: _id),
             PestanaHistoria(pacienteId: _id),
             _Odontograma(pacienteId: _id),
+            PestanaPeriodontograma(pacienteId: _id),
             PestanaTratamientos(pacienteId: _id),
             PestanaClinica(pacienteId: _id),
             PestanaImagenes(pacienteId: _id),
             PestanaCitas(pacienteId: _id),
+            PestanaComunicacion(pacienteId: _id),
             PestanaCuenta(pacienteId: _id),
             PestanaDocumentos(pacienteId: _id),
             PestanaConsentimientos(pacienteId: _id),
@@ -499,12 +509,18 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
         final dientes = <String, Diente>{};
         for (final fdi in piezas) {
           final delDiente = todas.where((c) => c['fdi_number'] == fdi);
-          final completa = delDiente
+          // Puede haber varios hallazgos de pieza completa: ausente o con
+          // extracción indicada si alguno lo dice; el color de la corona lo
+          // da el más reciente de los demás.
+          final completas = delDiente
               .where((c) => c['surface'] == 'whole')
               .map((c) => c['condition'] as String)
-              .firstOrNull;
-          final ausente = esPiezaAusente(completa);
-          final indicada = completa == 'extraccion_indicada';
+              .toList();
+          final ausente = completas.any(esPiezaAusente);
+          final indicada = completas.contains('extraccion_indicada');
+          final completa = indicada
+              ? 'extraccion_indicada'
+              : completas.where((c) => !esPiezaAusente(c)).lastOrNull;
           dientes[fdi] = Diente(
             fdi: fdi,
             arcada: '15'.contains(fdi[0]) || '26'.contains(fdi[0])
@@ -755,13 +771,21 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
         final superficie = _soloPiezaCompleta.contains(codigo)
             ? 'whole'
             : '${v['surface']}';
-        final resto = todas.where((c) {
-          if (c['fdi_number'] != fdi) return true;
-          if (superficie == 'whole') return false;
-          return c['surface'] != 'whole' && c['surface'] != superficie;
-        }).toList();
+        // Una pieza puede tener varios hallazgos a la vez (corona y
+        // endodoncia, caries en dos caras…): el nuevo se SUMA a los que ya
+        // tenía. «Sano» limpia esa cara o, en la pieza completa, toda la pieza.
+        if (codigo == 'sano') {
+          await _guardar(todas.where((c) {
+            if (c['fdi_number'] != fdi) return true;
+            return superficie != 'whole' && c['surface'] != superficie;
+          }).toList());
+          return;
+        }
+        final repetido = todas.any((c) =>
+            c['fdi_number'] == fdi && c['surface'] == superficie && c['condition'] == codigo);
+        if (repetido) throw ErrorApi('La pieza $fdi ya tiene ese hallazgo en esa superficie.');
         await _guardar([
-          ...resto,
+          ...todas,
           {
             'fdi_number': fdi,
             'surface': superficie,

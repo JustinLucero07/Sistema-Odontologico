@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/auth/auth_controller.dart';
+import 'core/theme/app_theme.dart';
 import 'features/cuenta/cambiar_clave_page.dart';
 import 'features/agenda/agenda_page.dart';
 import 'features/pacientes/pacientes_page.dart';
@@ -48,15 +49,22 @@ class _ShellState extends ConsumerState<Shell> {
           titleSpacing: 16,
           title: Row(
             children: [
-              const LogoApp(tamano: 30),
-              const SizedBox(width: 10),
+              const LogoApp(tamano: 28),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(switch (_indice) {
-                  0 => 'Panel',
-                  1 => 'Agenda',
-                  2 => 'Pacientes',
-                  _ => 'Más',
-                }),
+                child: Text(
+                  switch (_indice) {
+                    0 => 'Panel',
+                    1 => 'Agenda',
+                    2 => 'Pacientes',
+                    _ => 'Más',
+                  },
+                  style: estiloTitulo(
+                    23,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    peso: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),

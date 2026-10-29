@@ -7,6 +7,7 @@ import '../bienvenida/bienvenida_page.dart';
 import '../caja/caja_page.dart';
 import '../cartera/cartera_page.dart';
 import '../configuracion/configuracion_pages.dart';
+import '../configuracion/roles_plantillas.dart';
 import '../creditos/creditos_page.dart';
 import '../cuenta/cambiar_clave_page.dart';
 import '../finanzas/finanzas_page.dart';
@@ -31,6 +32,8 @@ class _Modulo {
   ]);
   final String titulo;
   final IconData icono;
+  // Se conserva por si se quiere volver a distinguir módulos por color;
+  // hoy todos usan el de la marca, que es más sobrio.
   final Color color;
   final String? permiso;
   final Widget Function() pagina;
@@ -144,6 +147,27 @@ final _grupos = <(String, List<_Modulo>)>[
         () => const UsuariosPage(),
       ),
       _Modulo(
+        'Roles y permisos',
+        Icons.admin_panel_settings_outlined,
+        Tonos.violeta,
+        'roles:manage',
+        () => const RolesPage(),
+      ),
+      _Modulo(
+        'Mensajes',
+        Icons.chat_outlined,
+        Tonos.verde,
+        'settings:manage',
+        () => const PlantillasMensajePage(),
+      ),
+      _Modulo(
+        'Consentimientos',
+        Icons.draw_outlined,
+        Tonos.azul,
+        'consents:write',
+        () => const PlantillasConsentimientoPage(),
+      ),
+      _Modulo(
         'Personalización',
         Icons.palette_outlined,
         Tonos.violeta,
@@ -183,9 +207,9 @@ class MasPage extends ConsumerWidget {
 
     return ListView(
       padding: EdgeInsets.fromLTRB(
-        16,
+        20,
         8,
-        16,
+        20,
         110 + MediaQuery.paddingOf(context).bottom,
       ),
       children: [
@@ -195,6 +219,9 @@ class MasPage extends ConsumerWidget {
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
+              // Sin esto hereda el relleno inferior de la barra flotante y
+              // deja un hueco entre grupos.
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
@@ -207,36 +234,21 @@ class MasPage extends ConsumerWidget {
                         MaterialPageRoute<void>(builder: (_) => m.pagina()),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: 46,
-                              height: 46,
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(15),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    m.color.withValues(alpha: 0.85),
-                                    m.color,
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: m.color.withValues(alpha: 0.35),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
-                                    spreadRadius: -4,
-                                  ),
-                                ],
+                                borderRadius: BorderRadius.circular(14),
+                                color: scheme.primary.withValues(alpha: 0.08),
                               ),
                               child: Icon(
                                 m.icono,
-                                color: Colors.white,
-                                size: 23,
+                                color: scheme.primary,
+                                size: 22,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -245,7 +257,8 @@ class MasPage extends ConsumerWidget {
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               style: const TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 12,
+                                height: 1.25,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

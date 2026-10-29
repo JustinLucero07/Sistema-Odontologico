@@ -1,17 +1,20 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 
-/// Liquid Glass para la app, con los mismos principios que la web.
+/// Superficies de la app: porcelana y papel.
 ///
-/// El vidrio se lee como material por tres cosas a la vez: deja ver el color
-/// de detrás, tiene un canto iluminado (borde claro y brillo arriba) y
-/// proyecta una sombra suave. Sin las tres parece solo un panel translúcido.
+/// El fondo es un blanco cálido y las tarjetas blanco puro con un canto fino.
+/// La jerarquía sale del contraste de temperatura y de una sombra amplia y
+/// muy tenue, no de colores ni brillos: es lo que hace que se vea tranquila y
+/// cara a la vez. Los nombres (Glass*) se conservan porque los usa toda la
+/// app; el vidrio real queda solo donde pasa contenido por detrás (barras).
 
-/// Fondo con luz de color detrás de todas las pantallas: es lo que el vidrio
-/// deja ver. Es estático, así que se pinta una vez y no cuesta al hacer scroll.
+/// Fondo de todas las pantallas. Un único lavado muy tenue del color de la
+/// consulta arriba, para que la marca se sienta sin teñir el contenido.
 class AmbientBackground extends StatelessWidget {
   const AmbientBackground({super.key, required this.child});
 
@@ -20,65 +23,34 @@ class AmbientBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final base = dark
-        ? const [Color(0xFF0A191B), Color(0xFF050E10)]
-        : const [Color(0xFFEDF3F3), Color(0xFFE2EAEA)];
-
-    Widget blob(Alignment at, double size, Color color) => Align(
-      alignment: at,
-      child: IgnorePointer(
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [color, color.withValues(alpha: 0)],
-            ),
-          ),
-        ),
-      ),
-    );
+    final base = dark ? AppColors.baseDark : AppColors.baseLight;
+    final marca = dark ? AppColors.primaryOnDark : AppColors.primary;
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: base,
-            ),
-          ),
-        ),
-        // RepaintBoundary: las manchas no cambian, no se repintan con el
-        // contenido que pasa por encima.
+        ColoredBox(color: base),
         RepaintBoundary(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              blob(
-                const Alignment(-1.2, -1.1),
-                520,
-                AppColors.mint.withValues(alpha: dark ? 0.22 : 0.34),
+          child: IgnorePointer(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: FractionallySizedBox(
+                heightFactor: 0.45,
+                widthFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0.9, -1.1),
+                      radius: 1.25,
+                      colors: [
+                        marca.withValues(alpha: dark ? 0.16 : 0.07),
+                        marca.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              blob(
-                const Alignment(1.3, -0.7),
-                460,
-                AppColors.primary.withValues(alpha: dark ? 0.26 : 0.22),
-              ),
-              blob(
-                const Alignment(1.1, 1.2),
-                540,
-                AppColors.accent.withValues(alpha: dark ? 0.10 : 0.22),
-              ),
-              blob(
-                const Alignment(-1.2, 1.1),
-                420,
-                const Color(0xFF60A5FA).withValues(alpha: dark ? 0.10 : 0.14),
-              ),
-            ],
+            ),
           ),
         ),
         child,
@@ -89,35 +61,30 @@ class AmbientBackground extends StatelessWidget {
 
 /// Colores del material según el tema.
 class GlassTokens {
-  const GlassTokens._(this.fill, this.rim, this.edge, this.shadow);
+  const GlassTokens._(this.fill, this.rim, this.shadow);
 
-  final List<Color> fill;
+  final Color fill;
   final Color rim;
-  final Color edge;
   final Color shadow;
 
   static GlassTokens of(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return dark
         ? const GlassTokens._(
-            [Color(0xA8223E42), Color(0x85122629)],
-            Color(0x17FFFFFF),
-            Color(0x2EFFFFFF),
-            Color(0x99000000),
+            AppColors.surfaceDark,
+            AppColors.lineDark,
+            Color(0x66000000),
           )
         : const GlassTokens._(
-            [Color(0xD1FFFFFF), Color(0x99FFFFFF)],
-            Color(0xB3FFFFFF),
-            Color(0xF2FFFFFF),
-            Color(0x380A2325),
+            AppColors.surfaceLight,
+            Color(0xFFECE8E0),
+            Color(0x1A3B3222),
           );
   }
 }
 
-/// Superficie de vidrio. [blur] activa el desenfoque real del fondo; solo se
-/// usa donde pasa contenido por detrás (barras flotantes). En tarjetas sobre
-/// el fondo ambiental no hace falta: desenfocar algo ya difuso no cambia nada
-/// y cuesta rendimiento en cada frame del scroll.
+/// Superficie base. [blur] la vuelve translúcida con desenfoque real del
+/// fondo; solo se usa donde pasa contenido por detrás (barras flotantes).
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
@@ -134,7 +101,7 @@ class GlassPanel extends StatelessWidget {
   final bool blur;
   final EdgeInsetsGeometry? padding;
 
-  /// Color que tiñe el vidrio (p. ej. el primario para un bloque destacado).
+  /// Color sólido para un bloque destacado (p. ej. el primario).
   final Color? tint;
   final bool elevated;
 
@@ -142,46 +109,17 @@ class GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = GlassTokens.of(context);
     final shape = BorderRadius.circular(radius);
-    final fill = tint == null
-        ? t.fill
-        : [tint!.withValues(alpha: 0.9), tint!.withValues(alpha: 0.72)];
+    final fill = tint ?? (blur ? t.fill.withValues(alpha: 0.82) : t.fill);
 
     Widget surface = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: shape,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: fill,
+        color: fill,
+        border: Border.all(
+          color: tint == null ? t.rim : Colors.white.withValues(alpha: 0.12),
         ),
-        border: Border.all(color: t.rim),
       ),
-      child: Stack(
-        children: [
-          Padding(padding: padding ?? EdgeInsets.zero, child: child),
-          // Reflejo especular: una línea de luz en el canto superior, más
-          // intensa en el centro, como el borde de un vidrio curvo.
-          Positioned(
-            left: radius * 0.6,
-            right: radius * 0.6,
-            top: 0,
-            height: 1,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      t.edge.withValues(alpha: 0),
-                      t.edge,
-                      t.edge.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
     );
 
     if (blur) {
@@ -196,14 +134,15 @@ class GlassPanel extends StatelessWidget {
         borderRadius: shape,
         boxShadow: elevated
             ? [
+                // Sombra amplia y casi invisible: separa sin «flotar».
                 BoxShadow(
                   color: t.shadow,
-                  blurRadius: 30,
-                  spreadRadius: -12,
-                  offset: const Offset(0, 14),
+                  blurRadius: 28,
+                  spreadRadius: -14,
+                  offset: const Offset(0, 12),
                 ),
                 BoxShadow(
-                  color: t.shadow.withValues(alpha: 0.08),
+                  color: t.shadow.withValues(alpha: 0.05),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -215,8 +154,9 @@ class GlassPanel extends StatelessWidget {
   }
 }
 
-/// Sustituto directo de [Card] con el material de vidrio. Acepta los mismos
-/// parámetros que las pantallas ya usaban (child, margin, clipBehavior).
+/// Sustituto directo de [Card]. Acepta los mismos parámetros que las
+/// pantallas ya usaban (child, margin, clipBehavior) y, si se toca, se hunde
+/// un poco al presionar, como un botón físico.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -229,7 +169,7 @@ class GlassCard extends StatelessWidget {
 
   final Widget child;
   final EdgeInsetsGeometry? margin;
-  // Se acepta por compatibilidad con Card: el vidrio siempre recorta.
+  // Se acepta por compatibilidad con Card: la tarjeta siempre recorta.
   final Clip? clipBehavior;
   final VoidCallback? onTap;
   final double radius;
@@ -242,14 +182,55 @@ class GlassCard extends StatelessWidget {
       type: MaterialType.transparency,
       child: onTap == null ? child : InkWell(onTap: onTap, child: child),
     );
-    final card = GlassPanel(radius: radius, child: content);
+    Widget card = GlassPanel(radius: radius, child: content);
+    if (onTap != null) card = Presionable(child: card);
     return margin == null ? card : Padding(padding: margin!, child: card);
   }
 }
 
-/// Barra de navegación flotante: una cápsula de vidrio separada del borde,
-/// con desenfoque real porque el contenido pasa por debajo.
-class GlassNavBar extends StatelessWidget {
+/// Se encoge un 2 % mientras el dedo está apoyado: respuesta inmediata al
+/// tocar, antes de soltar. No intercepta el toque; solo lo observa.
+class Presionable extends StatefulWidget {
+  const Presionable({super.key, required this.child, this.escala = 0.98});
+
+  final Widget child;
+  final double escala;
+
+  @override
+  State<Presionable> createState() => _PresionableState();
+}
+
+class _PresionableState extends State<Presionable> {
+  bool _abajo = false;
+
+  void _poner(bool v) {
+    if (_abajo != v) setState(() => _abajo = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (_) => _poner(true),
+      onPointerUp: (_) => _poner(false),
+      onPointerCancel: (_) => _poner(false),
+      child: AnimatedScale(
+        scale: _abajo ? widget.escala : 1,
+        duration: Duration(milliseconds: _abajo ? 90 : 220),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Barra de navegación flotante en Liquid Glass.
+///
+/// La cápsula es vidrio de verdad: desenfoca y satura lo que pasa por detrás,
+/// tiene un canto de luz que cambia de intensidad alrededor del borde y un
+/// brillo arriba. El destino elegido se marca con una gota de vidrio más
+/// clara que viaja de uno a otro con un leve rebote y se estira mientras se
+/// mueve, como un líquido.
+class GlassNavBar extends StatefulWidget {
   const GlassNavBar({
     super.key,
     required this.selectedIndex,
@@ -262,33 +243,229 @@ class GlassNavBar extends StatelessWidget {
   final List<GlassNavItem> items;
 
   @override
+  State<GlassNavBar> createState() => _GlassNavBarState();
+}
+
+class _GlassNavBarState extends State<GlassNavBar> with SingleTickerProviderStateMixin {
+  late final AnimationController _viaje = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 560),
+    value: 1,
+  );
+  late double _desde = widget.selectedIndex.toDouble();
+  late double _hasta = widget.selectedIndex.toDouble();
+
+  /// Sale rápido y se asienta con un rebote corto.
+  static const _curva = Cubic(0.3, 1.32, 0.5, 1);
+
+  @override
+  void didUpdateWidget(GlassNavBar old) {
+    super.didUpdateWidget(old);
+    if (old.selectedIndex != widget.selectedIndex) {
+      // Parte desde donde está la gota ahora, aunque esté a mitad de viaje.
+      _desde = _posicion;
+      _hasta = widget.selectedIndex.toDouble();
+      if (MediaQuery.of(context).disableAnimations) {
+        _viaje.value = 1;
+      } else {
+        _viaje.forward(from: 0);
+      }
+    }
+  }
+
+  double get _posicion => _desde + (_hasta - _desde) * _curva.transform(_viaje.value);
+
+  @override
+  void dispose() {
+    _viaje.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final ink =
-        Theme.of(context).textTheme.bodyMedium?.color ?? scheme.onSurface;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = dark ? AppColors.inkDark : AppColors.inkLight;
+    final activo = dark ? AppColors.primaryOnDark : AppColors.primary;
+    const radio = 30.0;
 
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: GlassPanel(
-        blur: true,
-        radius: 30,
-        padding: const EdgeInsets.all(6),
-        child: Row(
-          children: [
-            for (var i = 0; i < items.length; i++)
-              Expanded(
-                child: _NavButton(
-                  item: items[i],
-                  selected: i == selectedIndex,
-                  color: i == selectedIndex
-                      ? scheme.primary
-                      : ink.withValues(alpha: 0.6),
-                  onTap: () => onSelected(i),
-                ),
-              ),
+      minimum: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radio),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.45 : 0.12),
+              blurRadius: 34,
+              spreadRadius: -6,
+              offset: const Offset(0, 16),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.3 : 0.06),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radio),
+          child: BackdropFilter(
+            // Desenfoque más saturación: el color de lo que pasa por detrás
+            // se intensifica en lugar de lavarse a gris.
+            filter: ImageFilter.compose(
+              outer: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+              inner: const ColorFilter.matrix(_saturar),
+            ),
+            child: CustomPaint(
+              painter: _VidrioPintor(dark: dark, radio: radio),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: SizedBox(
+                  height: 56,
+                  child: LayoutBuilder(
+                    builder: (context, c) {
+                      final ancho = c.maxWidth / widget.items.length;
+                      return AnimatedBuilder(
+                        animation: _viaje,
+                        builder: (context, _) {
+                          final t = _viaje.value;
+                          // Se estira a mitad de camino y recupera su forma al llegar.
+                          final estiron = (_hasta - _desde).abs() > 0 ? math.sin(math.pi * t) : 0.0;
+                          final w = ancho * (1 + 0.28 * estiron);
+                          final h = 56 * (1 - 0.1 * estiron);
+                          final x = _posicion * ancho + (ancho - w) / 2;
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned(
+                                left: x,
+                                top: (56 - h) / 2,
+                                width: w,
+                                height: h,
+                                child: _Gota(dark: dark, tinte: activo),
+                              ),
+                              Row(
+                                children: [
+                                  for (var i = 0; i < widget.items.length; i++)
+                                    Expanded(
+                                      child: _NavButton(
+                                        item: widget.items[i],
+                                        selected: i == widget.selectedIndex,
+                                        color: i == widget.selectedIndex ? activo : ink.withValues(alpha: 0.58),
+                                        onTap: () => widget.onSelected(i),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Matriz de saturación ×1,6 (luminancia Rec. 709).
+const List<double> _saturar = [
+  1.4724, -0.4288, -0.0436, 0, 0,
+  -0.1276, 1.1712, -0.0436, 0, 0,
+  -0.1276, -0.4288, 1.5564, 0, 0,
+  0, 0, 0, 1, 0,
+];
+
+/// El cuerpo y el canto del vidrio: relleno translúcido más claro arriba,
+/// borde de luz que brilla en la esquina superior izquierda y en la inferior
+/// derecha (como un vidrio curvo iluminado desde arriba) y un brillo fino.
+class _VidrioPintor extends CustomPainter {
+  _VidrioPintor({required this.dark, required this.radio});
+
+  final bool dark;
+  final double radio;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radio));
+    canvas.drawRRect(
+      r,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? [const Color(0x66263538), const Color(0x4D0E1A1C)]
+              : [const Color(0x99FFFFFF), const Color(0x70FFFFFF)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawRRect(
+      r.deflate(0.5),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [const Color(0x59FFFFFF), const Color(0x0FFFFFFF), const Color(0x0FFFFFFF), const Color(0x33FFFFFF)]
+              : [const Color(0xFFFFFFFF), const Color(0x66FFFFFF), const Color(0x33FFFFFF), const Color(0xCCFFFFFF)],
+          stops: const [0, 0.35, 0.65, 1],
+        ).createShader(Offset.zero & size),
+    );
+    // Brillo especular: línea de luz en el canto superior.
+    final brillo = Rect.fromLTWH(radio, 1, size.width - radio * 2, 1.2);
+    canvas.drawRect(
+      brillo,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0),
+            Colors.white.withValues(alpha: dark ? 0.35 : 0.95),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(brillo),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VidrioPintor old) => old.dark != dark;
+}
+
+/// La gota de vidrio que marca el destino elegido.
+class _Gota extends StatelessWidget {
+  const _Gota({required this.dark, required this.tinte});
+
+  final bool dark;
+  final Color tinte;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? [Colors.white.withValues(alpha: 0.16), Colors.white.withValues(alpha: 0.07)]
+              : [Colors.white.withValues(alpha: 0.98), Color.lerp(Colors.white, tinte, 0.08)!.withValues(alpha: 0.88)],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: dark ? 0.22 : 1), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: (dark ? Colors.black : tinte).withValues(alpha: dark ? 0.35 : 0.16),
+            blurRadius: 16,
+            spreadRadius: -4,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
     );
   }
@@ -321,7 +498,6 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return Semantics(
       selected: selected,
       button: true,
@@ -329,45 +505,31 @@ class _NavButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        // La gota de vidrio claro se desliza al destino elegido: el cambio se
-        // anima con una curva sin rebote, igual que en la web.
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: const Cubic(0.32, 0.72, 0, 1),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: selected
-                ? (dark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.white.withValues(alpha: 0.95))
-                : Colors.transparent,
-            boxShadow: selected && !dark
-                ? const [
-                    BoxShadow(
-                      color: Color(0x220A2325),
-                      blurRadius: 14,
-                      offset: Offset(0, 6),
-                    ),
-                  ]
-                : null,
-          ),
+        child: Presionable(
+          escala: 0.92,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                selected ? item.selectedIcon : item.icon,
-                color: color,
-                size: 24,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  selected ? item.selectedIcon : item.icon,
+                  key: ValueKey(selected),
+                  color: color,
+                  size: 22,
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                item.label,
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 220),
                 style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontFamily: fuenteTexto,
+                  fontSize: 11,
+                  letterSpacing: 0.1,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: color,
                 ),
+                child: Text(item.label),
               ),
             ],
           ),
@@ -384,20 +546,11 @@ class GlassAppBarBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final base = dark ? AppColors.baseDark : AppColors.baseLight;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: dark
-                  ? const [Color(0xCC0A191B), Color(0x990A191B)]
-                  : const [Color(0xD9EDF3F3), Color(0x99EDF3F3)],
-            ),
-          ),
-        ),
+        child: ColoredBox(color: base.withValues(alpha: 0.82)),
       ),
     );
   }
