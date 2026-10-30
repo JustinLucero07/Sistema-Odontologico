@@ -105,6 +105,7 @@ export class ShellComponent {
       items: [
         { label: 'Caja del día', icon: 'point_of_sale', route: '/cash', permission: 'payments:read', module: 'cash' },
         { label: 'Finanzas', icon: 'account_balance', route: '/finance', permission: 'payments:read' },
+        { label: 'Facturación', icon: 'receipt_long', route: '/invoices', permission: 'invoices:read' },
         { label: 'Cartera', icon: 'account_balance_wallet', route: '/portfolio', permission: 'payments:read' },
         { label: 'Créditos', icon: 'credit_score', route: '/credits', permission: 'payments:read', module: 'credits' },
         { label: 'Reportes', icon: 'insights', route: '/reports', permission: 'reports:read', module: 'reports' },

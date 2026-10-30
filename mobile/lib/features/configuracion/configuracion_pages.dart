@@ -33,6 +33,20 @@ class TratamientosPage extends ConsumerWidget {
         inicial: t?['default_price'] ?? '0',
       ),
       Campo(
+        'vat_code',
+        'IVA al facturar',
+        tipo: TipoCampo.seleccion,
+        requerido: true,
+        opciones: const [
+          ('0', 'IVA 0 % (servicio de salud)'),
+          ('4', 'IVA 15 %'),
+          ('5', 'IVA 5 %'),
+          ('6', 'No objeto de IVA'),
+          ('7', 'Exento de IVA'),
+        ],
+        inicial: t?['vat_code'] ?? '0',
+      ),
+      Campo(
         'description',
         'Descripción',
         tipo: TipoCampo.multilinea,

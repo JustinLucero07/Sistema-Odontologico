@@ -308,3 +308,33 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 # Comando de administración
 ln -sf /opt/odonto/infra/odonto.sh /usr/local/bin/odonto
 ```
+
+## Facturación electrónica (SRI)
+
+Cada consulta factura con **su propio RUC y su propia firma electrónica**. El
+servidor solo necesita dos cosas, que `instalar-vps.sh` ya deja listas en
+instalaciones nuevas:
+
+1. **`CERT_ENCRYPTION_KEY`** en `infra/.env.prod`: la llave con la que se
+   cifran las firmas `.p12` guardadas. Si su servidor se instaló antes de esta
+   versión, agréguela una vez:
+
+   ```bash
+   echo "CERT_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr '+/' '-_')" >> /opt/odonto/infra/.env.prod
+   odonto actualizar
+   ```
+
+   **No la cambie después**: si cambia, cada consulta debe volver a subir su firma.
+   Guárdela junto con las claves de los respaldos.
+
+2. **Correo saliente (opcional)** para que el PDF y el XML lleguen solos al
+   paciente: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
+   en el mismo archivo. Sin correo, la factura se envía por WhatsApp o se descarga.
+
+El servicio **facturador** retoma cada minuto lo que quedó pendiente con el SRI
+(envíos sin respuesta, autorizaciones en proceso). Se revisa con
+`odonto logs facturador`.
+
+Cada consulta, en **Facturación → Configuración**: sube su `.p12` y su clave,
+empieza en **Pruebas**, emite facturas de prueba hasta que salgan autorizadas y
+recién entonces pasa a **Producción** (después de habilitarla en «SRI en línea»).

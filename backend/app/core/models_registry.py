@@ -14,6 +14,7 @@ from app.modules.consents import models as consents_models  # noqa: F401
 from app.modules.clinical_evolution import models as clinical_evolution_models  # noqa: F401
 from app.modules.diagnoses import models as diagnoses_models  # noqa: F401
 from app.modules.inventory import models as inventory_models  # noqa: F401
+from app.modules.invoicing import models as invoicing_models  # noqa: F401
 from app.modules.laboratory import models as laboratory_models  # noqa: F401
 from app.modules.medical_history import models as medical_history_models  # noqa: F401
 from app.modules.imaging import models as imaging_models  # noqa: F401

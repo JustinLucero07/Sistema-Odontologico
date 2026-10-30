@@ -10,6 +10,7 @@ import '../configuracion/configuracion_pages.dart';
 import '../configuracion/roles_plantillas.dart';
 import '../creditos/creditos_page.dart';
 import '../cuenta/cambiar_clave_page.dart';
+import '../facturacion/facturacion_page.dart';
 import '../finanzas/finanzas_page.dart';
 import '../inventario/inventario_page.dart';
 import '../laboratorio/laboratorio_page.dart';
@@ -73,6 +74,13 @@ final _grupos = <(String, List<_Modulo>)>[
         'payments:read',
         () => const CajaPage(),
         'cash',
+      ),
+      _Modulo(
+        'Facturación',
+        Icons.request_quote_outlined,
+        Tonos.verde,
+        'invoices:read',
+        () => const FacturacionPage(),
       ),
       _Modulo(
         'Cartera',

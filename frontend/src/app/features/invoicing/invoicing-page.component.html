@@ -1,0 +1,162 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Facturación electrónica</h1>
+      <p class="page-sub">Facturas y notas de crédito autorizadas por el SRI</p>
+    </div>
+    @if (canWrite) {
+      <button mat-flat-button (click)="newInvoice()" [disabled]="!!settings()?.missing?.length">
+        <mat-icon>add</mat-icon>Nueva factura
+      </button>
+    }
+  </header>
+
+  @if (settings(); as s) {
+    @if (s.missing.length) {
+      <div class="glass-card notice bad">
+        <mat-icon>error_outline</mat-icon>
+        <div>
+          <strong>Para empezar a facturar falta:</strong>
+          <ul>@for (m of s.missing; track m) { <li>{{ m }}</li> }</ul>
+        </div>
+      </div>
+    } @else if (s.environment === '1') {
+      <div class="glass-card notice">
+        <mat-icon>science</mat-icon>
+        <span>Está en el ambiente de <b>pruebas</b> del SRI: las facturas no tienen validez tributaria. Cuando salgan autorizadas, pase a producción en Configuración.</span>
+      </div>
+    }
+    @if (certDaysLeft() !== null && certDaysLeft()! < 30) {
+      <div class="glass-card notice">
+        <mat-icon>event_busy</mat-icon>
+        <span>La firma electrónica vence el {{ s.certificate_valid_until | date: 'dd/MM/yyyy' }} ({{ certDaysLeft() }} días). Renuévela a tiempo.</span>
+      </div>
+    }
+  }
+
+  <mat-tab-group animationDuration="200ms" mat-stretch-tabs="false">
+    <mat-tab label="Comprobantes">
+      <section class="kpis">
+        <article class="glass-card kpi"><span>Facturado este mes</span><strong class="numeric"><small>$</small>{{ money(kpis().billed) }}</strong></article>
+        <article class="glass-card kpi"><span>Notas de crédito del mes</span><strong class="numeric"><small>$</small>{{ money(kpis().credited) }}</strong></article>
+        <article class="glass-card kpi"><span>En proceso con el SRI</span><strong class="numeric">{{ kpis().inProgress }}</strong></article>
+        <article class="glass-card kpi" [class.alert]="kpis().problems > 0"><span>Con problemas</span><strong class="numeric">{{ kpis().problems }}</strong></article>
+      </section>
+
+      <div class="toolbar">
+        <div class="chips">
+          @for (f of filters; track f.code) {
+            <button type="button" [class.on]="filter() === f.code" (click)="filter.set(f.code)">{{ f.label }} <span>{{ count(f.code) }}</span></button>
+          }
+        </div>
+        <div class="chips">
+          <button type="button" [class.on]="docType() === ''" (click)="docType.set('')">Todo</button>
+          <button type="button" [class.on]="docType() === '01'" (click)="docType.set('01')">Facturas</button>
+          <button type="button" [class.on]="docType() === '04'" (click)="docType.set('04')">Notas de crédito</button>
+        </div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Buscar comprador, cédula o número</mat-label>
+          <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
+        </mat-form-field>
+      </div>
+
+      <section class="list">
+        @for (f of visible(); track f.id) {
+          <button type="button" class="glass-card row" (click)="open(f)">
+            <span class="icon" [attr.data-type]="f.doc_type"><mat-icon>{{ f.doc_type === '01' ? 'receipt_long' : 'undo' }}</mat-icon></span>
+            <span class="who">
+              <strong>{{ f.buyer_name }}</strong>
+              <span>{{ f.doc_type === '01' ? 'Factura' : 'Nota de crédito' }} {{ f.number }} · {{ f.issue_date | date: 'dd/MM/yyyy' }}{{ f.environment === '1' ? ' · pruebas' : '' }}</span>
+            </span>
+            <b class="numeric total">{{ f.doc_type === '04' ? '−' : '' }}$ {{ money(f.total) }}</b>
+            <span class="state" [attr.data-status]="f.status">{{ labels[f.status] }}</span>
+          </button>
+        } @empty {
+          <div class="glass-card empty">
+            <mat-icon>receipt_long</mat-icon>
+            @if (loading()) {
+              <app-skeleton variant="list" [rows]="4" />
+            } @else if (invoices().length === 0) {
+              <p>Todavía no hay facturas. Emita la primera con «Nueva factura» o desde la cuenta del paciente.</p>
+            } @else {
+              <p>Ningún comprobante coincide con el filtro.</p>
+            }
+          </div>
+        }
+      </section>
+    </mat-tab>
+
+    @if (canConfigure) {
+      <mat-tab label="Configuración">
+        @if (settings(); as s) {
+          <section class="config">
+            <article class="glass-card block">
+              <h2><mat-icon>verified_user</mat-icon>Firma electrónica</h2>
+              @if (s.has_certificate) {
+                <p class="ok-line" [class.bad]="s.certificate_expired">
+                  <mat-icon>{{ s.certificate_expired ? 'error' : 'check_circle' }}</mat-icon>
+                  {{ s.certificate_subject }}
+                </p>
+                <p class="muted">Vence el {{ s.certificate_valid_until | date: 'dd/MM/yyyy' }}. Se guarda cifrada; nadie puede descargarla.</p>
+              } @else {
+                <p class="muted">Suba el archivo <b>.p12</b> que le entregó la entidad certificadora (Banco Central, Security Data, ANF, Uanataca…) y su clave.</p>
+              }
+              <div class="cert-form">
+                <label class="file">
+                  <input type="file" accept=".p12,.pfx,application/x-pkcs12" (change)="onFile($event)" />
+                  <mat-icon>upload_file</mat-icon>{{ certFile?.name || (s.has_certificate ? 'Reemplazar archivo .p12' : 'Elegir archivo .p12') }}
+                </label>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Clave de la firma</mat-label>
+                  <input matInput type="password" autocomplete="new-password" [(ngModel)]="certPassword" />
+                </mat-form-field>
+                <button mat-flat-button (click)="uploadCertificate()" [disabled]="saving() || !certFile || !certPassword">Guardar firma</button>
+                @if (s.has_certificate) {
+                  <button mat-button class="danger-text" (click)="deleteCertificate()">Quitar</button>
+                }
+              </div>
+            </article>
+
+            <article class="glass-card block">
+              <h2><mat-icon>dns</mat-icon>Ambiente del SRI</h2>
+              <div class="segmented">
+                <button type="button" [class.on]="s.environment === '1'" (click)="setEnvironment('1')">Pruebas</button>
+                <button type="button" [class.on]="s.environment === '2'" (click)="setEnvironment('2')">Producción</button>
+              </div>
+              <p class="muted">Empiece en pruebas. Pase a producción cuando el SRI se la habilite en «SRI en línea» y sus facturas de prueba salgan autorizadas.</p>
+            </article>
+
+            <article class="glass-card block">
+              <h2><mat-icon>tag</mat-icon>Numeración</h2>
+              <p class="muted">Establecimiento <b>{{ s.establishment }}</b> · Punto de emisión <b>{{ s.emission_point }}</b> (se cambian en Legal y cumplimiento → Tributario).</p>
+              <div class="inline">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Siguiente número de factura</mat-label>
+                  <input matInput type="number" min="1" [(ngModel)]="nextNumber" />
+                </mat-form-field>
+                <button mat-stroked-button (click)="save({ next_invoice_number: nextNumber! })" [disabled]="saving() || !nextNumber || nextNumber === s.next_invoice_number">Guardar</button>
+              </div>
+              <p class="muted">Si ya facturaba con otro sistema en este mismo punto de emisión, continúe desde el siguiente número.</p>
+            </article>
+
+            <article class="glass-card block">
+              <h2><mat-icon>mail</mat-icon>Envío al paciente</h2>
+              <mat-slide-toggle [checked]="s.send_email" (change)="save({ send_email: $event.checked })">Enviar por correo el PDF y el XML al autorizarse</mat-slide-toggle>
+              @if (!s.email_configured) {
+                <p class="muted warn">El correo saliente (SMTP) aún no está configurado en el servidor: mientras tanto, envíe el PDF por WhatsApp o descárguelo.</p>
+              }
+              <div class="inline">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Agente de retención (resolución, opcional)</mat-label>
+                  <input matInput [(ngModel)]="retentionAgent" maxlength="20" />
+                </mat-form-field>
+                <button mat-stroked-button (click)="save({ retention_agent: retentionAgent })" [disabled]="saving() || retentionAgent === (s.retention_agent ?? '')">Guardar</button>
+              </div>
+            </article>
+          </section>
+        }
+      </mat-tab>
+    }
+  </mat-tab-group>
+</div>

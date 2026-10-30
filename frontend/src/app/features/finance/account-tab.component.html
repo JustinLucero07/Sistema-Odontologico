@@ -8,6 +8,12 @@
       </p>
     </div>
     <div class="account-actions">
+      @if (canInvoice) {
+        <button mat-stroked-button (click)="newInvoice()">
+          <mat-icon>request_quote</mat-icon>
+          Facturar
+        </button>
+      }
       <button mat-stroked-button (click)="printStatement()" [disabled]="!account()">
         <mat-icon>print</mat-icon>
         Estado de cuenta
@@ -205,6 +211,22 @@
             }
           </tbody>
         </table>
+        }
+      </section>
+    }
+    @if (canSeeInvoices && invoices().length) {
+      <section class="invoices">
+        <h3>Facturas electrónicas</h3>
+        @for (f of invoices(); track f.id) {
+          <button type="button" class="invoice-row" (click)="openInvoice(f.id)">
+            <mat-icon>{{ f.doc_type === '01' ? 'receipt_long' : 'undo' }}</mat-icon>
+            <span class="what">
+              <strong>{{ f.doc_type === '01' ? 'Factura' : 'Nota de crédito' }} {{ f.number }}</strong>
+              <small>{{ f.issue_date | date: 'dd/MM/yyyy' }} · {{ f.buyer_name }}</small>
+            </span>
+            <b class="numeric">{{ f.doc_type === '04' ? '−' : '' }}$ {{ money(f.total) }}</b>
+            <span class="inv-state" [attr.data-status]="f.status">{{ invoiceLabels[f.status] }}</span>
+          </button>
         }
       </section>
     }

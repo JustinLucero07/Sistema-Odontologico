@@ -7,6 +7,9 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import get_settings
 from app.core.hardening import SecurityHeadersMiddleware, enforce_production_config
 from app.core.rate_limit import limiter
+from app.modules.invoicing.router import patient_router as patient_invoices_router
+from app.modules.invoicing.router import router as invoices_router
+from app.modules.invoicing.router import settings_router as invoicing_settings_router
 from app.modules.appointments.router import patient_router as patient_appointments_router
 from app.modules.appointments.router import router as appointments_router
 from app.modules.auth.router import router as auth_router
@@ -123,6 +126,9 @@ app.include_router(cartera_router)
 app.include_router(expenses_router)
 app.include_router(credits_router)
 app.include_router(patient_credits_router)
+app.include_router(invoices_router)
+app.include_router(invoicing_settings_router)
+app.include_router(patient_invoices_router)
 
 
 @app.get("/api/v1/health")

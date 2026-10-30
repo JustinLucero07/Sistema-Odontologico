@@ -95,6 +95,12 @@ async def _datos_clinica_a(client, h, tmp_path, monkeypatch):
     ids["odontogram_id"] = ok(await client.post(f"/api/v1/patients/{pid}/odontogram", headers=h, json={
         "conditions": [{"fdi_number": "16", "surface": "oclusal", "condition": "caries"}]}))["id"]
     ids["access_id"] = ok(await client.post(f"/api/v1/patients/{pid}/portal", json={}, headers=h))["id"]
+    from tests.sri_falso import SriFalso, preparar_emisor
+
+    SriFalso(monkeypatch)
+    await preparar_emisor(client, h)
+    ids["invoice_id"] = ok(await client.post("/api/v1/invoices", headers=h, json={
+        "patient_id": pid, "items": [{"description": "Consulta A", "unit_price": "30"}]}))["id"]
     me = (await client.get("/api/v1/auth/me", headers=h)).json()
     ids["user_id"] = me["id"]
     return ids
@@ -112,7 +118,7 @@ def _id_para(param, path, ids):
 # Cuerpos válidos para las escrituras: así el rechazo prueba el aislamiento y no
 # una simple validación del formulario.
 CUERPOS = [
-    (r"/void$|/archive$|/cancel$|/revoke$", {"reason": "intento desde otra clínica"}),
+    (r"/void$|/archive$|/cancel$|/revoke$|/discard$|/credit-note$", {"reason": "intento desde otra clínica"}),
     (r"/patients/\{patient_id\}$", {"first_name": "Hackeado", "last_name": "B"}),
     (r"/patients/\{patient_id\}/payments$", {"amount": "10", "method": "efectivo"}),
     (r"/patients/\{patient_id\}/charges$", {"description": "Cargo B", "amount": "10"}),

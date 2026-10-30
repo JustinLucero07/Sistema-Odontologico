@@ -14,6 +14,10 @@ import { firstValueFrom } from 'rxjs';
 import { Credit } from '../../core/models/credit.models';
 import { CreditsService } from '../../core/services/credits.service';
 import { openCreditCreate } from '../../shared/credits/credit-create-dialog.component';
+import { INVOICE_STATUS_LABELS, Invoice } from '../../core/models/invoicing.models';
+import { InvoicingService } from '../../core/services/invoicing.service';
+import { openInvoiceCreate } from '../../shared/invoicing/invoice-create-dialog.component';
+import { openInvoiceDetail } from '../../shared/invoicing/invoice-detail-dialog.component';
 import { openCreditDetail } from '../../shared/credits/credit-detail-dialog.component';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -135,6 +139,9 @@ export class AccountTabComponent implements OnInit {
     try {
       this.account.set(await firstValueFrom(this.finance.getAccount(this.patientId)));
       this.credits.set(await firstValueFrom(this.creditsService.listForPatient(this.patientId)));
+      if (this.canSeeInvoices) {
+        this.invoices.set(await firstValueFrom(this.invoicing.forPatient(this.patientId)));
+      }
     } finally {
       this.loading.set(false);
     }
@@ -196,6 +203,30 @@ export class AccountTabComponent implements OnInit {
 
   private readonly dialog = inject(MatDialog);
   private readonly creditsService = inject(CreditsService);
+  private readonly invoicing = inject(InvoicingService);
+  readonly invoices = signal<Invoice[]>([]);
+  readonly invoiceLabels = INVOICE_STATUS_LABELS;
+
+  get canInvoice(): boolean {
+    return this.auth.hasPermission('invoices:write');
+  }
+
+  get canSeeInvoices(): boolean {
+    return this.auth.hasPermission('invoices:read');
+  }
+
+  async newInvoice(): Promise<void> {
+    const created = await openInvoiceCreate(this.dialog, { patientId: this.patientId });
+    if (created) {
+      await this.reload();
+      await this.openInvoice(created.id);
+    }
+  }
+
+  async openInvoice(id: string): Promise<void> {
+    await openInvoiceDetail(this.dialog, id);
+    await this.reload();
+  }
   readonly credits = signal<Credit[]>([]);
 
   /** El crédito vigente que financia este cargo (o su cargo de intereses). */

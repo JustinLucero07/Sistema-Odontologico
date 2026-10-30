@@ -30,6 +30,7 @@ import 'package:odonto_movil/features/legal/cumplimiento_page.dart';
 import 'package:odonto_movil/features/configuracion/roles_plantillas.dart';
 import 'package:odonto_movil/features/pacientes/periodontograma.dart';
 import 'package:odonto_movil/features/pacientes/comunicacion.dart';
+import 'package:odonto_movil/features/facturacion/facturacion_page.dart';
 
 const _pid = 'p1';
 
@@ -605,6 +606,25 @@ final Map<String, Object?> _datos = {
     {'id': 'b1', 'treatment_plan_id': 'pl1', 'status': 'borrador', 'total': '80.00', 'tax_rate': 0, 'notes': null, 'created_at': '2026-10-01T10:00:00Z',
      'items': [{'description': 'Resina 16', 'price': 40, 'discount': 0, 'quantity': 2, 'treatment_plan_item_id': null}]},
   ],
+  '/invoices': [_factura, _devuelta],
+  '/invoices/f1': _factura,
+  '/invoices/f2': _devuelta,
+  '/patients/p1/invoices': [_factura],
+  '/patients/p1/invoiceable-charges': [
+    {'id': 'ch9', 'description': 'Resina oclusal', 'amount': '35.00', 'issued_on': '2026-10-28'},
+  ],
+  '/invoicing/settings': {
+    'environment': '1', 'send_email': true, 'retention_agent': null, 'has_certificate': true,
+    'certificate_subject': 'CN=CONSULTORIO DE PRUEBA', 'certificate_valid_until': '2027-10-29T00:00:00Z',
+    'certificate_expired': false, 'email_configured': false, 'next_invoice_number': 9,
+    'establishment': '001', 'emission_point': '001', 'missing': <Object>[],
+  },
+  '/invoicing/catalogs': {
+    'vat': [{'code': '0', 'label': 'IVA 0 %', 'rate': '0'}, {'code': '4', 'label': 'IVA 15 %', 'rate': '15'}],
+    'id_types': [{'code': '05', 'label': 'Cédula'}, {'code': '04', 'label': 'RUC'}, {'code': '07', 'label': 'Consumidor final'}],
+    'payment_methods': [{'code': '01', 'label': 'Efectivo'}, {'code': '19', 'label': 'Tarjeta de crédito'}],
+    'statuses': <Object>[], 'environments': <Object>[],
+  },
   '/legal/catalogs': {
     'rights_kinds': [
       {'code': 'acceso', 'label': 'Acceso'},
@@ -649,6 +669,34 @@ final Map<String, Object?> _datos = {
     ],
   },
 };
+
+const _factura = {
+    'id': 'f1', 'doc_type': '01', 'number': '001-001-000000007', 'patient_id': 'p1', 'modified_invoice_id': null, 'reason': null,
+    'environment': '1', 'access_key': '2910202601171003406500110010010000000071234567818', 'issue_date': '2026-10-29',
+    'buyer_id_type': '05', 'buyer_id': '1710034065', 'buyer_name': 'María Gómez', 'buyer_email': 'maria@correo.ec',
+    'buyer_address': null, 'buyer_phone': '0999123456', 'payment_method': '01', 'subtotal': '140.00', 'discount': '0.00',
+    'vat': '15.00', 'total': '155.00', 'notes': null, 'status': 'autorizada', 'sri_messages': <Object>[],
+    'authorized_at': '2026-10-29T10:00:00Z', 'attempts': 0, 'next_attempt_at': null, 'last_error': null, 'emailed_at': null,
+    'discarded_at': null, 'discard_reason': null, 'created_at': '2026-10-29T10:00:00Z', 'credited': '0',
+    'lines': [
+      {'id': 'l1', 'charge_id': 'ch1', 'code': 'C1', 'description': 'Limpieza dental', 'quantity': '1', 'unit_price': '40', 'discount': '0', 'subtotal': '40.00', 'vat_code': '0', 'vat_rate': '0', 'vat': '0.00'},
+      {'id': 'l2', 'charge_id': null, 'code': 'S2', 'description': 'Blanqueamiento', 'quantity': '1', 'unit_price': '100', 'discount': '0', 'subtotal': '100.00', 'vat_code': '4', 'vat_rate': '15', 'vat': '15.00'},
+    ],
+  };
+
+final _devuelta = {
+    'id': 'f2', 'doc_type': '01', 'number': '001-001-000000008', 'patient_id': 'p1', 'modified_invoice_id': null, 'reason': null,
+    'environment': '1', 'access_key': '2910202601171003406500110010010000000081234567818', 'issue_date': '2026-10-29',
+    'buyer_id_type': '05', 'buyer_id': '1710034065', 'buyer_name': 'María Gómez', 'buyer_email': 'maria@correo.ec',
+    'buyer_address': null, 'buyer_phone': '0999123456', 'payment_method': '01', 'subtotal': '140.00', 'discount': '0.00',
+    'vat': '15.00', 'total': '155.00', 'notes': null, 'status': 'devuelta', 'sri_messages': [{'identificador': '35', 'mensaje': 'ARCHIVO NO CUMPLE ESTRUCTURA XML', 'informacion': 'RUC no registrado', 'tipo': 'ERROR'}],
+    'authorized_at': '2026-10-29T10:00:00Z', 'attempts': 0, 'next_attempt_at': null, 'last_error': null, 'emailed_at': null,
+    'discarded_at': null, 'discard_reason': null, 'created_at': '2026-10-29T10:00:00Z', 'credited': '0',
+    'lines': [
+      {'id': 'l1', 'charge_id': 'ch1', 'code': 'C1', 'description': 'Limpieza dental', 'quantity': '1', 'unit_price': '40', 'discount': '0', 'subtotal': '40.00', 'vat_code': '0', 'vat_rate': '0', 'vat': '0.00'},
+      {'id': 'l2', 'charge_id': null, 'code': 'S2', 'description': 'Blanqueamiento', 'quantity': '1', 'unit_price': '100', 'discount': '0', 'subtotal': '100.00', 'vat_code': '4', 'vat_rate': '15', 'vat': '15.00'},
+    ],
+  };
 
 const _credito = {
   'id': 'c1',
@@ -748,6 +796,7 @@ void main() {
     'Permisos de un rol': const RolPermisosPage(rolId: 'r2'),
     'Plantillas de mensajes': const PlantillasMensajePage(),
     'Plantillas de consentimiento': const PlantillasConsentimientoPage(),
+    'Facturación': const FacturacionPage(),
   };
 
   for (final e in paginas.entries) {
@@ -945,6 +994,25 @@ void main() {
     await tester.tap(find.text('Portal'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Usado 2 veces'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Facturación: lista, detalle y editor', (tester) async {
+    await _abrir(tester, const FacturacionPage());
+    expect(find.text('María Gómez'), findsNWidgets(2));
+    expect(find.text('Autorizada'), findsOneWidget);
+    expect(find.text('Devuelta por el SRI'), findsOneWidget);
+    expect(find.textContaining('PRUEBAS'), findsOneWidget);
+
+    await tester.pumpWidget(_app(const DetalleFactura(id: 'f2')));
+    await tester.pumpAndSettle();
+    expect(find.text('ARCHIVO NO CUMPLE ESTRUCTURA XML'), findsOneWidget);
+
+    await tester.pumpWidget(_app(const EditorFactura(pacienteId: 'p1', pacienteNombre: 'María Gómez')));
+    await tester.pumpAndSettle();
+    expect(find.text('Resina oclusal'), findsOneWidget);
+    // El cargo viene marcado: el total ya lo incluye.
+    expect(find.textContaining('35,00'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

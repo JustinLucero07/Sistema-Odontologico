@@ -1,3 +1,4 @@
+import '../facturacion/facturacion_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1743,6 +1744,15 @@ void menuCuenta(
               nuevoCargo(context, ref, pacienteId);
             },
           ),
+          if (ref.read(authProvider).usuario?.puede('invoices:write') ?? false)
+            ListTile(
+              leading: const Icon(Icons.request_quote_outlined),
+              title: const Text('Emitir factura electrónica'),
+              onTap: () {
+                Navigator.pop(hoja);
+                emitirFactura(context, ref, pacienteId: pacienteId);
+              },
+            ),
         ],
       ),
     ),
@@ -1974,6 +1984,7 @@ class PestanaCuenta extends ConsumerWidget {
                           },
                         ),
                 ),
+              FacturasDelPaciente(pacienteId: pacienteId),
               finDeLista,
             ],
           );

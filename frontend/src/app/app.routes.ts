@@ -153,6 +153,13 @@ export const routes: Routes = [
           import('./features/setup/setup-wizard.component').then((m) => m.SetupWizardComponent),
       },
       {
+        path: 'invoices',
+        canActivate: [permissionGuard],
+        data: { permission: 'invoices:read' },
+        loadComponent: () =>
+          import('./features/invoicing/invoicing-page.component').then((m) => m.InvoicingPageComponent),
+      },
+      {
         path: 'portfolio',
         canActivate: [permissionGuard],
         data: { permission: 'payments:read' },

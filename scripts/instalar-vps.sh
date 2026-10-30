@@ -99,6 +99,8 @@ DOMINIO=$DOMINIO
 CORREO_TLS=$CORREO
 POSTGRES_PASSWORD=$(clave)
 JWT_SECRET_KEY=$(clave)
+# Cifra las firmas electrónicas (.p12) de las consultas. NO la cambie.
+CERT_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr '+/' '-_')
 RETENCION_DIAS=30
 HORA_RESPALDO=02
 PROVIDER_NAME="$PROVEEDOR"
@@ -108,6 +110,12 @@ WEB_WORKERS=$WORKERS
 WHATSAPP_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 ANTHROPIC_API_KEY=
+# Correo para enviar facturas a los pacientes (opcional)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
 EOF
   ok "Creado infra/.env.prod con claves aleatorias (guárdelo en un lugar seguro)"
 else

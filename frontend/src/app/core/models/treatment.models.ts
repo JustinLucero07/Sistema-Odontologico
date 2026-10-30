@@ -4,12 +4,15 @@ export interface Treatment {
   description: string | null;
   default_price: number;
   is_active: boolean;
+  /** Código de IVA del SRI: '0' = 0 % (salud), '4' = 15 %… */
+  vat_code: string;
 }
 
 export interface TreatmentCreate {
   name: string;
   description?: string | null;
   default_price: number;
+  vat_code?: string;
 }
 
 export interface Diagnosis {

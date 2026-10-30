@@ -270,6 +270,17 @@ async def void_charge(
             ),
         )
 
+    # Un cargo que figura en una factura vigente no desaparece de la cuenta
+    # sin más: primero se anula la factura con una nota de crédito (o se
+    # descarta, si el SRI la rechazó).
+    from app.modules.invoicing.service import charge_is_invoiced
+
+    if await charge_is_invoiced(db, charge_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El cargo está facturado. Emita primero la nota de crédito de esa factura.",
+        )
+
     charge.voided_at = datetime.now(timezone.utc)
     charge.voided_by_id = actor_id
     charge.void_reason = reason.strip()

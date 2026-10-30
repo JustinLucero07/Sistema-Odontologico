@@ -101,6 +101,15 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full">
+          <mat-label>IVA al facturar</mat-label>
+          <mat-select formControlName="vat_code">
+            @for (v of vatOptions; track v.code) {
+              <mat-option [value]="v.code">{{ v.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full">
           <mat-label>Descripción (opcional)</mat-label>
           <textarea matInput formControlName="description" rows="2"></textarea>
         </mat-form-field>

@@ -7,6 +7,7 @@ import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dial
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
@@ -28,6 +29,7 @@ import { Treatment } from '../../../core/models/treatment.models';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
     MatSlideToggleModule,
     MatTableModule,
     MatTooltipModule,
@@ -68,7 +70,17 @@ export class TreatmentsComponent implements OnInit {
     name: ['', Validators.required],
     description: [''],
     default_price: [0, [Validators.required, Validators.min(0)]],
+    vat_code: ['0'],
   });
+
+  /** Los servicios de salud van con IVA 0 %; un tratamiento estético puede llevar 15 %. */
+  readonly vatOptions = [
+    { code: '0', label: 'IVA 0 % (servicio de salud)' },
+    { code: '4', label: 'IVA 15 %' },
+    { code: '5', label: 'IVA 5 %' },
+    { code: '6', label: 'No objeto de IVA' },
+    { code: '7', label: 'Exento de IVA' },
+  ];
 
   constructor() {
     this.filter.valueChanges.subscribe((value) => this.filterText.set(value));
@@ -89,6 +101,7 @@ export class TreatmentsComponent implements OnInit {
       name: treatment?.name ?? '',
       description: treatment?.description ?? '',
       default_price: treatment ? Number(treatment.default_price) : 0,
+      vat_code: treatment?.vat_code ?? '0',
     });
     this.dialogRef = this.dialog.open(this.formDialog, {
       width: '560px',

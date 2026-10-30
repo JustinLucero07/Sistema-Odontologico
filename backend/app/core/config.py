@@ -50,6 +50,18 @@ class Settings(BaseSettings):
     AI_MODEL: str = "claude-sonnet-5"
     AI_MAX_TOKENS: int = 1200
 
+    # Facturación electrónica. La firma .p12 de cada consulta se guarda cifrada
+    # con CERT_ENCRYPTION_KEY (una clave Fernet); si falta, se deriva de
+    # JWT_SECRET_KEY. Cambiar cualquiera de las dos obliga a volver a subir las
+    # firmas.
+    CERT_ENCRYPTION_KEY: str | None = None
+    # Correo saliente para enviar las facturas a los pacientes (opcional).
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM: str | None = None
+
     # How long a patient's portal link stays valid.
     PORTAL_LINK_DAYS: int = 30
     PORTAL_BASE_URL: str = "http://localhost:4200" 

@@ -36,6 +36,12 @@ dependencies:
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.3
 
+  # Facturación: elegir la firma electrónica (.p12) y abrir el PDF de la
+  # factura con el visor del teléfono.
+  file_picker: ^11.0.3
+  path_provider: ^2.1.6
+  open_filex: ^5.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
