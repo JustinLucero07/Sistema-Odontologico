@@ -32,56 +32,66 @@ class PanelPage extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(resumenProvider),
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          6,
-          20,
-          28 + MediaQuery.paddingOf(context).bottom,
-        ),
-        children: [
-          Aparecer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  DateFormat("EEEE d 'de' MMMM", 'es').format(DateTime.now()).toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.6,
-                    color: tinta.withValues(alpha: 0.45),
+      child: AnchoLegible(
+        maximo: 900,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            6,
+            20,
+            28 + MediaQuery.paddingOf(context).bottom,
+          ),
+          children: [
+            Aparecer(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat(
+                      "EEEE d 'de' MMMM",
+                      'es',
+                    ).format(DateTime.now()).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.6,
+                      color: tinta.withValues(alpha: 0.45),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$saludo,\n${usuario?.nombre ?? ''}',
-                  style: estiloTitulo(30, color: tinta, peso: FontWeight.w800),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    '$saludo,\n${usuario?.nombre ?? ''}',
+                    style: estiloTitulo(
+                      30,
+                      color: tinta,
+                      peso: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 22),
-          resumen.when(
-            loading: () => const EsqueletoLista(
-              filas: 3,
-              conTarjetas: true,
-              dentroDeLista: true,
+            const SizedBox(height: 22),
+            resumen.when(
+              loading: () => const EsqueletoLista(
+                filas: 3,
+                conTarjetas: true,
+                dentroDeLista: true,
+              ),
+              error: (e, _) => EstadoError(
+                mensaje: e is ErrorApi
+                    ? e.mensaje
+                    : 'Revise la conexión con la clínica.',
+                onReintentar: () => ref.invalidate(resumenProvider),
+              ),
+              data: (datos) => _Contenido(
+                datos: datos,
+                oportunidades: (usuario?.puede('patients:read') ?? false)
+                    ? ref.watch(oportunidadesProvider).valueOrNull
+                    : null,
+              ),
             ),
-            error: (e, _) => EstadoError(
-              mensaje: e is ErrorApi
-                  ? e.mensaje
-                  : 'Revise la conexión con la clínica.',
-              onReintentar: () => ref.invalidate(resumenProvider),
-            ),
-            data: (datos) => _Contenido(
-              datos: datos,
-              oportunidades: (usuario?.puede('patients:read') ?? false)
-                  ? ref.watch(oportunidadesProvider).valueOrNull
-                  : null,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -112,7 +122,8 @@ class _Contenido extends StatelessWidget {
             porEstado: porEstado,
           ),
         ),
-        if (oportunidades != null && totalOportunidades(oportunidades!) > 0) ...[
+        if (oportunidades != null &&
+            totalOportunidades(oportunidades!) > 0) ...[
           const SizedBox(height: 12),
           Aparecer(orden: 2, child: _Oportunidades(datos: oportunidades!)),
         ],
@@ -151,7 +162,9 @@ class _Contenido extends StatelessWidget {
             // "$0,00" diría que no hay nada aceptado, y eso no se sabe.
             valor: datos['budget_accepted_total'] == null
                 ? '—'
-                : dinero(double.tryParse('${datos['budget_accepted_total']}') ?? 0),
+                : dinero(
+                    double.tryParse('${datos['budget_accepted_total']}') ?? 0,
+                  ),
             icono: Icons.request_quote_outlined,
             horizontal: true,
           ),
@@ -162,11 +175,17 @@ class _Contenido extends StatelessWidget {
             orden: 5,
             child: Text(
               'Próximos 7 días',
-              style: estiloTitulo(18, color: Theme.of(context).colorScheme.onSurface),
+              style: estiloTitulo(
+                18,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          Aparecer(orden: 6, child: _PorEstado(filas: porEstado, total: semana)),
+          Aparecer(
+            orden: 6,
+            child: _PorEstado(filas: porEstado, total: semana),
+          ),
         ],
       ],
     );
@@ -176,7 +195,11 @@ class _Contenido extends StatelessWidget {
 /// Bloque principal: cuántas citas hay hoy, en tinta oscura para que sea lo
 /// primero que se lee, con la distribución de la semana en una barra fina.
 class _Destacado extends StatelessWidget {
-  const _Destacado({required this.citasHoy, required this.semana, required this.porEstado});
+  const _Destacado({
+    required this.citasHoy,
+    required this.semana,
+    required this.porEstado,
+  });
 
   final String citasHoy;
   final int semana;
@@ -185,7 +208,9 @@ class _Destacado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final oscuro = Theme.of(context).brightness == Brightness.dark;
-    final fondo = oscuro ? tono(AppColors.primary, -0.62) : tono(AppColors.primary, -0.66);
+    final fondo = oscuro
+        ? tono(AppColors.primary, -0.62)
+        : tono(AppColors.primary, -0.66);
     final claro = tono(AppColors.primary, 0.6);
 
     return GlassPanel(
@@ -213,22 +238,30 @@ class _Destacado extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.event_available_outlined, size: 20, color: Colors.white.withValues(alpha: 0.6)),
+              Icon(
+                Icons.event_available_outlined,
+                size: 20,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             citasHoy,
-            style: estiloTitulo(64, color: Colors.white, peso: FontWeight.w800).copyWith(
-              height: 1.05,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: estiloTitulo(64, color: Colors.white, peso: FontWeight.w800)
+                .copyWith(
+                  height: 1.05,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
           ),
           Text(
             semana == 0
                 ? 'Sin citas en los próximos 7 días'
                 : '$semana ${semana == 1 ? 'cita' : 'citas'} en los próximos 7 días',
-            style: TextStyle(fontSize: 13.5, color: Colors.white.withValues(alpha: 0.72)),
+            style: TextStyle(
+              fontSize: 13.5,
+              color: Colors.white.withValues(alpha: 0.72),
+            ),
           ),
           if (semana > 0) ...[
             const SizedBox(height: 16),
@@ -243,7 +276,10 @@ class _Destacado extends StatelessWidget {
                       Expanded(
                         flex: porEstado[i]['count'] as int,
                         child: ColoredBox(
-                          color: StatusColors.of(context, porEstado[i]['status'] as String),
+                          color: StatusColors.of(
+                            context,
+                            porEstado[i]['status'] as String,
+                          ),
                         ),
                       ),
                     ],
@@ -271,7 +307,8 @@ class _Oportunidades extends StatelessWidget {
     final partes = [
       if (n('unconfirmed') > 0) '${n('unconfirmed')} por confirmar',
       if (n('birthdays') > 0) '${n('birthdays')} cumpleaños',
-      if (n('pending_treatments') > 0) '${n('pending_treatments')} tratamientos sin cita',
+      if (n('pending_treatments') > 0)
+        '${n('pending_treatments')} tratamientos sin cita',
       if (n('recall') > 0) '${n('recall')} por recuperar',
       if (n('debtors') > 0) '${n('debtors')} con saldo',
     ];
@@ -294,7 +331,11 @@ class _Oportunidades extends StatelessWidget {
                 color: oro.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const Icon(Icons.auto_awesome_outlined, color: oro, size: 22),
+              child: const Icon(
+                Icons.auto_awesome_outlined,
+                color: oro,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -310,13 +351,21 @@ class _Oportunidades extends StatelessWidget {
                     partes.join(' · '),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12.5, height: 1.35, color: tinta.withValues(alpha: 0.58)),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.35,
+                      color: tinta.withValues(alpha: 0.58),
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 6),
-            Icon(Icons.arrow_forward_ios_rounded, size: 15, color: tinta.withValues(alpha: 0.35)),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 15,
+              color: tinta.withValues(alpha: 0.35),
+            ),
           ],
         ),
       ),
@@ -352,16 +401,22 @@ class _Cifra extends StatelessWidget {
     );
     final etiqueta = Text(
       this.etiqueta,
-      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: tinta.withValues(alpha: 0.58)),
+      style: TextStyle(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w500,
+        color: tinta.withValues(alpha: 0.58),
+      ),
     );
     final cifra = FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
         valor,
-        style: estiloTitulo(28, color: tinta, peso: FontWeight.w800).copyWith(
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+        style: estiloTitulo(
+          28,
+          color: tinta,
+          peso: FontWeight.w800,
+        ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
       ),
     );
 
@@ -419,7 +474,10 @@ class _PorEstado extends StatelessWidget {
                       width: 9,
                       height: 9,
                       decoration: BoxDecoration(
-                        color: StatusColors.of(context, filas[i]['status'] as String),
+                        color: StatusColors.of(
+                          context,
+                          filas[i]['status'] as String,
+                        ),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -427,8 +485,12 @@ class _PorEstado extends StatelessWidget {
                     Expanded(
                       flex: 5,
                       child: Text(
-                        statusLabels[filas[i]['status']] ?? '${filas[i]['status']}',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        statusLabels[filas[i]['status']] ??
+                            '${filas[i]['status']}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     Expanded(
@@ -436,10 +498,15 @@ class _PorEstado extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
-                          value: total == 0 ? 0 : (filas[i]['count'] as int) / total,
+                          value: total == 0
+                              ? 0
+                              : (filas[i]['count'] as int) / total,
                           minHeight: 5,
                           backgroundColor: tinta.withValues(alpha: 0.06),
-                          color: StatusColors.of(context, filas[i]['status'] as String),
+                          color: StatusColors.of(
+                            context,
+                            filas[i]['status'] as String,
+                          ),
                         ),
                       ),
                     ),

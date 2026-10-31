@@ -912,13 +912,15 @@ class _ConfiguracionState extends ConsumerState<_Configuracion> {
   }
 
   Future<void> _subirFirma() async {
-    final elegido = await FilePicker.pickFiles(type: FileType.any, withData: true);
-    final archivo = elegido?.files.single;
-    if (archivo?.bytes == null || !mounted) return;
+    final elegidos = await FilePicker.pickFiles(type: FileType.any);
+    if (elegidos.isEmpty || !mounted) return;
+    final archivo = elegidos.single;
+    final bytes = await archivo.readAsBytes();
+    if (!mounted) return;
     await mostrarFormulario(
       context,
       titulo: 'Clave de la firma',
-      subtitulo: archivo!.name,
+      subtitulo: archivo.name,
       icono: Icons.key_outlined,
       textoGuardar: 'Guardar firma',
       campos: const [Campo('password', 'Clave del archivo .p12', requerido: true)],
@@ -928,7 +930,7 @@ class _ConfiguracionState extends ConsumerState<_Configuracion> {
           await ref.read(apiProvider).post(
             '/invoicing/certificate',
             FormData.fromMap({
-              'file': MultipartFile.fromBytes(archivo.bytes!, filename: archivo.name),
+              'file': MultipartFile.fromBytes(bytes, filename: archivo.name),
               'password': v['password'],
             }),
           );
@@ -1034,7 +1036,7 @@ class _ConfiguracionState extends ConsumerState<_Configuracion> {
                 title: const Text('Enviar por correo el PDF y el XML al autorizarse'),
                 subtitle: c['email_configured'] == true
                     ? null
-                    : const Text('El correo saliente aún no está configurado en el servidor: use WhatsApp o el PDF.'),
+                    : const Text('Aún no hay correo configurado (Más → Correo): use WhatsApp o el PDF.'),
               ),
             ),
             const SizedBox(height: 8),

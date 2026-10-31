@@ -4,9 +4,11 @@ from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.core.idempotency import IdempotencyMiddleware
 from app.core.config import get_settings
 from app.core.hardening import SecurityHeadersMiddleware, enforce_production_config
 from app.core.rate_limit import limiter
+from app.modules.mail.router import router as mail_router
 from app.modules.invoicing.router import patient_router as patient_invoices_router
 from app.modules.invoicing.router import router as invoices_router
 from app.modules.invoicing.router import settings_router as invoicing_settings_router
@@ -18,6 +20,7 @@ from app.modules.clinical_evolution.router import patient_router as patient_evol
 from app.modules.clinical_evolution.router import router as evolutions_router
 from app.modules.clinics.router import router as clinics_router
 from app.modules.consents.router import patient_router as patient_consents_router
+from app.modules.consents.router import public_router as public_consents_router
 from app.modules.consents.router import router as consents_router
 from app.modules.documents.router import patient_router as patient_documents_router
 from app.modules.documents.router import router as documents_router
@@ -64,6 +67,9 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Reports and long patient lists compress well; below 1 KB the CPU costs more
 # than the bytes saved.
+# Reintentos seguros de la app sin conexión (Idempotency-Key). Se agrega antes
+# que la compresión para que quede por dentro y guarde la respuesta sin comprimir.
+app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     SecurityHeadersMiddleware,
@@ -102,6 +108,7 @@ app.include_router(evolutions_router)
 app.include_router(prescriptions_router)
 app.include_router(patient_consents_router)
 app.include_router(consents_router)
+app.include_router(public_consents_router)
 app.include_router(patient_documents_router)
 app.include_router(documents_router)
 app.include_router(periodontogram_catalog_router)
@@ -129,6 +136,7 @@ app.include_router(patient_credits_router)
 app.include_router(invoices_router)
 app.include_router(invoicing_settings_router)
 app.include_router(patient_invoices_router)
+app.include_router(mail_router)
 
 
 @app.get("/api/v1/health")

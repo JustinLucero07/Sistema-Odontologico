@@ -10,7 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
 
-import { ConsentTemplate } from '../../../core/models/clinical-record.models';
+import { ConsentLibraryItem, ConsentTemplate } from '../../../core/models/clinical-record.models';
 import { ClinicalRecordsService } from '../../../core/services/clinical-records.service';
 
 @Component({
@@ -36,6 +36,13 @@ export class ConsentTemplatesComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   @ViewChild('formDialog') formDialog!: TemplateRef<unknown>;
+  @ViewChild('libraryDialog') libraryDialog!: TemplateRef<unknown>;
+  private libraryRef: MatDialogRef<unknown> | null = null;
+
+  readonly library = signal<ConsentLibraryItem[]>([]);
+  readonly picked = signal<Set<string>>(new Set());
+  readonly libraryCount = computed(() => this.library().length);
+  readonly libraryPending = computed(() => this.library().filter((i) => !i.added).length);
   private dialogRef: MatDialogRef<unknown> | null = null;
 
   readonly templates = signal<ConsentTemplate[]>([]);
@@ -56,6 +63,40 @@ export class ConsentTemplatesComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+    try {
+      this.library.set(await firstValueFrom(this.records.consentLibrary()));
+    } catch {
+      // Sin permiso de escritura no hay biblioteca que ofrecer.
+    }
+  }
+
+  async openLibrary(): Promise<void> {
+    this.library.set(await firstValueFrom(this.records.consentLibrary()));
+    this.picked.set(new Set());
+    this.libraryRef = this.dialog.open(this.libraryDialog, { width: '720px', maxWidth: '96vw', panelClass: 'app-dialog' });
+  }
+
+  togglePick(name: string): void {
+    const next = new Set(this.picked());
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    this.picked.set(next);
+  }
+
+  addPicked(): Promise<void> {
+    return this.addFromLibrary([...this.picked()]);
+  }
+
+  addAll(): Promise<void> {
+    return this.addFromLibrary(null);
+  }
+
+  private async addFromLibrary(names: string[] | null): Promise<void> {
+    const { added } = await firstValueFrom(this.records.addConsentLibrary(names));
+    this.libraryRef?.close();
+    this.snackBar.open(added ? `${added} plantilla(s) agregadas: revíselas y ajústelas` : 'Ya tenía esas plantillas', 'Cerrar', { duration: 4000 });
+    await this.reload();
+    this.library.set(await firstValueFrom(this.records.consentLibrary()));
   }
 
   private async reload(): Promise<void> {

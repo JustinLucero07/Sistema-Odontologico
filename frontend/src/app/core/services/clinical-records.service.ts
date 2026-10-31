@@ -12,6 +12,10 @@ import {
   PatientDocument,
   Prescription,
   PrescriptionCreate,
+  ConsentLibraryItem,
+  ConsentSignLink,
+  ConsentSignPayload,
+  PublicConsentView,
 } from '../models/clinical-record.models';
 
 @Injectable({ providedIn: 'root' })
@@ -53,11 +57,36 @@ export class ClinicalRecordsService {
     return this.http.post<Consent>(`${this.api}/patients/${patientId}/consents`, payload);
   }
 
-  signConsent(consentId: string, signedByName: string, notes?: string): Observable<Consent> {
-    return this.http.put<Consent>(`${this.api}/consents/${consentId}/sign`, {
-      signed_by_name: signedByName,
-      signature_notes: notes ?? null,
-    });
+  signConsent(consentId: string, payload: ConsentSignPayload): Observable<Consent> {
+    return this.http.put<Consent>(`${this.api}/consents/${consentId}/sign`, payload);
+  }
+
+  /** Enlace para firmar a distancia; con sendEmail, además se envía al correo del paciente. */
+  consentSignLink(consentId: string, sendEmail: boolean): Observable<ConsentSignLink> {
+    return this.http.post<ConsentSignLink>(`${this.api}/consents/${consentId}/sign-link`, { send_email: sendEmail });
+  }
+
+  consentPdf(consentId: string): Observable<Blob> {
+    return this.http.get(`${this.api}/consents/${consentId}/pdf`, { responseType: 'blob' });
+  }
+
+  consentLibrary(): Observable<ConsentLibraryItem[]> {
+    return this.http.get<ConsentLibraryItem[]>(`${this.api}/consents/library`);
+  }
+
+  addConsentLibrary(names: string[] | null): Observable<{ added: number }> {
+    return this.http.post<{ added: number }>(`${this.api}/consents/library`, { names });
+  }
+
+  publicConsent(token: string): Observable<PublicConsentView> {
+    return this.http.get<PublicConsentView>(`${this.api}/public/consents/${token}`);
+  }
+
+  publicSign(
+    token: string,
+    body: { signed_by_name: string; signer_id_number: string | null; signer_relationship: string | null; signature_image: string; accept: boolean },
+  ): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${this.api}/public/consents/${token}/sign`, body);
   }
 
   // ---- Documents -------------------------------------------------------

@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -34,6 +35,7 @@ type Filter = 'todos' | 'problemas' | 'en_curso' | InvoiceStatus;
     MatInputModule,
     MatSlideToggleModule,
     MatTabsModule,
+    RouterLink,
     SkeletonComponent,
   ],
   templateUrl: './invoicing-page.component.html',

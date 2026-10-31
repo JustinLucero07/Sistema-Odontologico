@@ -144,7 +144,7 @@
               <h2><mat-icon>mail</mat-icon>Envío al paciente</h2>
               <mat-slide-toggle [checked]="s.send_email" (change)="save({ send_email: $event.checked })">Enviar por correo el PDF y el XML al autorizarse</mat-slide-toggle>
               @if (!s.email_configured) {
-                <p class="muted warn">El correo saliente (SMTP) aún no está configurado en el servidor: mientras tanto, envíe el PDF por WhatsApp o descárguelo.</p>
+                <p class="muted warn">Aún no hay correo configurado. <a routerLink="/settings/mail">Configúrelo aquí</a> (Gmail, Outlook…); mientras tanto, envíe el PDF por WhatsApp o descárguelo.</p>
               }
               <div class="inline">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">

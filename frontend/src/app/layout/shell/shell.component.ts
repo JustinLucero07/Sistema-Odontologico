@@ -156,6 +156,7 @@ export class ShellComponent {
           permission: 'roles:manage',
         },
         { label: 'Personalización', icon: 'palette', route: '/settings/branding', permission: 'settings:manage' },
+        { label: 'Correo', icon: 'mail', route: '/settings/mail', permission: 'settings:manage' },
         { label: 'Legal y cumplimiento', icon: 'gavel', route: '/settings/compliance', permission: 'settings:manage' },
         { label: 'Datos de la consulta', icon: 'storefront', route: '/settings/clinic', permission: 'settings:manage' },
       ],

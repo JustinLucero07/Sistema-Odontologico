@@ -21,6 +21,9 @@ final pacientesProvider = FutureProvider.autoDispose<List<PacienteResumen>>((
   return ref.watch(pacientesRepoProvider).buscar(termino);
 });
 
+/// Desde este ancho, pacientes se muestra a doble panel.
+const _anchoDoblePanel = 1000.0;
+
 class PacientesPage extends ConsumerStatefulWidget {
   const PacientesPage({super.key});
 
@@ -31,6 +34,19 @@ class PacientesPage extends ConsumerStatefulWidget {
 class _PacientesPageState extends ConsumerState<PacientesPage> {
   final _controlador = TextEditingController();
   Timer? _debounce;
+
+  /// En tablet: el paciente abierto en el panel derecho.
+  (String, String)? _abierto;
+
+  void _abrir(String id, String nombre) {
+    if (MediaQuery.sizeOf(context).width >= _anchoDoblePanel) {
+      setState(() => _abierto = (id, nombre));
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PacienteDetallePage(pacienteId: id, nombre: nombre)),
+    );
+  }
 
   @override
   void dispose() {
@@ -54,7 +70,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
     final puedeCrear =
         ref.watch(authProvider).usuario?.puede('patients:write') ?? false;
 
-    return BotonFlotante(
+    final lista = BotonFlotante(
       visible: puedeCrear,
       icono: Icons.person_add_alt,
       texto: 'Nuevo paciente',
@@ -64,14 +80,7 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
         ref.invalidate(pacientesProvider);
         final ficha = await ref.read(pacientesRepoProvider).ficha(id);
         if (!context.mounted) return;
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PacienteDetallePage(
-              pacienteId: id,
-              nombre: '${ficha['first_name']} ${ficha['last_name']}',
-            ),
-          ),
-        );
+        _abrir(id, '${ficha['first_name']} ${ficha['last_name']}');
       },
       child: Column(
         children: [
@@ -197,14 +206,8 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                           size: 15,
                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PacienteDetallePage(
-                              pacienteId: p.id,
-                              nombre: p.nombreCompleto,
-                            ),
-                          ),
-                        ),
+                        selected: _abierto?.$1 == p.id,
+                        onTap: () => _abrir(p.id, p.nombreCompleto),
                       ),
                         ),
                       );
@@ -216,6 +219,30 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
           ),
         ],
       ),
+    );
+
+    // Tablet: lista a la izquierda y ficha a la derecha, sin cambiar de pantalla.
+    if (MediaQuery.sizeOf(context).width < _anchoDoblePanel) return lista;
+    final abierto = _abierto;
+    return Row(
+      children: [
+        SizedBox(width: 400, child: lista),
+        VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outline),
+        Expanded(
+          child: abierto == null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.person_search_outlined, size: 48, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)),
+                      const SizedBox(height: 10),
+                      Text('Elija un paciente de la lista', style: Theme.of(context).textTheme.titleMedium),
+                    ],
+                  ),
+                )
+              : PacienteDetallePage(key: ValueKey(abierto.$1), pacienteId: abierto.$1, nombre: abierto.$2),
+        ),
+      ],
     );
   }
 }

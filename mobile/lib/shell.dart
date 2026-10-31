@@ -10,6 +10,7 @@ import 'features/panel/panel_page.dart';
 import 'features/mas/mas_page.dart';
 import 'shared/widgets/glass.dart';
 import 'shared/widgets/carga.dart';
+import 'shared/widgets/formulario.dart';
 
 /// Navegación inferior en lugar del menú lateral de la web.
 ///
@@ -33,9 +34,17 @@ class _ShellState extends ConsumerState<Shell> {
     MasPage(),
   ];
 
+  static const _destinos = [
+    GlassNavItem(icon: Icons.space_dashboard_outlined, selectedIcon: Icons.space_dashboard, label: 'Panel'),
+    GlassNavItem(icon: Icons.event_outlined, selectedIcon: Icons.event, label: 'Agenda'),
+    GlassNavItem(icon: Icons.groups_outlined, selectedIcon: Icons.groups, label: 'Pacientes'),
+    GlassNavItem(icon: Icons.apps_outlined, selectedIcon: Icons.apps, label: 'Más'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final usuario = ref.watch(authProvider).usuario;
+    final tablet = esTablet(context);
 
     return AmbientBackground(
       child: Scaffold(
@@ -135,39 +144,44 @@ class _ShellState extends ConsumerState<Shell> {
                   );
                 }
                 if (value == 'salir') {
-                  ref.read(authProvider.notifier).cerrarSesion();
+                  final pendientes = ref.read(sinConexionProvider).pendientes.length;
+                  if (pendientes == 0) {
+                    ref.read(authProvider.notifier).cerrarSesion();
+                    return;
+                  }
+                  confirmar(
+                    context,
+                    titulo: '¿Cerrar sesión?',
+                    mensaje: 'Hay $pendientes ${pendientes == 1 ? 'cambio' : 'cambios'} sin subir por falta de conexión. Si sale ahora se perderán.',
+                    textoConfirmar: 'Salir y perderlos',
+                    peligro: true,
+                  ).then((ok) {
+                    if (ok) ref.read(authProvider.notifier).cerrarSesion();
+                  });
                 }
               },
             ),
             const SizedBox(width: 8),
           ],
         ),
-        body: IndexedStack(index: _indice, children: _paginas),
-        bottomNavigationBar: GlassNavBar(
+        body: tablet
+            ? Row(
+                children: [
+                  GlassNavRail(
+                    selectedIndex: _indice,
+                    onSelected: (i) => setState(() => _indice = i),
+                    items: _destinos,
+                  ),
+                  Expanded(child: IndexedStack(index: _indice, children: _paginas)),
+                ],
+              )
+            : IndexedStack(index: _indice, children: _paginas),
+        bottomNavigationBar: tablet
+            ? null
+            : GlassNavBar(
           selectedIndex: _indice,
           onSelected: (i) => setState(() => _indice = i),
-          items: const [
-            GlassNavItem(
-              icon: Icons.space_dashboard_outlined,
-              selectedIcon: Icons.space_dashboard,
-              label: 'Panel',
-            ),
-            GlassNavItem(
-              icon: Icons.event_outlined,
-              selectedIcon: Icons.event,
-              label: 'Agenda',
-            ),
-            GlassNavItem(
-              icon: Icons.groups_outlined,
-              selectedIcon: Icons.groups,
-              label: 'Pacientes',
-            ),
-            GlassNavItem(
-              icon: Icons.apps_outlined,
-              selectedIcon: Icons.apps,
-              label: 'Más',
-            ),
-          ],
+          items: _destinos,
         ),
       ),
     );

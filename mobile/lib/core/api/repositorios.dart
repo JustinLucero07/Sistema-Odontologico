@@ -20,6 +20,9 @@ Never _lanzar(Response<dynamic> r, String porDefecto) {
   throw ErrorApi(detail is String ? detail : porDefecto);
 }
 
+/// 2xx: incluye el 202 de un cambio guardado sin conexión (se sube después).
+bool _exito(Response<dynamic> r) => (r.statusCode ?? 0) >= 200 && (r.statusCode ?? 0) < 300;
+
 class AgendaRepo {
   AgendaRepo(this._dio);
   final Dio _dio;
@@ -54,7 +57,7 @@ class AgendaRepo {
         if (motivo != null) 'cancellation_reason': motivo,
       },
     );
-    if (r.statusCode != 200) _lanzar(r, 'No se pudo cambiar el estado');
+    if (!_exito(r)) _lanzar(r, 'No se pudo cambiar el estado');
   }
 }
 
@@ -131,7 +134,7 @@ class PacientesRepo {
           'instructions': indicaciones,
       },
     );
-    if (r.statusCode != 201) _lanzar(r, 'No se pudo registrar la evolución');
+    if (!_exito(r)) _lanzar(r, 'No se pudo registrar la evolución');
   }
 }
 

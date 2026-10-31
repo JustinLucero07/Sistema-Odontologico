@@ -471,6 +471,94 @@ class _Gota extends StatelessWidget {
   }
 }
 
+/// Versión vertical de la barra para tablets: la misma cápsula de vidrio,
+/// a la izquierda, con la gota que viaja de un destino a otro.
+class GlassNavRail extends StatelessWidget {
+  const GlassNavRail({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+    required this.items,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+  final List<GlassNavItem> items;
+
+  static const _alto = 68.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ink = dark ? AppColors.inkDark : AppColors.inkLight;
+    final activo = dark ? AppColors.primaryOnDark : AppColors.primary;
+    return SafeArea(
+      right: false,
+      minimum: const EdgeInsets.fromLTRB(12, 8, 0, 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: 92,
+          child: GlassPanel(
+            blur: true,
+            radius: 30,
+            padding: const EdgeInsets.all(6),
+            child: SizedBox(
+              height: _alto * items.length,
+              child: Stack(
+                children: [
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 460),
+                    curve: const Cubic(0.3, 1.32, 0.5, 1),
+                    top: _alto * selectedIndex,
+                    left: 0,
+                    right: 0,
+                    height: _alto,
+                    child: _Gota(dark: dark, tinte: activo),
+                  ),
+                  Column(
+                    children: [
+                      for (var i = 0; i < items.length; i++)
+                        SizedBox(
+                          height: _alto,
+                          child: _NavButton(
+                            item: items[i],
+                            selected: i == selectedIndex,
+                            color: i == selectedIndex ? activo : ink.withValues(alpha: 0.58),
+                            onTap: () => onSelected(i),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ancho a partir del cual se usa el diseño de tablet.
+const anchoTablet = 840.0;
+
+bool esTablet(BuildContext context) => MediaQuery.sizeOf(context).width >= anchoTablet;
+
+/// Contenido con un ancho máximo cómodo de leer en pantallas grandes.
+class AnchoLegible extends StatelessWidget {
+  const AnchoLegible({super.key, required this.child, this.maximo = 960});
+
+  final Widget child;
+  final double maximo;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maximo), child: child),
+  );
+}
+
 class GlassNavItem {
   const GlassNavItem({
     required this.icon,

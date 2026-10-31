@@ -7,6 +7,8 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/api/api_config.dart';
 import 'core/auth/auth_controller.dart';
+import 'core/notificaciones/avisos_citas.dart';
+import 'core/offline/barra_sin_conexion.dart';
 import 'core/marca/marca.dart';
 import 'features/bienvenida/bienvenida_page.dart';
 import 'core/theme/app_theme.dart';
@@ -34,6 +36,7 @@ class OdontoApp extends ConsumerStatefulWidget {
 
 class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserver {
   final _avisos = GlobalKey<ScaffoldMessengerState>();
+  final _navegador = GlobalKey<NavigatorState>();
   DateTime _ultimaActividad = DateTime.now();
   Timer? _reloj;
 
@@ -46,6 +49,12 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
     _reloj = Timer.periodic(const Duration(seconds: 30), (_) => _revisarInactividad());
     // Se intenta revivir la sesión antes de dibujar nada, para que quien ya
     // entró no vea parpadear el login.
+    ref.read(sinConexionProvider).alSincronizar = () {
+      _avisos.currentState?.showSnackBar(
+        const SnackBar(content: Text('Cambios hechos sin conexión subidos al servidor.')),
+      );
+      AvisosCitas.instancia.actualizar(ref.read(apiClientProvider).dio);
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // La marca guardada primero: el arranque y el login ya salen con el
       // logo y el color de la consulta.
@@ -64,7 +73,14 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState estado) {
     // Al volver de segundo plano se revisa antes de mostrar nada.
-    if (estado == AppLifecycleState.resumed) _revisarInactividad();
+    if (estado == AppLifecycleState.resumed) {
+      _revisarInactividad();
+      if (ref.read(authProvider).estado == EstadoSesion.autenticado) {
+        // Agenda al día: avisos de citas y subida de lo hecho sin conexión.
+        AvisosCitas.instancia.actualizar(ref.read(apiClientProvider).dio);
+        ref.read(sinConexionProvider).sincronizar();
+      }
+    }
   }
 
   void _revisarInactividad() {
@@ -88,10 +104,17 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
       title: marca.nombre,
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _avisos,
+      navigatorKey: _navegador,
       builder: (context, hijo) => Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) => _ultimaActividad = DateTime.now(),
-        child: hijo,
+        child: Stack(
+          children: [
+            ?hijo,
+            // Aviso de trabajo sin conexión, encima de todas las pantallas.
+            if (auth.estado == EstadoSesion.autenticado) BarraSinConexion(navegador: _navegador),
+          ],
+        ),
       ),
       theme: lightTheme(),
       darkTheme: darkTheme(),

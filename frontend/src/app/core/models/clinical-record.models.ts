@@ -76,15 +76,64 @@ export interface Consent {
   signed_at: string | null;
   signed_by_name: string | null;
   signature_notes: string | null;
+  professional_id?: string | null;
+  tooth?: string | null;
+  signer_id_number?: string | null;
+  signer_relationship?: string | null;
+  signature_image?: string | null;
+  professional_signature_image?: string | null;
+  witness_name?: string | null;
+  signed_channel?: 'presencial' | 'remoto' | null;
+  signed_ip?: string | null;
+  content_hash?: string | null;
+  sign_token_expires_at?: string | null;
+  sign_link_sent_at?: string | null;
   voided_at?: string | null;
   void_reason?: string | null;
 }
 
 export interface ConsentCreate {
   template_id?: string | null;
+  professional_id?: string | null;
   title?: string | null;
   procedure_type?: string | null;
   body?: string | null;
+  tooth?: string | null;
+  notes?: string | null;
+}
+
+export interface ConsentSignPayload {
+  signed_by_name: string;
+  signer_id_number?: string | null;
+  signer_relationship?: string | null;
+  signature_image?: string | null;
+  professional_signature_image?: string | null;
+  witness_name?: string | null;
+  signature_notes?: string | null;
+}
+
+export interface ConsentSignLink {
+  url: string;
+  expires_at: string;
+  emailed: boolean;
+  email_error: string | null;
+}
+
+export interface ConsentLibraryItem {
+  name: string;
+  procedure_type: string;
+  preview: string;
+  added: boolean;
+}
+
+export interface PublicConsentView {
+  clinic_name: string;
+  clinic_logo: string | null;
+  clinic_color: string | null;
+  patient_name: string;
+  title: string;
+  body: string;
+  expires_at: string;
 }
 
 export interface PatientDocument {

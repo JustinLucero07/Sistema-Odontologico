@@ -82,6 +82,8 @@ Future<Map<String, dynamic>?> mostrarFormulario(
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
+    // En tablet el formulario no ocupa todo el ancho.
+    constraints: const BoxConstraints(maxWidth: 680),
     builder: (_) => _HojaFormulario(
       titulo: titulo,
       subtitulo: subtitulo,
@@ -809,7 +811,8 @@ class PaginaModulo extends StatelessWidget {
           actions: acciones,
           bottom: inferior,
         ),
-        body: cuerpo,
+        // En tablet el contenido se centra con un ancho cómodo de leer.
+        body: AnchoLegible(child: cuerpo),
         floatingActionButton: accion,
       ),
     );

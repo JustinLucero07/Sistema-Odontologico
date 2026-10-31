@@ -1,16 +1,24 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../api/token_store.dart';
 import '../models/usuario.dart';
+import '../notificaciones/avisos_citas.dart';
+import '../offline/sin_conexion.dart';
 
 final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
+
+/// Trabajo sin conexión (copia local y cola de cambios).
+final sinConexionProvider = ChangeNotifierProvider<SinConexion>((ref) => SinConexion());
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(ref.watch(tokenStoreProvider));
   client.onSessionExpired = () =>
       ref.read(authProvider.notifier).cerrarSesionLocal();
+  ref.read(sinConexionProvider).iniciar(client.dio);
   return client;
 });
 
@@ -69,8 +77,14 @@ class AuthController extends StateNotifier<AuthState> {
       if (rotado != null) await _tokens.saveRefreshToken(rotado);
       await _cargarUsuario();
     } on DioException {
-      await _tokens.clear();
-      state = const AuthState(estado: EstadoSesion.anonimo);
+      // Sin red no se cierra la sesión: se entra con la última guardada y
+      // se trabaja con la copia local hasta que vuelva la conexión.
+      final guardado = await _ref.read(sinConexionProvider).usuarioGuardado();
+      if (guardado != null) {
+        state = AuthState(estado: EstadoSesion.autenticado, usuario: Usuario.fromJson(guardado));
+      } else {
+        state = const AuthState(estado: EstadoSesion.anonimo);
+      }
     }
   }
 
@@ -117,10 +131,34 @@ class AuthController extends StateNotifier<AuthState> {
       state = const AuthState(estado: EstadoSesion.anonimo);
       return;
     }
-    state = AuthState(
-      estado: EstadoSesion.autenticado,
-      usuario: Usuario.fromJson(response.data as Map<String, dynamic>),
-    );
+    final datos = response.data as Map<String, dynamic>;
+    state = AuthState(estado: EstadoSesion.autenticado, usuario: Usuario.fromJson(datos));
+    final local = _ref.read(sinConexionProvider);
+    await local.guardarUsuario(datos);
+    // Lo esencial para trabajar sin red: pacientes, la agenda de la semana y
+    // el panel. Lo demás se guarda a medida que se consulta.
+    unawaited(_precargar());
+  }
+
+  Future<void> _precargar() async {
+    final dio = _api.dio;
+    try {
+      await dio.get('/patients');
+      await dio.get('/dashboard/summary');
+      final hoy = DateTime.now();
+      for (var d = 0; d < 7; d++) {
+        final desde = DateTime(hoy.year, hoy.month, hoy.day).add(Duration(days: d));
+        await dio.get('/appointments', queryParameters: {
+          'from': desde.toUtc().toIso8601String(),
+          'to': desde.add(const Duration(days: 1)).toUtc().toIso8601String(),
+        });
+      }
+    } catch (_) {
+      // Es solo una precarga: si falla, se guarda lo que se vaya viendo.
+    }
+    // Avisos de citas en el teléfono (pide permiso la primera vez).
+    await AvisosCitas.instancia.pedirPermiso();
+    await AvisosCitas.instancia.actualizar(dio);
   }
 
   /// Registra la aceptación del acuerdo y relee el usuario, que ya no lo
@@ -165,6 +203,9 @@ class AuthController extends StateNotifier<AuthState> {
       // Si el servidor no contesta, la sesión se cierra en el dispositivo de
       // todas formas: dejar al usuario dentro porque falló la red sería peor.
     }
+    // Al salir a propósito no queda nada de esta persona en el teléfono.
+    await _ref.read(sinConexionProvider).olvidarTodo();
+    await AvisosCitas.instancia.borrarTodo();
     await cerrarSesionLocal();
   }
 

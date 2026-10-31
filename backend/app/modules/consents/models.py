@@ -49,3 +49,24 @@ class Consent(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
     # in-person signing that happens today.
     signed_by_name: Mapped[str | None] = mapped_column(String(200))
     signature_notes: Mapped[str | None] = mapped_column(Text)
+
+    # Firma completa: quién firma (el paciente o su representante si es
+    # menor o no puede firmar), con su cédula, la firma dibujada en pantalla y
+    # la del profesional. Las imágenes se guardan como PNG en data URL.
+    tooth: Mapped[str | None] = mapped_column(String(60))
+    signer_id_number: Mapped[str | None] = mapped_column(String(20))
+    signer_relationship: Mapped[str | None] = mapped_column(String(60))
+    signature_image: Mapped[str | None] = mapped_column(Text)
+    professional_signature_image: Mapped[str | None] = mapped_column(Text)
+    witness_name: Mapped[str | None] = mapped_column(String(200))
+    # presencial | remoto (el paciente firmó desde su teléfono con un enlace)
+    signed_channel: Mapped[str | None] = mapped_column(String(12))
+    signed_ip: Mapped[str | None] = mapped_column(String(64))
+    signed_user_agent: Mapped[str | None] = mapped_column(String(300))
+    # Huella SHA-256 del título y el texto al emitirlo: demuestra que lo que
+    # se firmó es exactamente lo que se mostró.
+    content_hash: Mapped[str | None] = mapped_column(String(64))
+    # Enlace de firma a distancia: solo se guarda su huella.
+    sign_token_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    sign_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sign_link_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

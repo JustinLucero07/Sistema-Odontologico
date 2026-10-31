@@ -250,7 +250,9 @@ async def test_svg_o_html_disfrazados_de_imagen_no_entran(client, clinic_with_us
 
 
 PUBLICAS = {("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/refresh"), ("POST", "/api/v1/auth/logout"),
-            ("GET", "/api/v1/health"), ("GET", "/api/v1/portal/view/{token}")}
+            ("GET", "/api/v1/health"), ("GET", "/api/v1/portal/view/{token}"),
+            # Firma a distancia de consentimientos: el enlace es la credencial.
+            ("GET", "/api/v1/public/consents/{token}"), ("POST", "/api/v1/public/consents/{token}/sign")}
 
 
 async def test_sin_sesion_ninguna_ruta_privada_responde(client, clinic_with_users):

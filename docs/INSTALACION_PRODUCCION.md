@@ -327,9 +327,11 @@ instalaciones nuevas:
    **No la cambie después**: si cambia, cada consulta debe volver a subir su firma.
    Guárdela junto con las claves de los respaldos.
 
-2. **Correo saliente (opcional)** para que el PDF y el XML lleguen solos al
-   paciente: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
-   en el mismo archivo. Sin correo, la factura se envía por WhatsApp o se descarga.
+2. **Correo saliente.** Cada consulta configura el suyo (Gmail, Outlook, su
+   dominio…) en **Configuración → Correo**, con un botón de prueba; la
+   contraseña se guarda cifrada. Desde ahí salen las facturas, los
+   recordatorios de citas por correo y los consentimientos para firmar. Las
+   variables `SMTP_*` de `.env.prod` quedan solo como respaldo general.
 
 El servicio **facturador** retoma cada minuto lo que quedó pendiente con el SRI
 (envíos sin respuesta, autorizaciones en proceso). Se revisa con

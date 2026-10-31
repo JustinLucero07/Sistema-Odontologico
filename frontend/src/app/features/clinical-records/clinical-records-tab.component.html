@@ -147,17 +147,32 @@
               {{ consent.status === 'firmado' ? 'Firmado' : 'Pendiente de firma' }}
             </span>
           }
-          <button mat-button class="print-btn" (click)="printConsent(consent)"><mat-icon>print</mat-icon> Imprimir</button>
+          <button mat-button class="print-btn" (click)="openConsentPdf(consent)"><mat-icon>picture_as_pdf</mat-icon> PDF</button>
         </div>
         <p class="consent-body">{{ consent.body }}</p>
         @if (consent.status === 'firmado') {
-          <p class="record-note">
-            Firmado por {{ consent.signed_by_name }} el {{ consent.signed_at | date: 'd MMM y, HH:mm' }}
-          </p>
+          <div class="signed-block">
+            @if (consent.signature_image) {
+              <img class="signature" [src]="consent.signature_image" alt="Firma de {{ consent.signed_by_name }}" />
+            }
+            <p class="record-note">
+              Firmado por {{ consent.signed_by_name }}{{ consent.signer_relationship && consent.signer_relationship !== 'paciente' ? ' (' + consent.signer_relationship + ')' : '' }}
+              el {{ consent.signed_at | date: 'd MMM y, HH:mm' }}
+              · {{ consent.signed_channel === 'remoto' ? 'a distancia desde su teléfono' : 'presencial' }}
+            </p>
+          </div>
         } @else if (canWriteConsents() && !consent.voided_at) {
-          <button mat-stroked-button (click)="startSigning(consent)">
-            <mat-icon>draw</mat-icon> Registrar firma
-          </button>
+          <div class="sign-actions">
+            <button mat-flat-button (click)="startSigning(consent)">
+              <mat-icon>draw</mat-icon> Firmar aquí
+            </button>
+            <button mat-stroked-button (click)="sendForSignature(consent)">
+              <mat-icon>send_to_mobile</mat-icon> Enviar para firmar
+            </button>
+            @if (consent.sign_token_expires_at) {
+              <span class="link-note">Enlace enviado · vence {{ consent.sign_token_expires_at | date: 'd MMM' }}</span>
+            }
+          </div>
         }
         @if (consent.voided_at) {
           <p class="void-reason">
@@ -239,28 +254,6 @@
   }
 </div>
 
-<!-- Signature capture -->
-@if (signingConsent(); as consent) {
-  <div class="overlay" (click)="signingConsent.set(null)">
-    <div class="panel" (click)="$event.stopPropagation()">
-      <h3>Registrar firma</h3>
-      <p class="panel-hint">{{ consent.title }}</p>
-      <form [formGroup]="signForm" (ngSubmit)="confirmSignature()">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Nombre de quien firma</mat-label>
-          <input matInput formControlName="signed_by_name" />
-        </mat-form-field>
-        <p class="panel-note">
-          Se registra la firma presencial con fecha y hora. La firma digital con certificado llega en una fase posterior.
-        </p>
-        <div class="form-actions">
-          <button mat-flat-button color="primary" type="submit" [disabled]="signForm.invalid">Confirmar firma</button>
-          <button mat-button type="button" (click)="signingConsent.set(null)">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-}
 
 <ng-template #evolucionesDialog>
   <h2 mat-dialog-title>{{ editingEvolution() ? 'Corregir evolución' : 'Nueva evolución' }}</h2>
@@ -386,6 +379,19 @@
               }
             </mat-select>
           </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Profesional</mat-label>
+            <mat-select formControlName="professional_id">
+              <mat-option value="">Sin indicar</mat-option>
+              @for (p of prescribers(); track p.id) {
+                <mat-option [value]="p.id">{{ p.first_name }} {{ p.last_name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Pieza o zona (opcional)</mat-label>
+            <input matInput formControlName="tooth" placeholder="Ej. 36, 18-28, arcada superior" />
+          </mat-form-field>
           <mat-form-field appearance="outline" class="full">
             <mat-label>Título</mat-label>
             <input matInput formControlName="title" />
@@ -393,6 +399,11 @@
           <mat-form-field appearance="outline" class="full">
             <mat-label>Texto del consentimiento</mat-label>
             <textarea matInput formControlName="body" rows="5"></textarea>
+            <mat-hint>Los datos entre llaves ({{ '{' }}paciente{{ '}' }}, {{ '{' }}cedula{{ '}' }}, {{ '{' }}pieza{{ '}' }}…) se completan solos al crearlo.</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Observaciones del profesional (opcional)</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
           </mat-form-field>
           <div class="form-actions full">
             <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Crear consentimiento</button>

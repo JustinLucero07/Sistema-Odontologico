@@ -7,8 +7,11 @@ import '../bienvenida/bienvenida_page.dart';
 import '../caja/caja_page.dart';
 import '../cartera/cartera_page.dart';
 import '../configuracion/configuracion_pages.dart';
+import '../configuracion/correo_page.dart';
 import '../configuracion/roles_plantillas.dart';
 import '../creditos/creditos_page.dart';
+import '../../core/offline/barra_sin_conexion.dart';
+import '../cuenta/avisos_page.dart';
 import '../cuenta/cambiar_clave_page.dart';
 import '../facturacion/facturacion_page.dart';
 import '../finanzas/finanzas_page.dart';
@@ -176,6 +179,13 @@ final _grupos = <(String, List<_Modulo>)>[
         () => const PlantillasConsentimientoPage(),
       ),
       _Modulo(
+        'Correo',
+        Icons.mail_outline,
+        Tonos.azul,
+        'settings:manage',
+        () => const CorreoPage(),
+      ),
+      _Modulo(
         'Personalización',
         Icons.palette_outlined,
         Tonos.violeta,
@@ -225,7 +235,8 @@ class MasPage extends ConsumerWidget {
           if (modulos.any(ve)) ...[
             Seccion(titulo),
             GridView.count(
-              crossAxisCount: 3,
+              // 3 columnas en el teléfono, hasta 6 en una tablet grande.
+              crossAxisCount: (MediaQuery.sizeOf(context).width / 170).floor().clamp(3, 6),
               shrinkWrap: true,
               // Sin esto hereda el relleno inferior de la barra flotante y
               // deja un hueco entre grupos.
@@ -297,6 +308,22 @@ class MasPage extends ConsumerWidget {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('Avisos de citas'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const AvisosPage()),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_sync_outlined),
+                title: const Text('Cambios sin conexión'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const CambiosPendientesPage()),
+                ),
+              ),
+              ListTile(
                 leading: const Icon(Icons.lock_reset),
                 title: const Text('Cambiar contraseña'),
                 trailing: const Icon(Icons.chevron_right),
@@ -313,10 +340,16 @@ class MasPage extends ConsumerWidget {
                   style: TextStyle(color: scheme.error),
                 ),
                 onTap: () async {
+                  final pendientes = ref.read(sinConexionProvider).pendientes.length;
                   if (await confirmar(
                     context,
                     titulo: '¿Cerrar sesión?',
-                    textoConfirmar: 'Salir',
+                    // Al salir se borra la copia local: lo no subido se perdería.
+                    mensaje: pendientes > 0
+                        ? 'Hay $pendientes ${pendientes == 1 ? 'cambio' : 'cambios'} sin subir por falta de conexión. Si sale ahora se perderán.'
+                        : null,
+                    textoConfirmar: pendientes > 0 ? 'Salir y perderlos' : 'Salir',
+                    peligro: pendientes > 0,
                   )) {
                     ref.read(authProvider.notifier).cerrarSesion();
                   }

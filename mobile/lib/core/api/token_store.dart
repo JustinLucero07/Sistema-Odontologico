@@ -9,7 +9,9 @@ class TokenStore {
   static const _refreshKey = 'refresh_token';
 
   final _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // Cifrado AES-GCM con llave del Keystore (lo predeterminado desde la v10);
+    // los tokens guardados con la versión anterior se migran solos.
+    aOptions: AndroidOptions(),
   );
 
   /// Solo en memoria, igual que en la web.

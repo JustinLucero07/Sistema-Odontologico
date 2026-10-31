@@ -11,7 +11,8 @@ from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
 from app.modules.clinics.models import Clinic
-from app.modules.invoicing import crypto, mailer, ride, sri_client
+from app.modules.invoicing import crypto, ride, sri_client
+from app.modules.mail import service as correo
 from app.modules.invoicing.access_key import clave_acceso
 from app.modules.invoicing.constants import (
     AMBIENTES,
@@ -128,7 +129,7 @@ async def get_settings(db: AsyncSession, clinic_id: uuid.UUID) -> SettingsOut:
         certificate_subject=conf.certificate_subject,
         certificate_valid_until=vence,
         certificate_expired=bool(vence and vence < datetime.now(timezone.utc)),
-        email_configured=mailer.configurado(),
+        email_configured=await correo.configurado(db, clinic_id),
         next_invoice_number=secuencia.next_value,
         establishment=clinica.sri_establishment,
         emission_point=clinica.sri_emission_point,
@@ -639,7 +640,7 @@ async def process(db: AsyncSession, factura: Invoice) -> Invoice:
 
 async def process_and_notify(db: AsyncSession, factura: Invoice) -> Invoice:
     await process(db, factura)
-    if factura.status == AUTORIZADA and factura.emailed_at is None and factura.buyer_email and mailer.configurado():
+    if factura.status == AUTORIZADA and factura.emailed_at is None and factura.buyer_email and await correo.configurado(db, factura.clinic_id):
         conf = await _config(db, factura.clinic_id)
         if conf.send_email:
             try:
@@ -721,23 +722,31 @@ def nombre_archivo(factura: Invoice, extension: str) -> str:
 async def send_email(db: AsyncSession, factura: Invoice, destino: str | None) -> Invoice:
     if factura.status != AUTORIZADA:
         raise _error(409, "Solo se envía una vez autorizada por el SRI.")
-    if not mailer.configurado():
-        raise _error(409, "El correo saliente no está configurado en el servidor (SMTP).")
     para = destino or factura.buyer_email
     if not para:
         raise _error(422, "El comprador no tiene correo: indique uno.")
     clinica = await _clinica(db, factura.clinic_id)
     tipo = "Factura" if factura.doc_type == FACTURA else "Nota de crédito"
-    await mailer.enviar(
-        para,
-        f"{tipo} {factura.number} — {clinica.name}",
-        f"Estimado/a {factura.buyer_name}:\n\nAdjuntamos su {tipo.lower()} electrónica {factura.number} "
-        f"por ${factura.total}, autorizada por el SRI.\n\n{clinica.name}",
-        [
-            (nombre_archivo(factura, "pdf"), await pdf(db, factura), "application/pdf"),
-            (nombre_archivo(factura, "xml"), (factura.authorized_xml or "").encode(), "application/xml"),
-        ],
-    )
+    try:
+        await correo.enviar(
+            db,
+            factura.clinic_id,
+            para,
+            f"{tipo} {factura.number} — {clinica.name}",
+            f"Estimado/a {factura.buyer_name}:\n\nAdjuntamos su {tipo.lower()} electrónica {factura.number} "
+            f"por ${factura.total}, autorizada por el SRI.\n\n{clinica.name}",
+            correo.pagina(clinica, f"Su {tipo.lower()} electrónica", [
+                f"Estimado/a <b>{correo.escapar(factura.buyer_name)}</b>:",
+                f"Adjuntamos su {tipo.lower()} electrónica <b>{factura.number}</b> por <b>${factura.total}</b>, autorizada por el SRI.",
+                f"Clave de acceso: {factura.access_key}",
+            ]),
+            [
+                (nombre_archivo(factura, "pdf"), await pdf(db, factura), "application/pdf"),
+                (nombre_archivo(factura, "xml"), (factura.authorized_xml or "").encode(), "application/xml"),
+            ],
+        )
+    except (correo.CorreoNoConfigurado, correo.CorreoFallido) as e:
+        raise _error(409, str(e)) from e
     factura.emailed_at = datetime.now(timezone.utc)
     await db.flush()
     return factura

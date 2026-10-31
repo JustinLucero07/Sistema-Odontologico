@@ -4,10 +4,16 @@
       <h1>Plantillas de consentimiento</h1>
       <p class="page-sub">El texto base que se copia al emitir un consentimiento a un paciente</p>
     </div>
-    <button mat-flat-button (click)="open()">
-      <mat-icon>add</mat-icon>
-      Nueva plantilla
-    </button>
+    <div class="head-actions">
+      <button mat-stroked-button (click)="openLibrary()">
+        <mat-icon>library_books</mat-icon>
+        Biblioteca odontológica
+      </button>
+      <button mat-flat-button (click)="open()">
+        <mat-icon>add</mat-icon>
+        Nueva plantilla
+      </button>
+    </div>
   </header>
 
   @if (retiredCount() > 0) {
@@ -19,11 +25,17 @@
   @if (!loading() && visible().length === 0) {
     <mat-card class="empty">
       <mat-icon>description</mat-icon>
-      <p>No hay plantillas. Cree una por cada procedimiento que requiera consentimiento firmado.</p>
-      <button mat-stroked-button (click)="open()">
-        <mat-icon>add</mat-icon>
-        Crear la primera
-      </button>
+      <p>No hay plantillas. Agregue las de la biblioteca odontológica (anestesia, extracción, endodoncia, implantes, ortodoncia…) o cree la suya.</p>
+      <div class="head-actions">
+        <button mat-flat-button (click)="addAll()">
+          <mat-icon>library_add</mat-icon>
+          Agregar las {{ libraryCount() || 12 }} de la biblioteca
+        </button>
+        <button mat-stroked-button (click)="open()">
+          <mat-icon>add</mat-icon>
+          Crear una
+        </button>
+      </div>
     </mat-card>
   }
 
@@ -91,4 +103,30 @@
       </button>
     </mat-dialog-actions>
   </form>
+</ng-template>
+
+<ng-template #libraryDialog>
+  <h2 mat-dialog-title>Biblioteca odontológica</h2>
+  <mat-dialog-content>
+    <p class="lib-note">
+      Textos base para Ecuador, con los datos del paciente, la pieza y el profesional que se completan solos.
+      Revíselos con su profesional responsable y ajústelos a su práctica: quedan como plantillas suyas, editables.
+    </p>
+    <div class="lib-list">
+      @for (item of library(); track item.name) {
+        <label class="lib-item" [class.done]="item.added">
+          <input type="checkbox" [disabled]="item.added" [checked]="item.added || picked().has(item.name)" (change)="togglePick(item.name)" />
+          <span>
+            <strong>{{ item.name }}</strong>
+            <small>{{ item.added ? 'Ya está en sus plantillas' : item.preview + '…' }}</small>
+          </span>
+        </label>
+      }
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cerrar</button>
+    <button mat-stroked-button (click)="addPicked()" [disabled]="picked().size === 0">Agregar seleccionadas ({{ picked().size }})</button>
+    <button mat-flat-button (click)="addAll()" [disabled]="libraryPending() === 0">Agregar todas las que faltan ({{ libraryPending() }})</button>
+  </mat-dialog-actions>
 </ng-template>

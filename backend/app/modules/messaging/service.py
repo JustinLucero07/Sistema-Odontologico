@@ -27,6 +27,8 @@ from app.shared.messaging import (
     get_messaging,
 )
 from app.modules.privacy.service import communications_revoked
+from app.modules.mail import service as correo
+from app.shared.messaging import DeliveryResult
 
 # Templates a clinic gets on day one. They are seeded per clinic on first use
 # so a practice can edit its own wording without touching anyone else's.
@@ -199,7 +201,11 @@ async def send_message(
         raise HTTPException(status_code=400, detail="El mensaje está vacío")
 
     to_address = _destination(patient, payload.channel)
-    result = await get_messaging().send(to_address, body)
+    if payload.channel == "email":
+        clinica = (await db.execute(select(Clinic).where(Clinic.id == clinic_id))).scalar_one()
+        result = await _por_correo(db, clinica, to_address, f"Mensaje de {clinica.name}", body)
+    else:
+        result = await get_messaging().send(to_address, body)
 
     message = OutboundMessage(
         clinic_id=clinic_id,
@@ -264,6 +270,7 @@ async def dispatch_due_reminders(
 
     result = DispatchResult(due=len(rows), sent=0, simulated=0, failed=0, skipped=0)
     provider = get_messaging()
+    clinica: Clinic | None = None
 
     for reminder in rows:
         appointment = reminder.appointment
@@ -293,7 +300,14 @@ async def dispatch_due_reminders(
             await _placeholders(db, clinic_id, patient, appointment),
         )
 
-        delivery = await provider.send(to_address, body)
+        if reminder.channel == "email":
+            clinica = clinica or (await db.execute(select(Clinic).where(Clinic.id == clinic_id))).scalar_one()
+            delivery = await _por_correo(
+                db, clinica, to_address, f"Recordatorio de su cita en {clinica.name}", body,
+                cita=appointment,
+            )
+        else:
+            delivery = await provider.send(to_address, body)
         db.add(
             OutboundMessage(
                 clinic_id=clinic_id,
@@ -325,3 +339,16 @@ async def dispatch_due_reminders(
 
     await db.flush()
     return result
+
+
+async def _por_correo(db: AsyncSession, clinica: Clinic, destino: str, asunto: str, texto: str, cita=None) -> DeliveryResult:
+    """Envía por el correo de la consulta. Sin correo configurado el mensaje
+    queda como fallido con el motivo, nunca como «enviado»."""
+    parrafos = [correo.escapar(texto)]
+    if cita is not None:
+        parrafos.append("Si no puede asistir, por favor avísenos respondiendo a este correo o llamando a la consulta.")
+    try:
+        await correo.enviar(db, clinica.id, destino, asunto, texto, correo.pagina(clinica, asunto, parrafos))
+    except (correo.CorreoNoConfigurado, correo.CorreoFallido) as e:
+        return DeliveryResult(status=STATUS_FAILED, provider="smtp", error=str(e)[:500])
+    return DeliveryResult(status=STATUS_SENT, provider="smtp")

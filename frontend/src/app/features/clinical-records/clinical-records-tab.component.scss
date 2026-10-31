@@ -391,3 +391,9 @@
     color: var(--color-primary);
   }
 }
+
+// ---- Consentimientos: firma ---------------------------------------------
+.sign-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.link-note { font-size: 0.8rem; color: var(--color-ink-faint); }
+.signed-block { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 8px; }
+.signature { height: 64px; max-width: 220px; object-fit: contain; padding: 4px 10px; border-radius: 10px; background: #fff; border: 1px solid var(--color-border); }

@@ -456,11 +456,88 @@ class _PlantillasConsentimientoPageState extends ConsumerState<PlantillasConsent
     },
   );
 
+  /// Biblioteca odontológica: textos base que se copian como plantillas propias.
+  Future<void> _biblioteca() async {
+    final lista = await cargarOAvisar(context, ref.read(apiProvider).lista('/consents/library'));
+    if (lista == null || !mounted) return;
+    final elegidas = <String>{};
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (hoja) => StatefulBuilder(
+        builder: (hoja, setState) {
+          final faltan = lista.where((x) => x['added'] != true).length;
+          Future<void> agregar(List<String>? nombres) async {
+            final r = await cargarOAvisar(hoja, ref.read(apiProvider).post('/consents/library', {'names': nombres}));
+            ref.invalidate(_consentimientosProvider);
+            if (hoja.mounted) Navigator.pop(hoja);
+            if (mounted && r is Map) avisar(context, '${r['added']} plantilla(s) agregadas: revíselas y ajústelas');
+          }
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  'Textos base para Ecuador. Los datos del paciente, la pieza y el profesional se completan solos. '
+                  'Revíselos y ajústelos: quedan como plantillas suyas.',
+                  style: Theme.of(hoja).textTheme.bodySmall,
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final x in lista)
+                      CheckboxListTile(
+                        value: x['added'] == true || elegidas.contains(x['name']),
+                        onChanged: x['added'] == true
+                            ? null
+                            : (v) => setState(() => v == true ? elegidas.add('${x['name']}') : elegidas.remove(x['name'])),
+                        title: Text('${x['name']}'),
+                        subtitle: Text(x['added'] == true ? 'Ya está en sus plantillas' : '${x['preview']}…', maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: elegidas.isEmpty ? null : () => agregar(elegidas.toList()),
+                          child: Text('Agregar (${elegidas.length})'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: faltan == 0 ? null : () => agregar(null),
+                          child: Text('Todas ($faltan)'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final valor = ref.watch(_consentimientosProvider);
     return PaginaModulo(
       titulo: 'Plantillas de consentimiento',
+      acciones: [
+        IconButton(onPressed: _biblioteca, tooltip: 'Biblioteca odontológica', icon: const Icon(Icons.library_books_outlined)),
+      ],
       accion: FloatingActionButton.extended(
         onPressed: () => _editar(null),
         icon: const Icon(Icons.add),
@@ -487,7 +564,13 @@ class _PlantillasConsentimientoPageState extends ConsumerState<PlantillasConsent
                     ),
                   ),
                 const SizedBox(height: 8),
-                if (visibles.isEmpty) const EstadoVacio(icono: Icons.draw_outlined, titulo: 'Sin plantillas'),
+                if (visibles.isEmpty)
+                  EstadoVacio(
+                    icono: Icons.draw_outlined,
+                    titulo: 'Sin plantillas',
+                    detalle: 'Agregue las de la biblioteca odontológica: anestesia, extracción, endodoncia, implantes…',
+                    accion: FilledButton.icon(onPressed: _biblioteca, icon: const Icon(Icons.library_books_outlined), label: const Text('Ver biblioteca')),
+                  ),
                 for (final t in visibles)
                   FilaTarjeta(
                     icono: Icons.description_outlined,

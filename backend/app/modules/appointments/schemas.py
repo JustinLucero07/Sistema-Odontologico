@@ -17,7 +17,9 @@ class AppointmentCreate(BaseModel):
     status: str = "programada"
     color_hex: str | None = None
     notes: str | None = None
-    reminder_channels: list[str] = Field(default_factory=list)
+    # Sin indicar (None): WhatsApp y, si la consulta tiene correo y el
+    # paciente un e-mail, también correo. Una lista vacía = sin recordatorios.
+    reminder_channels: list[str] | None = None
 
     @field_validator("status")
     @classmethod
@@ -28,8 +30,8 @@ class AppointmentCreate(BaseModel):
 
     @field_validator("reminder_channels")
     @classmethod
-    def validate_channels(cls, value: list[str]) -> list[str]:
-        for channel in value:
+    def validate_channels(cls, value: list[str] | None) -> list[str] | None:
+        for channel in value or []:
             if channel not in REMINDER_CHANNEL_CODES:
                 raise ValueError(f"Canal de recordatorio inválido: {channel}")
         return value

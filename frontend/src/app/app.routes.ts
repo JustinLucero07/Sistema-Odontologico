@@ -9,6 +9,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
+    // Firma a distancia de consentimientos: pública, el enlace es la credencial.
+    path: 'firmar/:token',
+    loadComponent: () =>
+      import('./features/consent-sign/consent-sign-page.component').then((m) => m.ConsentSignPageComponent),
+  },
+  {
     path: 'portal/:token',
     loadComponent: () =>
       import('./features/portal/portal-page.component').then((m) => m.PortalPageComponent),
@@ -165,6 +171,13 @@ export const routes: Routes = [
         data: { permission: 'payments:read' },
         loadComponent: () =>
           import('./features/portfolio/portfolio-page.component').then((m) => m.PortfolioPageComponent),
+      },
+      {
+        path: 'settings/mail',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/mail/mail-settings.component').then((m) => m.MailSettingsComponent),
       },
       {
         path: 'settings/compliance',

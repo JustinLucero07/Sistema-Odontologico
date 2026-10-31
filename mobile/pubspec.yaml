@@ -23,7 +23,7 @@ dependencies:
 
   # El token de refresco va al llavero de Android / Keychain de iOS, nunca a
   # SharedPreferences: un móvil con root leería SharedPreferences en claro.
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^11.2.0
   shared_preferences: ^2.3.3
 
   go_router: ^14.6.2
@@ -38,9 +38,16 @@ dependencies:
 
   # Facturación: elegir la firma electrónica (.p12) y abrir el PDF de la
   # factura con el visor del teléfono.
-  file_picker: ^11.0.3
+  file_picker: ^13.3.0
   path_provider: ^2.1.6
   open_filex: ^5.0.0
+
+  # Sin conexión: saber cuándo vuelve la red para subir los cambios guardados.
+  connectivity_plus: ^7.3.1
+
+  # Avisos de citas en el teléfono (programados en el propio dispositivo).
+  flutter_local_notifications: ^22.3.3
+  timezone: ^0.11.2
 
 dev_dependencies:
   flutter_test:

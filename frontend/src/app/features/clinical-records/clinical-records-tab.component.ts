@@ -31,6 +31,8 @@ import { LegalService } from '../../core/services/legal.service';
 import { PatientsService } from '../../core/services/patients.service';
 import { printPrescription } from '../../shared/print/prescription-print';
 import { printConsent } from '../../shared/print/consent-print';
+import { openConsentLink } from '../../shared/consents/consent-link-dialog.component';
+import { openConsentSign } from '../../shared/consents/consent-sign-dialog.component';
 
 type Section = 'evoluciones' | 'recetas' | 'consentimientos' | 'documentos';
 
@@ -121,6 +123,9 @@ export class ClinicalRecordsTabComponent implements OnChanges {
 
   readonly consentForm = this.fb.nonNullable.group({
     template_id: [''],
+    professional_id: [''],
+    tooth: [''],
+    notes: [''],
     title: [''],
     body: [''],
   });
@@ -131,8 +136,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     description: [''],
   });
 
-  readonly signForm = this.fb.nonNullable.group({ signed_by_name: ['', Validators.required] });
-  readonly signingConsent = signal<Consent | null>(null);
 
   async ngOnChanges(): Promise<void> {
     if (this.patientId) await this.reload();
@@ -328,6 +331,9 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       await firstValueFrom(
         this.service.createConsent(this.patientId, {
           template_id: value.template_id || null,
+          professional_id: value.professional_id || null,
+          tooth: value.tooth || null,
+          notes: value.notes || null,
           title: value.title || null,
           body: value.body || null,
         }),
@@ -341,20 +347,41 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     }
   }
 
-  startSigning(consent: Consent): void {
-    this.signingConsent.set(consent);
-    this.signForm.reset();
+  /** Firma presencial en pantalla (paciente o representante, y profesional). */
+  async startSigning(consent: Consent): Promise<void> {
+    const patient = await firstValueFrom(this.patientsService.getPatient(this.patientId));
+    const signed = await openConsentSign(this.dialog, {
+      consent,
+      patientName: `${patient.first_name} ${patient.last_name}`,
+      patientIdNumber: patient.national_id,
+    });
+    if (signed) {
+      this.snackBar.open('Consentimiento firmado', 'Cerrar', { duration: 3000 });
+      await this.reload();
+    }
   }
 
-  async confirmSignature(): Promise<void> {
-    const consent = this.signingConsent();
-    if (!consent || this.signForm.invalid) return;
-    await firstValueFrom(
-      this.service.signConsent(consent.id, this.signForm.getRawValue().signed_by_name),
-    );
-    this.signingConsent.set(null);
-    this.snackBar.open('Consentimiento firmado', 'Cerrar', { duration: 3000 });
+  /** Firma a distancia: enlace para que el paciente firme desde su teléfono. */
+  async sendForSignature(consent: Consent): Promise<void> {
+    const patient = await firstValueFrom(this.patientsService.getPatient(this.patientId));
+    await openConsentLink(this.dialog, {
+      consent,
+      patientName: patient.first_name,
+      phone: patient.whatsapp || patient.phone,
+      email: patient.email,
+    });
     await this.reload();
+  }
+
+  async openConsentPdf(consent: Consent): Promise<void> {
+    try {
+      const blob = await firstValueFrom(this.service.consentPdf(consent.id));
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      this.snackBar.open('No se pudo generar el PDF', 'Cerrar', { duration: 4000 });
+    }
   }
 
   // ---- Documents -------------------------------------------------------

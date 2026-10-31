@@ -132,6 +132,19 @@ def _build_reminders(
     return reminders
 
 
+async def _canales(db: AsyncSession, clinic_id: uuid.UUID, payload: AppointmentCreate) -> list[str]:
+    if payload.reminder_channels is not None:
+        return payload.reminder_channels
+    from app.modules.mail.service import recordatorios_activos
+    from app.modules.patients.models import Patient
+
+    canales = ["whatsapp"]
+    paciente = (await db.execute(select(Patient).where(Patient.id == payload.patient_id))).scalar_one_or_none()
+    if paciente and paciente.email and await recordatorios_activos(db, clinic_id):
+        canales.append("email")
+    return canales
+
+
 async def create_appointment(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, payload: AppointmentCreate
 ) -> Appointment:
@@ -144,7 +157,7 @@ async def create_appointment(
     appointment = Appointment(
         clinic_id=clinic_id,
         created_by_id=actor_id,
-        reminders=_build_reminders(clinic_id, payload.starts_at, payload.reminder_channels),
+        reminders=_build_reminders(clinic_id, payload.starts_at, await _canales(db, clinic_id, payload)),
         **payload.model_dump(exclude={"reminder_channels"}),
     )
     db.add(appointment)
