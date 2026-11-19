@@ -42,6 +42,14 @@
               </button>
             }
           </div>
+          <label class="modulo glass-card especialidad" [class.off]="!ortodoncia()">
+            <span class="m-icono"><mat-icon>sentiment_very_satisfied</mat-icon></span>
+            <div>
+              <strong>Atiendo ortodoncia</strong>
+              <span>Activa el módulo de ortodoncia: fichas ORT, plan de controles con cuotas (arcos, elásticos, TADs) y lista de documentación.</span>
+            </div>
+            <mat-slide-toggle [checked]="ortodoncia()" (change)="ortodoncia.set($event.checked)" />
+          </label>
         </section>
       }
       @case (1) {
@@ -201,6 +209,11 @@
                 <mat-slide-toggle [checked]="!ocultos().has(m.code)" (change)="alternarModulo(m.code, $event.checked)" />
               </label>
             }
+            <label class="modulo glass-card" [class.off]="!ortodoncia()">
+              <span class="m-icono"><mat-icon>sentiment_very_satisfied</mat-icon></span>
+              <div><strong>Ortodoncia</strong><span>Fichas ORT, plan de controles con cuotas y documentación</span></div>
+              <mat-slide-toggle [checked]="ortodoncia()" (change)="ortodoncia.set($event.checked)" />
+            </label>
           </div>
           @if (!edit) {
             <div class="terminos glass-card">

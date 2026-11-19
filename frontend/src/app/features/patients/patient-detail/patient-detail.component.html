@@ -69,7 +69,7 @@
       </div>
     </mat-card>
 
-    <mat-tab-group class="hub-tabs" animationDuration="0ms">
+    <mat-tab-group class="hub-tabs" animationDuration="0ms" [selectedIndex]="tabIndex()" (selectedIndexChange)="tabIndex.set($event)">
       <mat-tab label="Ficha">
         <div class="tab-content">
           <mat-card class="info-card">
@@ -126,6 +126,14 @@
           />
         </div>
       </mat-tab>
+
+      @if (showOrtho()) {
+        <mat-tab label="Ortodoncia">
+          <div class="tab-content">
+            <app-ortho-tab [patientId]="p.id" [patientName]="p.first_name + ' ' + p.last_name"></app-ortho-tab>
+          </div>
+        </mat-tab>
+      }
 
       <mat-tab label="Historia clínica">
         <div class="tab-content">

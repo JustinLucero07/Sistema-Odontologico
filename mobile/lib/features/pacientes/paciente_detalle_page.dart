@@ -19,6 +19,8 @@ import '../agenda/cita_form.dart';
 import 'documentos_consentimientos.dart';
 import 'pestanas.dart';
 import '../../shared/contacto.dart';
+import '../../core/marca/marca.dart';
+import '../ortodoncia/ortodoncia.dart';
 
 final _fichaProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>(
@@ -66,10 +68,14 @@ class PacienteDetallePage extends ConsumerStatefulWidget {
     super.key,
     required this.pacienteId,
     required this.nombre,
+    this.abrirOrtodoncia = false,
   });
 
   final String pacienteId;
   final String nombre;
+
+  /// Abre directamente la pestaña de ortodoncia (desde la lista de ortodoncia).
+  final bool abrirOrtodoncia;
 
   @override
   ConsumerState<PacienteDetallePage> createState() =>
@@ -78,8 +84,15 @@ class PacienteDetallePage extends ConsumerStatefulWidget {
 
 class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
     with SingleTickerProviderStateMixin {
+  /// La pestaña de ortodoncia aparece si la consulta activó la especialidad
+  /// (en la web o en la app) y el usuario puede verla.
+  late final bool _orto =
+      ref.read(marcaProvider).ortodoncia && (ref.read(authProvider).usuario?.puede('orthodontics:read') ?? false);
+  late final List<String> _titulos = _orto ? [_pestanas.first, 'Ortodoncia', ..._pestanas.skip(1)] : _pestanas;
+
   late final TabController _tabs = TabController(
-    length: _pestanas.length,
+    length: _titulos.length,
+    initialIndex: widget.abrirOrtodoncia && _orto ? 1 : 0,
     vsync: this,
   )..addListener(() => setState(() {}));
 
@@ -101,7 +114,16 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
           icon: Icon(i),
           label: Text(t),
         );
-    switch (_tabs.index) {
+    var indice = _tabs.index;
+    if (_orto) {
+      if (indice == 1) {
+        return puede('orthodontics:write')
+            ? fab(Icons.event_note_outlined, 'Ortodoncia', () => accionOrtodoncia(context, ref, _id, widget.nombre))
+            : null;
+      }
+      if (indice > 1) indice--;
+    }
+    switch (indice) {
       case 0 when puede('patients:write'):
         return fab(Icons.edit_outlined, 'Editar datos', () async {
           final p = await cargarOAvisar(
@@ -190,13 +212,14 @@ class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
           title: Text(widget.nombre, overflow: TextOverflow.ellipsis),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(56),
-            child: _PestanasVidrio(controlador: _tabs),
+            child: _PestanasVidrio(controlador: _tabs, titulos: _titulos),
           ),
         ),
         body: TabBarView(
           controller: _tabs,
           children: [
             _Ficha(pacienteId: _id),
+            if (_orto) PestanaOrtodoncia(pacienteId: _id, nombre: widget.nombre),
             PestanaHistoria(pacienteId: _id),
             _Odontograma(pacienteId: _id),
             PestanaPeriodontograma(pacienteId: _id),
@@ -1079,9 +1102,10 @@ class _FilaHallazgo extends StatelessWidget {
 /// Pestañas como selector segmentado de vidrio: una cápsula con la opción
 /// activa iluminada, en vez de la línea subrayada de Material.
 class _PestanasVidrio extends StatelessWidget {
-  const _PestanasVidrio({required this.controlador});
+  const _PestanasVidrio({required this.controlador, required this.titulos});
 
   final TabController controlador;
+  final List<String> titulos;
 
   @override
   Widget build(BuildContext context) {
@@ -1119,7 +1143,7 @@ class _PestanasVidrio extends StatelessWidget {
                     ),
                   ],
           ),
-          tabs: [for (final t in _pestanas) Tab(height: 36, text: t)],
+          tabs: [for (final t in titulos) Tab(height: 36, text: t)],
         ),
       ),
     );

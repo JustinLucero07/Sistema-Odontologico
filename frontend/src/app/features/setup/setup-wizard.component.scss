@@ -158,6 +158,8 @@ h4 { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: v
   &.off { opacity: .55; .m-icono { background: var(--color-border-strong); box-shadow: none; } }
 }
 
+.especialidad { margin-top: 14px; }
+
 .error { display: flex; align-items: center; gap: 8px; color: var(--color-danger); font-size: .88rem; margin: 0; }
 .acciones {
   display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--color-border); margin-top: auto;

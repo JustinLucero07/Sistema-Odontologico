@@ -1,0 +1,294 @@
+@if (cargando()) {
+  <p class="cargando">Cargando ortodoncia…</p>
+}
+@if (!cargando() && caso(); as c) {
+  <!-- Cabecera: la ficha y su seguimiento rápido -->
+  <section class="cabecera glass-card">
+    <div class="titulo">
+      <span class="sello"><mat-icon>sentiment_very_satisfied</mat-icon></span>
+      <div>
+        <h3>{{ c.code }} · Ficha de ortodoncia</h3>
+        <p>
+          {{ c.stage || 'Etapa sin definir' }}
+          @if (c.appliance) { · {{ c.appliance }} }
+          @if (c.professional_name) { · {{ c.professional_name }} }
+          @if (c.started_on) { · desde {{ c.started_on | date: 'dd/MM/yyyy' }} }
+        </p>
+      </div>
+      <span class="espacio"></span>
+      <button mat-stroked-button (click)="exportar('pdf')"><mat-icon>print</mat-icon>Imprimir / PDF</button>
+      <button mat-stroked-button (click)="exportar('csv')"><mat-icon>table_view</mat-icon>Excel</button>
+      @if (canWrite) {
+        <button mat-icon-button [matMenuTriggerFor]="menuFicha" aria-label="Más acciones"><mat-icon>more_vert</mat-icon></button>
+        <mat-menu #menuFicha="matMenu">
+          <button mat-menu-item (click)="editar()"><mat-icon>edit</mat-icon>Editar datos de la ficha</button>
+          <button mat-menu-item (click)="nueva()" [disabled]="['activo', 'retencion', 'pausa'].includes(c.status)">
+            <mat-icon>add</mat-icon>Nueva ficha (tratamiento nuevo)
+          </button>
+          <button mat-menu-item class="peligro" (click)="eliminar()"><mat-icon>delete</mat-icon>Eliminar ficha</button>
+        </mat-menu>
+      }
+    </div>
+
+    <div class="seguimiento">
+      <label>
+        <span>Estado de ortodoncia</span>
+        <mat-select [value]="c.status" (selectionChange)="cambiar('status', $event.value)" [disabled]="!canWrite">
+          @for (s of statuses; track s[0]) { <mat-option [value]="s[0]">{{ s[1] }}</mat-option> }
+        </mat-select>
+      </label>
+      <label>
+        <span>¿Tiene TAD actualmente?</span>
+        <mat-select [value]="c.has_tad" (selectionChange)="cambiar('has_tad', $event.value)" [disabled]="!canWrite">
+          @for (t of tads; track t[0]) { <mat-option [value]="t[0]">{{ t[1] }}</mat-option> }
+        </mat-select>
+      </label>
+      <button
+        type="button"
+        class="revision"
+        [class.on]="c.needs_review"
+        [disabled]="!canWrite"
+        (click)="cambiar('needs_review', !c.needs_review)"
+      >
+        <mat-icon>{{ c.needs_review ? 'flag' : 'outlined_flag' }}</mat-icon>
+        {{ c.needs_review ? 'Requiere revisión' : 'Marcar para revisar' }}
+      </button>
+      @if (c.special_attention) {
+        <span class="atencion" [matTooltip]="c.special_attention_note ?? ''"><mat-icon>priority_high</mat-icon>Atención especial</span>
+      }
+      @if (c.docs_pending > 0) {
+        <span class="aviso-docs"><mat-icon>assignment_late</mat-icon>{{ c.docs_pending }} documento(s) por revisar</span>
+      }
+    </div>
+  </section>
+
+  @if (otrasFichas().length) {
+    <div class="historial">
+      <span>Otras fichas:</span>
+      @for (f of otrasFichas(); track f.id) {
+        <button mat-stroked-button (click)="abrirFicha(f.id)">{{ f.code }} · {{ statusLabel[f.status] }}</button>
+      }
+    </div>
+  }
+
+  <mat-tab-group class="sub-tabs" animationDuration="0ms">
+    <!-- ================= Plan de cuotas y pagos ================= -->
+    <mat-tab label="Plan y pagos">
+      <section class="panel-pagos glass-card">
+        <div class="kpis">
+          <div><span>Valor del tratamiento</span><strong class="numeric">$ {{ money(c.agreed_total) }}</strong></div>
+          <div><span>Recibido</span><strong class="numeric ok">$ {{ money(c.paid) }}</strong></div>
+          <div><span>Saldo del tratamiento</span><strong class="numeric" [class.debe]="+c.balance > 0">$ {{ money(c.balance) }}</strong></div>
+          <div><span>Cuotas pagadas</span><strong class="numeric">{{ c.controls_paid }} / {{ c.controls_count }}</strong></div>
+        </div>
+        @if (+c.agreed_total === 0) {
+          <p class="alerta">
+            <mat-icon>info</mat-icon>Defina el valor del tratamiento para poder registrar abonos.
+            @if (canWrite) { <button mat-button (click)="editar()">Definir valor</button> }
+          </p>
+        } @else if (c.controls_count && diferencia() !== 0) {
+          <p class="alerta" [class.mas]="diferencia() > 0">
+            <mat-icon>{{ diferencia() > 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+            Las cuotas suman <strong>$ {{ money(abs(diferencia())) }}</strong>
+            {{ diferencia() > 0 ? 'por encima' : 'por debajo' }} del valor acordado.
+            @if (canWrite) { <button mat-button (click)="editar()">Revisar valor</button> }
+          </p>
+        }
+        @if (+c.unassigned_paid > 0) {
+          <p class="nota">Hay $ {{ money(c.unassigned_paid) }} abonados al tratamiento desde Pagos sin asignar a una cuota.</p>
+        }
+      </section>
+
+      <section class="plan glass-card">
+        <header>
+          <div>
+            <h4>Plan de controles y cuotas</h4>
+            <p>{{ c.controls_count }} cuotas · Se guarda solo al salir de cada casilla</p>
+          </div>
+          <mat-button-toggle-group [value]="filtro()" (change)="filtro.set($event.value)" hideSingleSelectionIndicator>
+            <mat-button-toggle value="todas">Todas</mat-button-toggle>
+            <mat-button-toggle value="pendientes">Pendientes</mat-button-toggle>
+            <mat-button-toggle value="pagadas">Pagadas</mat-button-toggle>
+          </mat-button-toggle-group>
+          @if (canWrite) {
+            <button mat-flat-button (click)="agregarCuotas()"><mat-icon>add</mat-icon>Agregar cuotas</button>
+          }
+        </header>
+
+        @if (c.controls.length === 0) {
+          <div class="vacio">
+            <mat-icon>event_note</mat-icon>
+            <strong>Sin cuotas todavía</strong>
+            <span>Agrega el plan completo de una vez (por ejemplo 24 cuotas mensuales) y luego registra cada control.</span>
+          </div>
+        } @else {
+          <div class="tabla-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th class="num">Cuota</th>
+                  <th class="fecha">Fecha planif. clínica</th>
+                  <th class="c-plan">Planificación</th>
+                  <th class="c-txt">Arcos</th>
+                  <th class="c-txt">Elásticos</th>
+                  <th class="c-txt">TADs</th>
+                  <th class="fecha">Vencimiento</th>
+                  <th class="der c-valor">Valor</th>
+                  <th class="der c-abonado">Abonado</th>
+                  <th class="der c-saldo">Saldo</th>
+                  <th class="c-acciones"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ctrl of filas(); track ctrl.id) {
+                  <tr [class.guardando]="guardandoFila() === ctrl.id" [attr.data-status]="ctrl.status">
+                    <td class="num">
+                      <strong>{{ pad(ctrl.number) }}</strong>
+                      <span class="tag" [attr.data-status]="ctrl.status">{{ controlLabel[ctrl.status] }}</span>
+                    </td>
+                    <td class="fecha">
+                      <input type="date" [value]="ctrl.planned_on ?? ''" [disabled]="!canWrite"
+                             (change)="fechaCambio(ctrl, 'planned_on', $any($event.target).value)" />
+                      <button type="button" class="asistio" [class.on]="ctrl.attended_on" [disabled]="!canWrite"
+                              (click)="marcarAsistencia(ctrl)"
+                              [matTooltip]="ctrl.attended_on ? 'Quitar asistencia' : 'Marcar que asistió'">
+                        <mat-icon>{{ ctrl.attended_on ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                        {{ ctrl.attended_on ? 'Asistió ' + (ctrl.attended_on | date: 'dd/MM') : 'Sin asistencia' }}
+                      </button>
+                    </td>
+                    @for (campo of ['planning', 'arches', 'elastics', 'tads']; track campo) {
+                      <td class="texto">
+                        <textarea rows="2" [value]="$any(ctrl)[campo] ?? ''" [disabled]="!canWrite"
+                                  (blur)="textoCambio(ctrl, $any(campo), $any($event.target).value)"></textarea>
+                      </td>
+                    }
+                    <td class="fecha">
+                      <input type="date" [value]="ctrl.due_on ?? ''" [disabled]="!canWrite"
+                             (change)="fechaCambio(ctrl, 'due_on', $any($event.target).value)" />
+                    </td>
+                    <td class="der">
+                      <input class="monto" inputmode="decimal" [value]="(+ctrl.amount).toFixed(2)" [disabled]="!canWrite"
+                             (change)="valorCambio(ctrl, $any($event.target).value)" />
+                    </td>
+                    <td class="der">
+                      <strong class="numeric ok">$ {{ money(ctrl.paid) }}</strong>
+                      @if (ctrl.payments.length) {
+                        <button type="button" class="enlace" (click)="alternarAbonos(ctrl.id)">
+                          {{ vivos(ctrl) }} abono(s) {{ abiertos().has(ctrl.id) ? '▴' : '▾' }}
+                        </button>
+                      }
+                    </td>
+                    <td class="der numeric" [class.debe]="+ctrl.balance > 0">$ {{ money(ctrl.balance) }}</td>
+                    <td class="acciones">
+                      @if (canPay && +ctrl.balance > 0 && c.charge_id) {
+                        <button mat-stroked-button class="abonar" (click)="abonar(ctrl)">Abonar</button>
+                      }
+                      @if (canWrite) {
+                        <button mat-icon-button [matMenuTriggerFor]="menuFila" aria-label="Más"><mat-icon>more_vert</mat-icon></button>
+                        <mat-menu #menuFila="matMenu">
+                          <button mat-menu-item (click)="eliminarCuota(ctrl)"><mat-icon>delete</mat-icon>Eliminar cuota</button>
+                        </mat-menu>
+                      }
+                    </td>
+                  </tr>
+                  @if (abiertos().has(ctrl.id)) {
+                    <tr class="abonos">
+                      <td colspan="11">
+                        @for (p of ctrl.payments; track p.id) {
+                          <div class="abono" [class.anulado]="p.voided_at">
+                            <span>{{ p.received_on | date: 'dd/MM/yyyy' }}</span>
+                            <strong class="numeric">$ {{ money(p.amount) }}</strong>
+                            <span>{{ p.method }}{{ p.reference ? ' · ' + p.reference : '' }}</span>
+                            @if (p.voided_at) {
+                              <span class="tag" data-status="anulada" [matTooltip]="p.void_reason ?? ''">Anulado</span>
+                            } @else if (canPay) {
+                              <button mat-button class="peligro" (click)="anularAbono(p)">Anular</button>
+                            }
+                          </div>
+                        }
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </mat-tab>
+
+    <!-- ================= Documentación ================= -->
+    <mat-tab label="Documentación">
+      <section class="documentacion glass-card">
+        <header>
+          <div>
+            <h4>Documentación pendiente</h4>
+            <p>Lista de comprobación de ortodoncia. Los archivos se guardan en Radiografías y Documentos del paciente.</p>
+          </div>
+        </header>
+        <div class="docs">
+          @for (d of docFields; track d.code) {
+            <div class="doc" [attr.data-status]="docs()[d.code]">
+              <div class="doc-titulo"><mat-icon>{{ d.icon }}</mat-icon><strong>{{ d.label }}</strong></div>
+              <label>
+                <span>Estado</span>
+                <mat-select [value]="docs()[d.code]" (selectionChange)="cambiarDoc(d.code, $event.value)" [disabled]="!canWrite">
+                  @for (s of docStatuses; track s[0]) { <mat-option [value]="s[0]">{{ s[1] }}</mat-option> }
+                </mat-select>
+              </label>
+              <label>
+                <span>Nota breve</span>
+                <input [(ngModel)]="docNotas[d.code]" (ngModelChange)="docsCambiados.set(true)" maxlength="200" [disabled]="!canWrite" />
+              </label>
+            </div>
+          }
+        </div>
+        <footer>
+          <span>«No requiere» se indica expresamente; lo que no se ha confirmado queda «Por revisar».</span>
+          @if (canWrite) {
+            <button mat-flat-button (click)="guardarDocs()" [disabled]="!docsCambiados()">
+              <mat-icon>check</mat-icon>Guardar documentación
+            </button>
+          }
+        </footer>
+      </section>
+    </mat-tab>
+
+    <!-- ================= Datos ================= -->
+    <mat-tab label="Datos de la ficha">
+      <section class="datos glass-card">
+        <dl>
+          <div><dt>Estado</dt><dd>{{ statusLabel[c.status] }}</dd></div>
+          <div><dt>Etapa</dt><dd>{{ c.stage || '—' }}</dd></div>
+          <div><dt>Aparatología</dt><dd>{{ c.appliance || '—' }}</dd></div>
+          <div><dt>TAD</dt><dd>{{ tadLabel[c.has_tad] }}</dd></div>
+          <div><dt>Ortodoncista</dt><dd>{{ c.professional_name || 'Sin asignar' }}</dd></div>
+          <div><dt>Inicio</dt><dd>{{ c.started_on ? (c.started_on | date: 'dd/MM/yyyy') : '—' }}</dd></div>
+          <div><dt>Duración estimada</dt><dd>{{ c.estimated_months ? c.estimated_months + ' meses' : '—' }}</dd></div>
+          <div><dt>Último control</dt><dd>{{ c.last_control_on ? (c.last_control_on | date: 'dd/MM/yyyy') : 'Sin registrar' }}</dd></div>
+          <div>
+            <dt>Próximo control</dt>
+            <dd [class.debe]="c.next_control_overdue">
+              {{ c.next_control_on ? (c.next_control_on | date: 'dd/MM/yyyy') : 'Sin fecha' }}{{ c.next_control_overdue ? ' (atrasado)' : '' }}
+            </dd>
+          </div>
+          <div class="full"><dt>Atención especial</dt><dd>{{ c.special_attention ? c.special_attention_note || 'Sí' : 'No' }}</dd></div>
+          <div class="full"><dt>Notas</dt><dd>{{ c.notes || '—' }}</dd></div>
+        </dl>
+        @if (canWrite) {
+          <button mat-stroked-button (click)="editar()"><mat-icon>edit</mat-icon>Editar datos</button>
+        }
+      </section>
+    </mat-tab>
+  </mat-tab-group>
+}
+@if (!cargando() && !caso()) {
+  <div class="vacio glass-card">
+    <mat-icon>sentiment_very_satisfied</mat-icon>
+    <strong>Este paciente no tiene ficha de ortodoncia</strong>
+    <span>Crea la ficha para llevar su plan de controles, las cuotas y la documentación.</span>
+    @if (canWrite) {
+      <button mat-flat-button (click)="nueva()"><mat-icon>add</mat-icon>Crear ficha de ortodoncia</button>
+    }
+  </div>
+}

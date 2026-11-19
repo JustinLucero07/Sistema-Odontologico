@@ -46,6 +46,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'orthodontics',
+        canActivate: [permissionGuard],
+        data: { permission: 'orthodontics:read' },
+        loadComponent: () =>
+          import('./features/orthodontics/orthodontics-page.component').then((m) => m.OrthodonticsPageComponent),
+      },
+      {
         path: 'patients/:id',
         canActivate: [permissionGuard],
         data: { permission: 'patients:read' },

@@ -53,6 +53,7 @@ const IC = {
   nube: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17 15.18 9l1.41 1.41L10 17z',
   dispositivos: 'M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z',
   reloj: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+  firma: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z',
   diente: 'M12 2.6c-4.6 0-7.9 2.5-7.9 6.7 0 2.9.8 5.2 1.4 8.2.5 2.2.8 4.3 2.3 4.3s1.8-2 2.3-4.1c.4-1.5 1-2.3 1.9-2.3s1.5.8 1.9 2.3c.5 2.1.8 4.1 2.3 4.1s1.8-2.1 2.3-4.3c.6-3 1.4-5.3 1.4-8.2 0-4.2-3.3-6.7-7.9-6.7z',
 };
 const svg = (n, t, color = '#fff') => `<svg viewBox="0 0 24 24" width="${t}" height="${t}" style="fill:${color};flex-shrink:0;display:block"><path d="${IC[n]}"/></svg>`;
@@ -84,10 +85,22 @@ function laptop(c, anchoPantalla) {
   el.alto = Math.round(anchoPantalla * 9 / 16) + 34 + 18;
   return el;
 }
+// Celular real: barra de estado arriba (con la isla dentro) y la app completa
+// debajo; el borde inferior se rellena con la misma pantalla desenfocada.
+const ICONOS_ESTADO = (c) => `<svg width="17" height="11" viewBox="0 0 17 11"><g fill="${c}"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></g></svg>
+<svg width="15" height="11" viewBox="0 0 15 11"><path fill="${c}" d="M7.5 2.2c2 0 3.9.8 5.3 2.1l1.1-1.1A9 9 0 0 0 7.5.6 9 9 0 0 0 1.1 3.2l1.1 1.1A7.5 7.5 0 0 1 7.5 2.2Zm0 3.1c1.2 0 2.3.4 3.1 1.2l1.1-1.1a6 6 0 0 0-8.4 0l1.1 1.1c.8-.8 1.9-1.2 3.1-1.2Zm0 3.1c-.4 0-.8.2-1.1.5L7.5 10l1.1-1.1c-.3-.3-.7-.5-1.1-.5Z"/></svg>
+<svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="${c}" stroke-opacity=".45"/><rect x="2" y="2" width="16" height="8" rx="1.8" fill="${c}"/><rect x="22.8" y="4" width="1.6" height="4" rx=".8" fill="${c}" fill-opacity=".5"/></svg>`;
 function telefono(c, alto) {
-  const ancho = Math.round(alto * 0.4618);
-  const el = h(`<div class="abs telefono" style="width:${ancho}px;height:${alto}px"><div class="pantalla"><div class="isla"></div></div></div>`);
-  el.firstElementChild.appendChild(c.imagen());
+  const int = Math.round((alto - 20) / 2.38);
+  const barra = Math.round(int * 0.14), appH = Math.round(int / 0.4619);
+  const ancho = int + 20, esc = int / 227;
+  const el = h(`<div class="abs telefono" style="width:${ancho}px;height:${alto}px"><div class="pantalla">
+    <div class="isla" style="top:${Math.round(barra * 0.28)}px;height:${Math.round(barra * 0.5)}px"></div>
+    <div class="estado" style="height:${barra}px;font-size:${Math.round(14 * esc)}px"><span>9:41</span><span class="iconos" style="transform:scale(${esc.toFixed(2)});transform-origin:right center">${ICONOS_ESTADO(C.tinta)}</span></div>
+    <div class="inicio"></div></div></div>`);
+  const fondo = c.imagen(); fondo.className = 'tel-fondo';
+  const app = c.imagen(); app.className = 'tel-app'; app.style.top = barra + 'px'; app.style.height = appH + 'px';
+  el.firstElementChild.prepend(fondo, app);
   el.ancho = ancho;
   return el;
 }
@@ -150,19 +163,19 @@ let fundidoFinal = 999;
 
 // ===================== ANUNCIO (40 s) =====================
 const FUNC = [
-  { n: '01', k: 'Agenda', t: 'Agenda<br><m>sin choques</m>', s: 'Cada profesional con su horario. Huecos libres al instante.', i: 'agenda', bg: 'papel',
-    chips: ['Día y semana', 'Recordatorios', 'Huecos libres'], web: ['web-03-agenda', 0.6, 1.6], movil: ['app-03-agenda', 1.4, 1.2] },
-  { n: '02', k: 'Odontograma', t: 'Odontograma<br><m>digital</m>', s: 'Marca caras y piezas con un toque y guarda cada versión.', i: 'diente', bg: 'verde',
-    chips: ['Caras y piezas', 'Versiones', 'Imprimible'], web: ['web-05-odontograma', 1.4, 2.4], movil: ['app-04-paciente', 10.2, 1.0] },
-  { n: '03', k: 'Oportunidades', t: 'A quién<br><m>escribir hoy</m>', s: 'Citas sin confirmar, cumpleaños y saldos, con el mensaje listo.', i: 'chat', bg: 'tinta',
-    chips: ['Por confirmar', 'Cumpleaños', 'Saldos'], web: ['web-06-oportunidades', 1.6, 1.6], movil: ['app-07-oportunidades', 4.2, 1.2] },
-  { n: '04', k: 'Cartera', t: 'Quién te debe,<br><m>al instante</m>', s: 'Cuánto abonó cada paciente y cuánto le falta.', i: 'billetera', bg: 'menta',
-    chips: ['Abonos', 'Saldos', 'Tratamientos'], web: ['web-07-cartera', 1.8, 1.7], movil: ['app-05-cartera', 4.0, 1.2] },
-  { n: '05', k: 'Finanzas', t: 'Tus números,<br><m>claros</m>', s: 'Ingresos, gastos fijos, utilidad y proyección de caja.', i: 'grafico', bg: 'papel',
-    chips: ['Gastos fijos', 'Utilidad', 'Proyección'], web: ['web-08-finanzas', 1.8, 1.9], movil: ['app-06-finanzas', 4.4, 1.1] },
-  { n: '06', k: 'Documentos', t: 'Comprobantes<br><m>con tu logo</m>', s: 'Recibos, estados de cuenta y certificados listos para imprimir.', i: 'recibo', bg: 'tinta',
-    web: ['web-09-comprobante', 1.2, 1.8], lupa: { z: 2.3, fx: 0.62, fy: 0.03 } },
-  { n: '07', k: 'Tu marca', t: 'Tu logo.<br><m>Tu color.</m>', s: 'La app se viste con la identidad de tu consulta.', i: 'paleta', bg: 'verde',
+  { n: '01', k: 'Agenda', t: 'Agenda<br><m>sin choques</m>', s: 'Cada profesional con su horario y recordatorios automáticos.', i: 'agenda', bg: 'papel',
+    chips: ['Día y semana', 'Recordatorios', 'Huecos libres'], web: ['web-03-agenda', 0.6, 1.6], movil: ['app-21-glass', 1.1, 0.7] },
+  { n: '02', k: 'Odontograma', t: 'Odontograma<br><m>digital</m>', s: 'Odontograma y periodontograma, con varios hallazgos por pieza.', i: 'diente', bg: 'verde',
+    chips: ['Varios por pieza', 'Periodontograma', 'Versiones'], web: ['web-05-odontograma', 1.4, 2.4], movil: ['app-22-ficha', 6.2, 0.4] },
+  { n: '03', k: 'Facturación SRI', t: 'Factura<br><m>electrónica</m>', s: 'Autorizada por el SRI en segundos, con PDF y XML para tu paciente.', i: 'recibo', bg: 'tinta',
+    web: ['web-21-emitir', 19.0, 1.0], lupa: { z: 2.6, fx: 0.49, fy: 0.44 } },
+  { n: '04', k: 'Consentimientos', t: 'Firma<br><m>digital</m>', s: 'En la pantalla o desde el celular del paciente, a distancia.', i: 'firma', bg: 'menta',
+    chips: ['En pantalla', 'A distancia', 'PDF firmado'], web: ['web-22-firma', 2.2, 1.6], movil: ['movil-23-firma', 10.8, 1.3] },
+  { n: '05', k: 'Sin internet', t: 'Funciona<br><m>sin internet</m>', s: 'Sigue atendiendo: los cambios se suben solos al volver la red.', i: 'nube', bg: 'verde',
+    chips: ['Sin conexión', 'Se sincroniza solo', 'Sin perder datos'], web: ['web-04-paciente', 1.5, 1.2], movil: ['app-23-sin-red', 8.8, 1.0] },
+  { n: '06', k: 'Finanzas', t: 'Tus números,<br><m>claros</m>', s: 'Saldos, ingresos, gastos fijos, utilidad y proyección de caja.', i: 'grafico', bg: 'papel',
+    web: ['web-08-finanzas', 4.2, 1.4], lupa: { z: 2.4, fx: 0.59, fy: 0.36 } },
+  { n: '07', k: 'Tu marca', t: 'Tu logo.<br><m>Tu color.</m>', s: 'La app se viste con la identidad de tu consulta.', i: 'paleta', bg: 'tinta',
     web: ['web-10-marca', 5.2, 1.5], lupa: { z: 3.0, fx: 0.4, fy: 0.62 } },
   { n: '08', k: 'Legal', t: 'Todo en regla,<br><m>sin papeleo</m>', s: 'Protección de datos, respaldos diarios y acceso seguro.', i: 'escudo', bg: 'papel',
     web: ['web-11-legal', 0.6, 1.3], lupa: { z: 2.6, fx: 0.2, fy: 0.45 } },
@@ -276,7 +289,7 @@ function anuncio() {
   escena(33, 34, 'tinta', (el) => {
     const tt = texto(`Es para <m>ti.</m>`, 'titulo', `left:40px;right:40px;text-align:center;top:${VERT ? 380 : 170}px;font-size:${VERT ? 150 : 160}px`);
     el.appendChild(tt);
-    const datos = [['escudo', 'Datos protegidos'], ['nube', 'Respaldo diario'], ['dispositivos', 'Web y celular'], ['reloj', 'Listo en minutos']];
+    const datos = [['recibo', 'Factura SRI'], ['escudo', 'Datos protegidos'], ['dispositivos', 'Web, celular y tablet'], ['nube', 'Sin internet']];
     const chips = datos.map(([ic, txt], k) => {
       const c2 = h(`<div class="abs chip" style="background:#1f2c2e;padding:${VERT ? '22px 34px' : '20px 32px'};font-size:${VERT ? 38 : 34}px;${VERT ? `left:50%;top:${760 + k * 150}px` : `left:${k % 2 ? 980 : 420}px;top:${k < 2 ? 520 : 650}px`}">${icono(ic, VERT ? 56 : 50, C.amarillo, C.tinta)}${txt}</div>`);
       el.appendChild(c2); return c2;

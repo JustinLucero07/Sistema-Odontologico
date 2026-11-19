@@ -19,6 +19,7 @@ from app.modules.laboratory import models as laboratory_models  # noqa: F401
 from app.modules.medical_history import models as medical_history_models  # noqa: F401
 from app.modules.imaging import models as imaging_models  # noqa: F401
 from app.modules.odontogram import models as odontogram_models  # noqa: F401
+from app.modules.orthodontics import models as orthodontics_models  # noqa: F401
 from app.modules.periodontogram import models as periodontogram_models  # noqa: F401
 from app.modules.ai_assist import models as ai_assist_models  # noqa: F401
 from app.modules.mail import models as mail_models  # noqa: F401

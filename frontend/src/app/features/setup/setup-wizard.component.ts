@@ -103,6 +103,8 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   cierra = '18:00';
   readonly diasSel = signal(new Set(['1', '2', '3', '4', '5', '6']));
   readonly ocultos = signal(new Set<string>(OCULTOS_POR_TIPO.independiente));
+  /** Especialidad de ortodoncia: muestra el módulo de fichas ORT y plan de cuotas. */
+  readonly ortodoncia = signal(false);
 
   readonly usuario = computed(() => this.auth.currentUser());
   readonly tipoTexto = computed(
@@ -140,6 +142,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
         this.tipo.set(c.practice_type ?? 'clinica');
         this.ocultos.set(new Set(c.hidden_modules ?? []));
       }
+      this.ortodoncia.set(!!c.orthodontics_enabled);
     } catch {
       // Sin datos previos se empieza en blanco.
     }
@@ -244,6 +247,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
       closes_at: this.cierra,
       work_days: [...this.diasSel()].sort().join(''),
       hidden_modules: [...this.ocultos()],
+      orthodontics_enabled: this.ortodoncia(),
     };
     try {
       if (this.edit) {

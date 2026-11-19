@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, TemplateRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, TemplateRef, ViewChild, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,6 +34,8 @@ import { PeriodontogramTabComponent } from '../../periodontogram/periodontogram-
 import { TreatmentPlansTabComponent } from '../../treatment-plans/treatment-plans-tab.component';
 import { PatientPrivacyCardComponent } from '../../../shared/legal/patient-privacy-card.component';
 import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { BrandingService } from '../../../core/branding/branding.service';
+import { OrthoTabComponent } from '../../orthodontics/ortho-tab.component';
 
 @Component({
   selector: 'app-patient-detail',
@@ -63,6 +65,7 @@ import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.com
     PatientAppointmentsTabComponent,
     ClinicalRecordsTabComponent,
     PatientPrivacyCardComponent,
+    OrthoTabComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.scss',
@@ -70,6 +73,22 @@ import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.com
 export class PatientDetailComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly finance = inject(FinanceService);
+  private readonly branding = inject(BrandingService);
+  /** Pestaña de ortodoncia: solo si la consulta activó la especialidad. */
+  readonly showOrtho = computed(() => this.branding.orthodontics() && this.auth.hasPermission('orthodontics:read'));
+  readonly tabIndex = signal(0);
+  // ?tab=ortodoncia (desde la lista de ortodoncia) abre esa pestaña en cuanto
+  // se sabe que la consulta tiene ortodoncia (la marca puede llegar después).
+  private pedirOrto = inject(ActivatedRoute).snapshot.queryParamMap.get('tab') === 'ortodoncia';
+  private readonly abrirOrto = effect(
+    () => {
+      if (this.showOrtho() && this.patient() && untracked(() => this.pedirOrto)) {
+        this.pedirOrto = false;
+        setTimeout(() => this.tabIndex.set(1));
+      }
+    },
+    { allowSignalWrites: true },
+  );
   /** null until the account loads, or when the user cannot see money at all —
    *  the chip then stays absent rather than showing a misleading zero. */
   readonly balance = signal<number | null>(null);

@@ -75,6 +75,9 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
   Set<String> _dias = {'1', '2', '3', '4', '5', '6'};
   Set<String> _ocultos = {..._ocultosPorTipo['independiente']!};
 
+  /// Especialidad de ortodoncia (la misma opción que en la web).
+  bool _ortodoncia = false;
+
   static const _titulos = ['Tu consulta', 'Datos', 'Tu marca', 'Horario', 'Módulos'];
 
   @override
@@ -117,6 +120,7 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
           _tipo = '${c['practice_type'] ?? 'clinica'}';
           _ocultos = {...((c['hidden_modules'] as List?) ?? []).map((e) => '$e')};
         }
+        _ortodoncia = c['orthodontics_enabled'] == true;
       });
     } catch (_) {}
   }
@@ -178,6 +182,7 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
       'closes_at': _hhmm(_cierra),
       'work_days': (_dias.toList()..sort()).join(),
       'hidden_modules': _ocultos.toList(),
+      'orthodontics_enabled': _ortodoncia,
     };
     try {
       final api = ref.read(apiProvider);
@@ -576,6 +581,19 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
       titulo: '¿Qué quieres ver?',
       sub: 'Agenda, pacientes y finanzas siempre están. Lo demás lo activas cuando quieras.',
       hijos: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GlassCard(
+            child: SwitchListTile(
+              value: _ortodoncia,
+              activeThumbColor: _color,
+              onChanged: (v) => setState(() => _ortodoncia = v),
+              secondary: Icon(Icons.sentiment_very_satisfied_outlined, color: _ortodoncia ? _color : null),
+              title: const Text('Atiendo ortodoncia', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Fichas ORT, plan de controles con cuotas y documentación'),
+            ),
+          ),
+        ),
         for (final (codigo, nombre, icono) in modulosOpcionales)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),

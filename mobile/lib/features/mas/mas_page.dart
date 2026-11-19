@@ -19,6 +19,7 @@ import '../inventario/inventario_page.dart';
 import '../laboratorio/laboratorio_page.dart';
 import '../legal/cumplimiento_page.dart';
 import '../oportunidades/oportunidades_page.dart';
+import '../ortodoncia/ortodoncia.dart';
 import '../agenda/huecos_page.dart';
 import '../reportes/reportes_page.dart';
 import '../../shared/widgets/formulario.dart';
@@ -50,6 +51,15 @@ final _grupos = <(String, List<_Modulo>)>[
   (
     'Consulta',
     [
+      // Solo si la consulta activó la especialidad de ortodoncia.
+      _Modulo(
+        'Ortodoncia',
+        Icons.sentiment_very_satisfied_outlined,
+        Tonos.verde,
+        'orthodontics:read',
+        () => const OrtodonciaPage(),
+        'orthodontics',
+      ),
       _Modulo(
         'Oportunidades',
         Icons.tips_and_updates_outlined,
@@ -220,7 +230,8 @@ class MasPage extends ConsumerWidget {
     final marca = ref.watch(marcaProvider);
     bool ve(_Modulo m) =>
         (m.permiso == null || (usuario?.puede(m.permiso!) ?? false)) &&
-        (m.modulo == null || marca.visible(m.modulo!));
+        (m.modulo == null ||
+            (m.modulo == 'orthodontics' ? marca.ortodoncia : marca.visible(m.modulo!)));
     final scheme = Theme.of(context).colorScheme;
 
     return ListView(

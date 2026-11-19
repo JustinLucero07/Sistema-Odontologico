@@ -30,6 +30,7 @@ class ClinicOut(BaseModel):
     closes_at: str
     work_days: str
     hidden_modules: list[str]
+    orthodontics_enabled: bool = False
     setup_completed_at: datetime | None
     legal_rep_name: str | None
     legal_rep_id: str | None
@@ -76,6 +77,7 @@ class BrandingFields(BaseModel):
     closes_at: str | None = None
     work_days: str | None = None
     hidden_modules: list[str] | None = None
+    orthodontics_enabled: bool | None = None
 
     @field_validator("practice_type")
     @classmethod
@@ -273,6 +275,7 @@ class Branding(BaseModel):
     primary_color: str | None
     secondary_color: str | None
     hidden_modules: list[str]
+    orthodontics_enabled: bool = False
     setup_completed: bool
     opens_at: str
     closes_at: str

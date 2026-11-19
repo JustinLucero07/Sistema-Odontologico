@@ -11,10 +11,16 @@
         }
       </p>
     </div>
-    <button mat-flat-button *appHasPermission="'patients:write'" (click)="newPatient()">
-      <mat-icon>person_add</mat-icon>
-      Nuevo paciente
-    </button>
+    <div class="acciones-cabecera" *appHasPermission="'patients:write'">
+      <button mat-stroked-button (click)="importPatients()">
+        <mat-icon>upload_file</mat-icon>
+        Importar desde Excel
+      </button>
+      <button mat-flat-button (click)="newPatient()">
+        <mat-icon>person_add</mat-icon>
+        Nuevo paciente
+      </button>
+    </div>
   </header>
 
   <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">

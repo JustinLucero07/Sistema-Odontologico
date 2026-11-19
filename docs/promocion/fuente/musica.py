@@ -259,6 +259,54 @@ def campana_anuncio():
     return drums, music, fx, D
 
 
+def lanzamiento():
+    """Campaña de lanzamiento (52 s): misma línea que la campaña, con una
+    sección propia para la app y otra para los tres dispositivos."""
+    D = 52.6; drums, music, fx = buf(D), buf(D), buf(D)
+    add(music, colchon([50, 57, 62, 65], 5.0, 1100), 0.0, 1.5)
+    arpegio(PROG_C[0][1], 1.0, 2, 500, 2600, 0.8, music)
+    add(fx, campana(86, 1.6), 1.3, 0.9); add(fx, campana(93, 1.6), 2.1, 0.6)
+    add(fx, subida(1.8, 9000), 3.2)
+    add(fx, impacto(0.9), 5.0)
+    def bloque(a, b, bombo=True, palmas=True, arp=True, g_arp=1.0):
+        t = a; c = 0
+        while t < b - 1e-6:
+            raiz, ch = PROG_C[c % 4]
+            add(music, colchon(ch, min(4 * B, b - t), 1400), t, 0.8)
+            if arp: arpegio(ch, t, 1, 1800, 4200, g_arp, music)
+            for k in range(4):
+                tb = t + k * B
+                if tb >= b: break
+                if bombo: add(drums, kick(0.75), tb)
+                if palmas and k % 2 == 1: add(drums, clap(0.7), tb)
+                add(drums, hat(False, 0.8), tb + B / 2)
+                add(drums, hat(False, 0.35), tb + B / 4); add(drums, hat(False, 0.35), tb + 3 * B / 4)
+                for q in (1, 3): add(music, sub_pulso(raiz - 12, B / 4), tb + q * S)
+            t += 4 * B; c += 1
+    bloque(5.0, 10.0, palmas=False)
+    bloque(10.0, 28.0)
+    for k in range(6): add(fx, barrido(0.45, 0.7), 10.0 + 3 * k - 0.22)
+    for k in range(6): add(fx, tic(), 10.45 + 3 * k)
+    # La app: respiro sin bombo y vuelta con fuerza.
+    add(fx, barrido(0.6, 0.8), 27.75); add(fx, impacto(0.8), 28.0)
+    bloque(28.0, 31.2, bombo=False, palmas=False, g_arp=1.0)
+    add(drums, redoble(0.8), 30.4)
+    bloque(31.2, 37.6, g_arp=0.9)
+    add(fx, tic(1.1), 34.4)
+    # Tres dispositivos.
+    add(fx, barrido(0.6, 0.8), 37.35)
+    bloque(37.6, 43.0, g_arp=0.8)
+    # Beneficios: sin bombo, subida al cierre.
+    bloque(43.0, 47.0, bombo=False, palmas=False, g_arp=0.7)
+    for k in range(4): add(fx, tic(1.2), 43.5 + k * 0.5)
+    add(fx, subida(2.0, 10000), 45.0); add(drums, redoble(1.0), 46.0)
+    add(fx, impacto(1.1), 47.0)
+    bloque(47.0, 49.0, palmas=True)
+    add(music, colchon([38, 50, 57, 62, 65, 69], 3.6, 2400), 49.0, 1.8)
+    add(fx, campana(86, 2.5), 49.0, 0.7)
+    return drums, music, fx, D
+
+
 def mezclar(drums, music, fx, D, nombre):
     # Bombeo: la música baja con cada bombo (estilo house).
     pulso = np.zeros(len(music)); n = int(B * SR)
@@ -288,4 +336,4 @@ def mezclar(drums, music, fx, D, nombre):
 
 if __name__ == '__main__':
     q = sys.argv[1]
-    mezclar(*({'anuncio': anuncio, 'teaser': teaser, 'campana': campana_anuncio}[q])(), f'{q}.wav')
+    mezclar(*({'anuncio': anuncio, 'teaser': teaser, 'campana': campana_anuncio, 'lanzamiento': lanzamiento}[q])(), f'{q}.wav')

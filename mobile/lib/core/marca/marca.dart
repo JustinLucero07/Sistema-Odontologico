@@ -20,6 +20,7 @@ class Marca {
     this.eslogan,
     required this.color,
     this.ocultos = const {},
+    this.ortodoncia = false,
     this.configurada = true,
     this.abre = '08:00',
     this.cierra = '18:00',
@@ -35,6 +36,10 @@ class Marca {
   final String? eslogan;
   final Color color;
   final Set<String> ocultos;
+
+  /// La consulta atiende ortodoncia (se activa en la web o aquí): muestra el
+  /// módulo de fichas ORT, plan de cuotas y documentación.
+  final bool ortodoncia;
   final bool configurada;
   final String abre;
   final String cierra;
@@ -66,6 +71,7 @@ class Marca {
     eslogan: j['slogan'] as String?,
     color: colorDeHex(j['primary_color'] as String?) ?? porDefecto.color,
     ocultos: {...((j['hidden_modules'] as List?) ?? []).map((e) => '$e')},
+    ortodoncia: j['orthodontics_enabled'] as bool? ?? false,
     configurada: j['setup_completed'] as bool? ?? true,
     abre: '${j['opens_at'] ?? '08:00'}',
     cierra: '${j['closes_at'] ?? '18:00'}',
@@ -82,6 +88,7 @@ class Marca {
     'slogan': eslogan,
     'primary_color': hexDeColor(color),
     'hidden_modules': ocultos.toList(),
+    'orthodontics_enabled': ortodoncia,
     'setup_completed': configurada,
     'opens_at': abre,
     'closes_at': cierra,
@@ -155,7 +162,7 @@ class MarcaController extends StateNotifier<Marca> {
     Marca.actual = c;
     state = Marca(
       nombre: state.nombre, tipo: state.tipo, logo: state.logo, eslogan: state.eslogan, color: c,
-      ocultos: state.ocultos, configurada: state.configurada, abre: state.abre, cierra: state.cierra, dias: state.dias,
+      ocultos: state.ocultos, ortodoncia: state.ortodoncia, configurada: state.configurada, abre: state.abre, cierra: state.cierra, dias: state.dias,
       sesionMinutos: state.sesionMinutos, terminosPendientes: state.terminosPendientes, permisoVence: state.permisoVence,
     );
   }
@@ -166,8 +173,25 @@ class MarcaController extends StateNotifier<Marca> {
   }
 }
 
+/// Al volver a la app se pide la marca otra vez: si en la web activaron un
+/// módulo (por ejemplo ortodoncia), aparece aquí sin cerrar sesión.
+class _AlVolver with WidgetsBindingObserver {
+  _AlVolver(this.alVolver);
+  final VoidCallback alVolver;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed) alVolver();
+  }
+}
+
 final marcaProvider = StateNotifierProvider<MarcaController, Marca>((ref) {
   final c = MarcaController(ref);
+  final observador = _AlVolver(() {
+    if (ref.read(authProvider).estado == EstadoSesion.autenticado) c.actualizar();
+  });
+  WidgetsBinding.instance.addObserver(observador);
+  ref.onDispose(() => WidgetsBinding.instance.removeObserver(observador));
   // Al iniciar sesión se pide la marca vigente al servidor.
   ref.listen(authProvider, (antes, ahora) {
     if (ahora.estado == EstadoSesion.autenticado && antes?.estado != EstadoSesion.autenticado) {

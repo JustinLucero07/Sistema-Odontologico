@@ -31,11 +31,20 @@ import 'package:odonto_movil/features/configuracion/roles_plantillas.dart';
 import 'package:odonto_movil/features/pacientes/periodontograma.dart';
 import 'package:odonto_movil/features/pacientes/comunicacion.dart';
 import 'package:odonto_movil/features/facturacion/facturacion_page.dart';
+import 'package:odonto_movil/features/ortodoncia/ortodoncia.dart';
 
 const _pid = 'p1';
 
 /// Respuestas de ejemplo con la misma forma que el servidor real.
 final Map<String, Object?> _datos = {
+  '/orthodontics/cases': {
+    'items': [_fichaOrto],
+    'total': 3,
+    'active': 2,
+    'inactive': 1,
+  },
+  '/orthodontics/cases/o1': _fichaOrto,
+  '/patients/$_pid/orthodontics': [_fichaOrto],
   '/finance/cash-session': {
     'id': 's1',
     'opened_at': '2026-10-03T13:00:00Z',
@@ -698,6 +707,60 @@ final _devuelta = {
     ],
   };
 
+
+const _fichaOrto = {
+  'id': 'o1',
+  'number': 1,
+  'code': 'ORT-0001',
+  'patient': {'id': 'p1', 'first_name': 'Ana', 'last_name': 'Mora', 'national_id': '0102030405', 'phone': '0991112233', 'whatsapp': null},
+  'professional_id': null,
+  'professional_name': 'Dra. Paz',
+  'charge_id': 'ch1',
+  'status': 'activo',
+  'stage': 'Alineación y nivelación',
+  'needs_review': true,
+  'has_tad': 'si',
+  'appliance': 'Brackets metálicos',
+  'started_on': '2026-07-16',
+  'estimated_months': 24,
+  'agreed_total': '900.00',
+  'special_attention': false,
+  'special_attention_note': null,
+  'doc_xrays': 'listo',
+  'doc_photos': 'por_revisar',
+  'doc_models': 'no_requiere',
+  'doc_folder': 'pendiente',
+  'doc_notes': {'doc_xrays': 'Panorámica 2026'},
+  'notes': null,
+  'paid': '130.00',
+  'balance': '770.00',
+  'controls_total': '920.00',
+  'difference': '20.00',
+  'controls_count': 2,
+  'controls_paid': 1,
+  'last_control_on': '2026-07-16',
+  'next_control_on': '2026-08-16',
+  'next_control_overdue': true,
+  'docs_pending': 2,
+  'unassigned_paid': '0.00',
+  'controls': [
+    {
+      'id': 'k1', 'number': 1, 'planned_on': '2026-07-16', 'attended_on': '2026-07-16',
+      'planning': 'Brackeado inferior', 'arches': '14 NiTi sup', 'elastics': null, 'tads': null,
+      'due_on': '2026-07-16', 'amount': '100.00', 'notes': null, 'paid': '100.00', 'balance': '0.00', 'status': 'pagada',
+      'payments': [
+        {'id': 'pg1', 'amount': '100.00', 'method': 'efectivo', 'reference': null, 'received_on': '2026-07-16',
+         'notes': null, 'voided_at': null, 'void_reason': null},
+      ],
+    },
+    {
+      'id': 'k2', 'number': 2, 'planned_on': '2026-08-16', 'attended_on': null, 'planning': null, 'arches': null,
+      'elastics': null, 'tads': null, 'due_on': '2026-08-16', 'amount': '820.00', 'notes': null, 'paid': '30.00',
+      'balance': '790.00', 'status': 'vencida', 'payments': [],
+    },
+  ],
+};
+
 const _credito = {
   'id': 'c1',
   'patient_name': 'Ana Mora',
@@ -797,6 +860,8 @@ void main() {
     'Plantillas de mensajes': const PlantillasMensajePage(),
     'Plantillas de consentimiento': const PlantillasConsentimientoPage(),
     'Facturación': const FacturacionPage(),
+    'Ortodoncia': const OrtodonciaPage(),
+    'Ficha de ortodoncia': const Scaffold(body: PestanaOrtodoncia(pacienteId: _pid, nombre: 'Ana Mora')),
   };
 
   for (final e in paginas.entries) {
@@ -845,6 +910,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Ortodoncia: ficha, documentación y plan de cuotas', (tester) async {
+    await _abrir(tester, const Scaffold(body: PestanaOrtodoncia(pacienteId: _pid, nombre: 'Ana Mora')));
+    expect(find.text('ORT-0001 · Ortodoncia'), findsOneWidget);
+    expect(find.text('Requiere revisión'), findsOneWidget);
+    expect(find.textContaining('por encima del valor acordado'), findsOneWidget);
+    expect(find.text('Panorámica 2026'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('02'), 300);
+    expect(find.text('Vencida'), findsOneWidget);
+    expect(find.textContaining('Saldo \$ 790'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Ortodoncia: lista con filtros', (tester) async {
+    await _abrir(tester, const OrtodonciaPage());
+    expect(find.text('Ana Mora'), findsOneWidget);
+    expect(find.text('2 en tratamiento'), findsOneWidget);
+    expect(find.text('Control atrasado'), findsOneWidget);
+    expect(find.text('Atrasado'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Asistente de bienvenida: recorre los 5 pasos', (tester) async {
     await _abrir(tester, const BienvenidaPage());
     expect(find.text('Trabajo solo'), findsOneWidget);
@@ -857,7 +943,9 @@ void main() {
     // Sin aceptar los términos no se puede terminar.
     final boton = tester.widget<FilledButton>(find.ancestor(of: find.text('Empezar a usar el sistema'), matching: find.byType(FilledButton)));
     expect(boton.onPressed, isNull);
-    await tester.ensureVisible(find.byType(CheckboxListTile));
+    // Al centro: abajo la tapa la barra de botones del asistente.
+    await Scrollable.ensureVisible(tester.element(find.byType(CheckboxListTile)), alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pumpAndSettle();
     final listo = tester.widget<FilledButton>(find.ancestor(of: find.text('Empezar a usar el sistema'), matching: find.byType(FilledButton)));

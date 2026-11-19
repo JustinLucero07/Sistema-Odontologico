@@ -22,6 +22,9 @@ class Api {
   Future<dynamic> put(String ruta, [Object? datos]) =>
       _enviar(() => _dio.put(ruta, data: datos));
 
+  Future<dynamic> patch(String ruta, [Object? datos]) =>
+      _enviar(() => _dio.patch(ruta, data: datos));
+
   Future<dynamic> delete(String ruta) => _enviar(() => _dio.delete(ruta));
 
   /// Archivo binario (documentos, imágenes) con la sesión del usuario.

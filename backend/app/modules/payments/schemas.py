@@ -107,6 +107,7 @@ class PaymentOut(BaseModel):
     charge_id: uuid.UUID | None
     credit_id: uuid.UUID | None = None
     split_group_id: uuid.UUID | None = None
+    ortho_control_id: uuid.UUID | None = None
     cash_session_id: uuid.UUID | None
     amount: Decimal
     method: str

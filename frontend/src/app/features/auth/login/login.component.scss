@@ -249,6 +249,22 @@
   --mdc-outlined-text-field-focus-outline-color: #5ee0ce;
   --mdc-outlined-text-field-caret-color: #5ee0ce;
   --mat-form-field-focus-select-arrow-color: #5ee0ce;
+  // Errores legibles sobre el vidrio oscuro (el rojo por defecto es para fondo claro).
+  --mdc-outlined-text-field-error-outline-color: #ff8a80;
+  --mdc-outlined-text-field-error-hover-outline-color: #ffaba4;
+  --mdc-outlined-text-field-error-focus-outline-color: #ff8a80;
+  --mdc-outlined-text-field-error-label-text-color: #ffaba4;
+  --mdc-outlined-text-field-error-focus-label-text-color: #ffaba4;
+  --mdc-outlined-text-field-error-hover-label-text-color: #ffc7c2;
+  --mat-form-field-error-text-color: #ffaba4;
+  --mdc-checkbox-unselected-icon-color: rgba(255, 255, 255, 0.5);
+  --mdc-checkbox-unselected-hover-icon-color: rgba(255, 255, 255, 0.75);
+  --mdc-checkbox-unselected-focus-icon-color: rgba(255, 255, 255, 0.75);
+  --mdc-checkbox-selected-icon-color: #5ee0ce;
+  --mdc-checkbox-selected-hover-icon-color: #5ee0ce;
+  --mdc-checkbox-selected-focus-icon-color: #5ee0ce;
+  --mdc-checkbox-selected-checkmark-color: #0b3b36;
+  --mat-checkbox-label-text-color: rgba(255, 255, 255, 0.78);
 
   .mat-mdc-form-field-icon-prefix > mat-icon {
     padding: 0 6px 0 4px;
@@ -294,6 +310,11 @@
   .mat-mdc-icon-button {
     color: rgba(255, 255, 255, 0.7);
   }
+}
+
+.login-recordar {
+  margin: -4px 0 6px -10px;
+  font-size: 0.85rem;
 }
 
 .login-error {

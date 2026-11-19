@@ -4,7 +4,36 @@ Todo está pensado para vender a **odontólogos que trabajan solos, consultorios
 
 **Estilo:** anuncio para redes con bloques de color sólido que cambian al ritmo (sin degradados), tipografía grande con resaltador amarillo y las pantallas reales **completas**: la web en una laptop y la app en un celular, lado a lado. Música original estilo house pop (120 BPM) con gancho, drop y segundo drop en el cierre.
 
-## Campaña principal (la más profesional)
+## Lanzamiento: la versión más nueva (recomendada)
+
+| Archivo | Formato | Para qué |
+|---|---|---|
+| `lanzamiento-horizontal.mp4` | 1920×1080, 52 s | YouTube, página web, presentaciones |
+| `lanzamiento-vertical.mp4` | 1080×1920, 52 s | Reels, TikTok, estados de WhatsApp |
+
+Mismo estilo premium de la campaña, con todo lo nuevo del sistema: facturación
+electrónica autorizada por el SRI, consentimientos firmados en pantalla y desde
+el celular del paciente, la app con diseño Liquid Glass y login animado, el
+trabajo sin internet y la versión para tablet.
+
+| Tiempo | Escena |
+|---|---|
+| 0–5 s | Logo y «Toda tu consulta dental. Ahora también factura.» |
+| 5–10 s | El sistema en la computadora |
+| 10–28 s | Agenda, ficha completa, odontograma, factura electrónica, firma de consentimientos y finanzas |
+| 28–37,6 s | La app: ingreso animado, navegación Liquid Glass y sin internet |
+| 37,6–43 s | Computadora, tablet y celular con los mismos datos |
+| 43–47 s | Beneficios |
+| 47–52 s | Cierre: «Solicita una demostración» |
+
+**Con voz:** el guion de locución, con el segundo exacto de cada frase, está en
+`LOCUCION-LANZAMIENTO.md`. Grabada la voz, `fuente/mezclar-voz.sh` la une al video
+y baja la música sola mientras se habla.
+
+Las facturas que aparecen son de demostración (la emisión real usa la firma de
+cada consulta y el SRI); todas las pantallas son del sistema real.
+
+## Campaña principal (anterior)
 
 | Archivo | Formato | Para qué |
 |---|---|---|
@@ -37,7 +66,7 @@ CONTACTO="WhatsApp 099 123 4567" ./armar-todo.sh solo-montaje
 | `video-promocional-vertical.mp4` | 1080×1920, 40 s | El mismo anuncio para Instagram Reels, TikTok y estados de WhatsApp |
 | `teaser-proximamente-horizontal.mp4` | 1920×1080, 20 s | Avance «Próximamente» para generar expectativa antes del lanzamiento |
 | `teaser-proximamente-vertical.mp4` | 1080×1920, 20 s | El mismo avance en vertical |
-| `tomas-sin-edicion.mp4` | 1920×1080, 4 min 42 s | Todas las tomas reales seguidas, sin edición, para editar a su gusto |
+| `tomas-sin-edicion.mp4` | 1920×1080, 4 min, sin audio | Las 14 tomas reales actuales (web, celular y tablet) seguidas, sin edición, para editar a su gusto |
 | `tomas/` | Web 1920×1080 · App 1080×2338 | Cada toma por separado (13 de la web y 7 del celular) |
 | `escenas/` | PNG | 13 cuadros del anuncio en horizontal y vertical, para publicaciones sueltas o carruseles |
 

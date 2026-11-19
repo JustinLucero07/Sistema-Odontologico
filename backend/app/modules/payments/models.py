@@ -93,6 +93,11 @@ class Payment(UUIDPKMixin, TenantMixin, Base):
         UUID(as_uuid=True), ForeignKey("credits.id"), nullable=True, index=True
     )
     split_group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Abono a una cuota del plan de ortodoncia (el pago sigue ligado al cargo
+    # del tratamiento; esto solo dice a qué cuota se aplicó).
+    ortho_control_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ortho_controls.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     cash_session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("cash_sessions.id"), nullable=True, index=True
     )

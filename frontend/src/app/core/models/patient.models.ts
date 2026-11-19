@@ -83,3 +83,36 @@ export interface MedicalHistory {
 export type MedicalHistoryCreate = Partial<
   Omit<MedicalHistory, 'id' | 'patient_id' | 'created_by_id' | 'created_at'>
 >;
+
+export type ImportField =
+  | 'full_name'
+  | 'first_name'
+  | 'last_name'
+  | 'national_id'
+  | 'birth_date'
+  | 'sex'
+  | 'phone'
+  | 'whatsapp'
+  | 'email'
+  | 'address'
+  | 'city'
+  | 'occupation'
+  | 'emergency_contact_name'
+  | 'emergency_contact_phone'
+  | 'notes';
+
+export interface PatientImportRow {
+  row: number;
+  status: 'nuevo' | 'duplicado' | 'error';
+  errors: string[];
+  duplicate: string | null;
+  data: PatientCreate;
+}
+
+export interface PatientImportPreview {
+  headers: string[];
+  mapping: Record<string, ImportField | null>;
+  fields: { code: ImportField; label: string }[];
+  rows: PatientImportRow[];
+  counts: { nuevo: number; duplicado: number; error: number };
+}

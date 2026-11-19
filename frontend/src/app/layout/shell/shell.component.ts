@@ -34,6 +34,8 @@ interface NavItem {
   permission?: string;
   /** Módulo opcional: la consulta puede ocultarlo en Personalización. */
   module?: string;
+  /** Solo si la consulta activó la especialidad de ortodoncia. */
+  orthodontics?: boolean;
 }
 
 interface NavSection {
@@ -97,6 +99,7 @@ export class ShellComponent {
         { label: 'Panel principal', icon: 'space_dashboard', route: '/dashboard' },
         { label: 'Agenda', icon: 'event', route: '/agenda', permission: 'appointments:read' },
         { label: 'Pacientes', icon: 'groups', route: '/patients', permission: 'patients:read' },
+        { label: 'Ortodoncia', icon: 'sentiment_very_satisfied', route: '/orthodontics', permission: 'orthodontics:read', orthodontics: true },
         { label: 'Oportunidades', icon: 'tips_and_updates', route: '/opportunities', permission: 'patients:read', module: 'opportunities' },
       ],
     },
@@ -334,7 +337,9 @@ export class ShellComponent {
     const ocultos = this.branding.hidden();
     return section.items.filter(
       (item) =>
-        (!item.permission || this.auth.hasPermission(item.permission)) && !(item.module && ocultos.has(item.module)),
+        (!item.permission || this.auth.hasPermission(item.permission)) &&
+        !(item.module && ocultos.has(item.module)) &&
+        (!item.orthodontics || this.branding.orthodontics()),
     );
   }
 

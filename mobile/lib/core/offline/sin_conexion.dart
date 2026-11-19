@@ -241,10 +241,10 @@ class SinConexion extends ChangeNotifier {
     }
     if (!kIsWeb) {
       try {
+        // El aviso sigue al estado de la red del sistema: aparece al cortarse
+        // y se va al volver (y entonces se sube lo pendiente).
         _red = Connectivity().onConnectivityChanged.listen(
-          (r) {
-            if (r.any((x) => x != ConnectivityResult.none)) sincronizar();
-          },
+          (r) => _estado(r.any((x) => x != ConnectivityResult.none)),
           onError: (_) {}, // sin el servicio de red del sistema, queda el reintento periódico
         );
       } catch (_) {}

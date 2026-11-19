@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/repositorios.dart';
 import '../../core/models/paciente.dart';
 import '../../shared/widgets/estado_vacio.dart';
+import 'importar_pacientes.dart';
 import 'paciente_detalle_page.dart';
 import 'pestanas.dart';
 import '../../core/auth/auth_controller.dart';
@@ -86,7 +87,10 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-            child: TextField(
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
               controller: _controlador,
               onChanged: _buscar,
               textInputAction: TextInputAction.search,
@@ -105,6 +109,19 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                         },
                       ),
               ),
+            ),
+                ),
+                if (puedeCrear) ...[
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Importar desde Excel',
+                    icon: const Icon(Icons.upload_file),
+                    onPressed: () async {
+                      if (await importarPacientes(context)) ref.invalidate(pacientesProvider);
+                    },
+                  ),
+                ],
+              ],
             ),
           ),
           Expanded(

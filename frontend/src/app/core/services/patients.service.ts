@@ -10,6 +10,7 @@ import {
   PatientCreate,
   PatientListItem,
   PatientUpdate,
+  PatientImportPreview,
 } from '../models/patient.models';
 
 @Injectable({ providedIn: 'root' })
@@ -34,6 +35,22 @@ export class PatientsService {
 
   getPatient(id: string): Observable<Patient> {
     return this.http.get<Patient>(`${this.base}/${id}`);
+  }
+
+  /** Lee un Excel/CSV y devuelve la vista previa, sin guardar nada. */
+  importPreview(file: File, nameOrder: string, mapping?: Record<string, string | null>): Observable<PatientImportPreview> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name_order', nameOrder);
+    if (mapping) form.append('mapping', JSON.stringify(mapping));
+    return this.http.post<PatientImportPreview>(`${this.base}/import/preview`, form);
+  }
+
+  importConfirm(patients: PatientCreate[], skipDuplicates = true): Observable<{ created: number; skipped: number }> {
+    return this.http.post<{ created: number; skipped: number }>(`${this.base}/import`, {
+      patients,
+      skip_duplicates: skipDuplicates,
+    });
   }
 
   createPatient(payload: PatientCreate): Observable<Patient> {

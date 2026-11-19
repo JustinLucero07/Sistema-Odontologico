@@ -44,6 +44,9 @@ class Clinic(UUIDPKMixin, TimestampMixin, Base):
     work_days: Mapped[str] = mapped_column(String(7), default="123456", server_default="123456")
     # Módulos que la consulta prefiere no ver en el menú (no quita permisos).
     hidden_modules: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
+    # Especialidad de ortodoncia: muestra el módulo (fichas ORT, plan de
+    # controles con cuotas, lista de documentación).
+    orthodontics_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     setup_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # ---- Legal y cumplimiento ----

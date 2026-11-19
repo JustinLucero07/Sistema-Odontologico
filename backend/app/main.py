@@ -9,6 +9,8 @@ from app.core.config import get_settings
 from app.core.hardening import SecurityHeadersMiddleware, enforce_production_config
 from app.core.rate_limit import limiter
 from app.modules.mail.router import router as mail_router
+from app.modules.orthodontics.router import patient_router as patient_orthodontics_router
+from app.modules.orthodontics.router import router as orthodontics_router
 from app.modules.invoicing.router import patient_router as patient_invoices_router
 from app.modules.invoicing.router import router as invoices_router
 from app.modules.invoicing.router import settings_router as invoicing_settings_router
@@ -137,6 +139,8 @@ app.include_router(invoices_router)
 app.include_router(invoicing_settings_router)
 app.include_router(patient_invoices_router)
 app.include_router(mail_router)
+app.include_router(orthodontics_router)
+app.include_router(patient_orthodontics_router)
 
 
 @app.get("/api/v1/health")

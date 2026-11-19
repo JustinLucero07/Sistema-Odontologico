@@ -19,6 +19,7 @@ export interface Clinic {
   closes_at: string;
   work_days: string;
   hidden_modules: string[];
+  orthodontics_enabled?: boolean;
   setup_completed_at: string | null;
   legal_rep_name: string | null;
   legal_rep_id: string | null;

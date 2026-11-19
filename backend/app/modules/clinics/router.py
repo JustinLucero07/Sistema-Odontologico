@@ -42,6 +42,7 @@ async def get_branding(
     return Branding(
         name=c.name, practice_type=c.practice_type, logo_data=c.logo_data, slogan=c.slogan,
         primary_color=c.primary_color, secondary_color=c.secondary_color, hidden_modules=c.hidden_modules or [],
+        orthodontics_enabled=bool(c.orthodontics_enabled),
         setup_completed=c.setup_completed_at is not None, opens_at=c.opens_at, closes_at=c.closes_at,
         work_days=c.work_days, session_timeout_minutes=c.session_timeout_minutes,
         terms_pending=c.terms_version != TERMS_VERSION, health_permit_expires_on=c.health_permit_expires_on,

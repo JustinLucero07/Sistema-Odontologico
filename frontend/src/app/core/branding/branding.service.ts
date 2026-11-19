@@ -14,6 +14,7 @@ export interface Branding {
   primary_color: string | null;
   secondary_color: string | null;
   hidden_modules: string[];
+  orthodontics_enabled?: boolean;
   setup_completed: boolean;
   opens_at: string;
   closes_at: string;
@@ -52,6 +53,8 @@ export class BrandingService {
   readonly name = computed(() => this.branding()?.name ?? 'Sistema Odontológico');
   readonly logo = computed(() => this.branding()?.logo_data ?? null);
   readonly hidden = computed(() => new Set(this.branding()?.hidden_modules ?? []));
+  /** La consulta atiende ortodoncia: se muestra el módulo. */
+  readonly orthodontics = computed(() => !!this.branding()?.orthodontics_enabled);
   readonly practiceType = computed<PracticeType>(() => this.branding()?.practice_type ?? 'clinica');
 
   constructor() {

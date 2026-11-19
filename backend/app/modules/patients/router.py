@@ -1,11 +1,14 @@
 import uuid
 
-from fastapi import Response, APIRouter, Depends, Query
+import json
+
+from fastapi import Response, APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
-from app.modules.patients import service
+from app.modules.patients import importer, service
 from app.modules.patients.schemas import PatientCreate, PatientListItem, PatientOut, PatientUpdate
 
 router = APIRouter(prefix="/api/v1/patients", tags=["patients"])
@@ -37,6 +40,51 @@ async def post_patient(
     patient = await service.create_patient(db, current_user.clinic_id, current_user.id, payload)
     await db.commit()
     return patient
+
+
+class ImportConfirm(BaseModel):
+    patients: list[PatientCreate] = Field(min_length=1, max_length=importer.MAX_ROWS)
+    skip_duplicates: bool = True
+
+
+@router.post("/import/preview")
+async def post_import_preview(
+    file: UploadFile = File(...),
+    name_order: str = Form("nombres_apellidos"),
+    mapping: str | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("patients:write")),
+):
+    """Lee un Excel (.xlsx) o CSV y devuelve qué se va a crear, sin guardar nada.
+    `mapping` (JSON {encabezado: campo}) permite corregir columnas mal detectadas."""
+    datos = await file.read(importer.MAX_BYTES + 1)
+    try:
+        encabezados, cuerpo = importer.leer_archivo(file.filename or "", datos)
+    except importer.ArchivoInvalido as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    mapeo = importer.detectar_columnas(encabezados)
+    if mapping:
+        try:
+            propio = json.loads(mapping)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail="Mapeo de columnas no válido") from e
+        for h in encabezados:
+            if h in propio:
+                campo = propio[h]
+                mapeo[h] = campo if campo in importer.CAMPOS else None
+    orden = name_order if name_order in ("nombres_apellidos", "apellidos_nombres") else "nombres_apellidos"
+    return await importer.analizar(db, current_user.clinic_id, encabezados, cuerpo, mapeo, orden)
+
+
+@router.post("/import")
+async def post_import(
+    payload: ImportConfirm,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("patients:write")),
+):
+    out = await importer.guardar(db, current_user.clinic_id, current_user.id, payload.patients, payload.skip_duplicates)
+    await db.commit()
+    return out
 
 
 @router.get("/{patient_id}", response_model=PatientOut)

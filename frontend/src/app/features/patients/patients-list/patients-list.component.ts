@@ -14,6 +14,7 @@ import { PatientsService } from '../../../core/services/patients.service';
 import { PatientListItem } from '../../../core/models/patient.models';
 import { HasPermissionDirective } from '../../../core/auth/has-permission.directive';
 import { openPatientCreateDialog } from '../../../shared/patient-dialog/patient-create-dialog.component';
+import { openPatientImportDialog } from '../../../shared/patient-dialog/patient-import-dialog.component';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 @Component({
@@ -78,6 +79,11 @@ export class PatientsListComponent implements OnInit {
 
   clearSearch(): void {
     this.searchControl.setValue('');
+  }
+
+  async importPatients(): Promise<void> {
+    const ok = await openPatientImportDialog(this.dialog);
+    if (ok) await this.reload(this.searchControl.value || undefined);
   }
 
   async newPatient(): Promise<void> {
