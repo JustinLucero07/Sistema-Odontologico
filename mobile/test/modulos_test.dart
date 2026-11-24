@@ -101,6 +101,16 @@ final Map<String, Object?> _datos = {
       'reviewed_at': '2026-11-02T10:00:00Z',
     },
   ],
+  '/sales/by-professional': {
+    'desde': '2026-11-01', 'hasta': '2026-11-23', 'total_vendido': '100.00', 'total_cobrado_periodo': '60.00', 'total_comisiones': '18.00',
+    'filas': [
+      {
+        'professional_id': 'pr1', 'nombre': 'Ana Paz', 'color': '#0F6FFF', 'ventas': 2, 'pacientes': 1, 'vendido': '100.00',
+        'cobrado_ventas': '60.00', 'pendiente': '40.00', 'cobrado_periodo': '60.00', 'ticket_promedio': '50.00',
+        'comision_porcentaje': '30.00', 'comision': '18.00',
+      },
+    ],
+  },
   '/sales': {
     'resumen': {
       'ventas': 2, 'vendido': '100.00', 'cobrado': '60.00', 'pendiente': '40.00',
@@ -111,7 +121,7 @@ final Map<String, Object?> _datos = {
     'items': [
       {
         'id': 'c1', 'fecha': '2026-11-20', 'patient_id': 'p1', 'paciente': 'María Gómez', 'cedula': '1710034065',
-        'descripcion': 'Limpieza dental', 'origen': 'manual', 'monto': '40.00', 'pagado': '40.00', 'pendiente': '0.00',
+        'descripcion': 'Limpieza dental', 'professional_id': 'pr1', 'profesional': 'Ana Paz', 'origen': 'manual', 'monto': '40.00', 'pagado': '40.00', 'pendiente': '0.00',
         'estado_pago': 'pagada', 'anulada': false,
         'pagos': [
           {'id': 'x1', 'fecha': '2026-11-20', 'monto': '40.00', 'medio': 'Transferencia bancaria', 'medio_codigo': 'transferencia', 'referencia': 'TRX-9', 'comprobante_id': null},
@@ -121,7 +131,7 @@ final Map<String, Object?> _datos = {
       },
       {
         'id': 'c2', 'fecha': '2026-11-21', 'patient_id': 'p1', 'paciente': 'María Gómez', 'cedula': '1710034065',
-        'descripcion': 'Resina', 'origen': 'presupuesto', 'monto': '60.00', 'pagado': '20.00', 'pendiente': '40.00',
+        'descripcion': 'Resina', 'professional_id': null, 'profesional': null, 'origen': 'presupuesto', 'monto': '60.00', 'pagado': '20.00', 'pendiente': '40.00',
         'estado_pago': 'parcial', 'anulada': false, 'pagos': [], 'factura': null, 'facturable': true, 'motivo': null,
       },
     ],
@@ -1129,6 +1139,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('TRX-9'), findsOneWidget);
     expect(find.text('Ver factura'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Ventas por profesional con comisión', (tester) async {
+    await _abrir(tester, const Scaffold(body: VentasVista()));
+    expect(find.text('Ana Paz'), findsOneWidget);
+    expect(find.text('Sin profesional'), findsOneWidget);
+    await tester.tap(find.text('Por profesional'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Comisión \$ 18'), findsOneWidget);
+    await tester.tap(find.text('Ana Paz'));
+    await tester.pumpAndSettle();
+    expect(find.text('Filtrado por profesional'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

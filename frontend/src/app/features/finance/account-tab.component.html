@@ -372,6 +372,13 @@
         <mat-label>Notas</mat-label>
         <input matInput formControlName="notes" />
       </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Profesional</mat-label>
+        <mat-select formControlName="professional_id">
+          <mat-option value="">Automático (el que atendió al paciente)</mat-option>
+          @for (p of profesionales(); track p.id) { <mat-option [value]="p.id">{{ p.first_name }} {{ p.last_name }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
     </div>
     <div class="form-actions">
       <button mat-flat-button type="submit" [disabled]="chargeForm.invalid || saving()">

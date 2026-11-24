@@ -47,6 +47,8 @@ class Venta(BaseModel):
     paciente: str
     cedula: str | None
     descripcion: str
+    professional_id: uuid.UUID | None
+    profesional: str | None
     origen: str
     monto: Decimal
     pagado: Decimal
@@ -87,6 +89,7 @@ async def listar(
     factura: str | None,
     patient_id: uuid.UUID | None,
     anuladas: bool,
+    profesional: str | None = None,
 ) -> Ventas:
     from app.modules.invoicing.constants import FACTURA, VIGENTES
     from app.modules.invoicing.models import Invoice, InvoiceLine
@@ -104,6 +107,10 @@ async def listar(
         consulta = consulta.where(Charge.voided_at.is_(None))
     if patient_id:
         consulta = consulta.where(Charge.patient_id == patient_id)
+    if profesional == "sin":
+        consulta = consulta.where(Charge.professional_id.is_(None))
+    elif profesional:
+        consulta = consulta.where(Charge.professional_id == uuid.UUID(profesional))
     if q and q.strip():
         t = f"%{q.strip()}%"
         consulta = consulta.where(
@@ -117,6 +124,7 @@ async def listar(
         )
     filas = (await db.execute(consulta)).all()
     ids = [c.id for c, _ in filas]
+    nombres = await _nombres_profesionales(db, cid)
 
     pagos: dict[uuid.UUID, list[Payment]] = defaultdict(list)
     comprobantes: dict[uuid.UUID, uuid.UUID] = {}
@@ -187,7 +195,8 @@ async def listar(
         )
         items.append(Venta(
             id=c.id, fecha=c.issued_on, patient_id=p.id, paciente=f"{p.first_name} {p.last_name}", cedula=p.national_id,
-            descripcion=c.description, origen=origen, monto=money(c.amount), pagado=pagado, pendiente=pendiente,
+            descripcion=c.description, professional_id=c.professional_id,
+            profesional=nombres.get(c.professional_id) if c.professional_id else None, origen=origen, monto=money(c.amount), pagado=pagado, pendiente=pendiente,
             estado_pago=estado, anulada=anulada,
             pagos=[
                 PagoVenta(
@@ -240,7 +249,117 @@ async def listar(
     return Ventas(resumen=resumen, items=items, facturacion_lista=lista_ok, faltantes=faltan)
 
 
+async def _nombres_profesionales(db: AsyncSession, clinic_id: uuid.UUID) -> dict[uuid.UUID, str]:
+    from app.modules.professionals.models import Professional
+
+    return {
+        p.id: f"{p.first_name} {p.last_name}"
+        for p in (await db.execute(select(Professional).where(Professional.clinic_id == clinic_id))).scalars()
+    }
+
+
+class FilaProfesional(BaseModel):
+    professional_id: uuid.UUID | None
+    nombre: str
+    color: str | None
+    ventas: int
+    pacientes: int
+    vendido: Decimal
+    cobrado_ventas: Decimal
+    pendiente: Decimal
+    cobrado_periodo: Decimal
+    ticket_promedio: Decimal
+    comision_porcentaje: Decimal | None
+    comision: Decimal | None
+
+
+class PorProfesional(BaseModel):
+    desde: date
+    hasta: date
+    filas: list[FilaProfesional]
+    total_vendido: Decimal
+    total_cobrado_periodo: Decimal
+    total_comisiones: Decimal
+
+
+async def por_profesional(db: AsyncSession, clinic_id: uuid.UUID, desde: date, hasta: date) -> PorProfesional:
+    from app.modules.professionals.models import Professional
+
+    profs = {p.id: p for p in (await db.execute(select(Professional).where(Professional.clinic_id == clinic_id))).scalars()}
+    cargos = (
+        await db.execute(
+            select(Charge).where(
+                Charge.clinic_id == clinic_id, Charge.voided_at.is_(None), Charge.issued_on >= desde, Charge.issued_on <= hasta
+            )
+        )
+    ).scalars().all()
+    pagado: dict[uuid.UUID, Decimal] = defaultdict(lambda: ZERO)
+    if cargos:
+        for charge_id, monto in (
+            await db.execute(
+                select(Payment.charge_id, Payment.amount).where(
+                    Payment.charge_id.in_([c.id for c in cargos]), Payment.voided_at.is_(None)
+                )
+            )
+        ).all():
+            pagado[charge_id] += monto
+    cobrado_periodo: dict[uuid.UUID | None, Decimal] = defaultdict(lambda: ZERO)
+    for prof_id, monto in (
+        await db.execute(
+            select(Charge.professional_id, Payment.amount)
+            .join(Charge, Charge.id == Payment.charge_id)
+            .where(
+                Payment.clinic_id == clinic_id, Payment.voided_at.is_(None),
+                Payment.received_on >= desde, Payment.received_on <= hasta, Charge.voided_at.is_(None),
+            )
+        )
+    ).all():
+        cobrado_periodo[prof_id] += monto
+
+    datos: dict[uuid.UUID | None, dict] = defaultdict(lambda: {"ventas": 0, "pacientes": set(), "vendido": ZERO, "cobrado": ZERO, "pendiente": ZERO})
+    for c in cargos:
+        d = datos[c.professional_id]
+        d["ventas"] += 1
+        d["pacientes"].add(c.patient_id)
+        d["vendido"] += Decimal(c.amount)
+        pg = pagado.get(c.id, ZERO)
+        d["cobrado"] += pg
+        d["pendiente"] += max(ZERO, Decimal(c.amount) - pg)
+    claves = set(datos) | set(cobrado_periodo)
+    filas = []
+    for k in claves:
+        d = datos.get(k) or {"ventas": 0, "pacientes": set(), "vendido": ZERO, "cobrado": ZERO, "pendiente": ZERO}
+        p = profs.get(k) if k else None
+        tasa = Decimal(p.commission_rate) if p and p.commission_rate is not None else None
+        cobro = money(cobrado_periodo.get(k, ZERO))
+        filas.append(FilaProfesional(
+            professional_id=k, nombre=f"{p.first_name} {p.last_name}" if p else "Sin profesional asignado",
+            color=p.color_hex if p else None, ventas=d["ventas"], pacientes=len(d["pacientes"]),
+            vendido=money(d["vendido"]), cobrado_ventas=money(d["cobrado"]), pendiente=money(d["pendiente"]),
+            cobrado_periodo=cobro, ticket_promedio=money(d["vendido"] / d["ventas"]) if d["ventas"] else ZERO,
+            comision_porcentaje=tasa, comision=money(cobro * tasa / 100) if tasa is not None else None,
+        ))
+    filas.sort(key=lambda f: (f.professional_id is None, -f.vendido))
+    return PorProfesional(
+        desde=desde, hasta=hasta, filas=filas,
+        total_vendido=money(sum((f.vendido for f in filas), ZERO)),
+        total_cobrado_periodo=money(sum((f.cobrado_periodo for f in filas), ZERO)),
+        total_comisiones=money(sum((f.comision or ZERO for f in filas), ZERO)),
+    )
+
+
 router = APIRouter(prefix="/api/v1/sales", tags=["payments"])
+
+
+@router.get("/by-professional", response_model=PorProfesional)
+async def get_por_profesional(
+    desde: date | None = None,
+    hasta: date | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("payments:read")),
+):
+    d, h = _rango(desde, hasta)
+    return await por_profesional(db, current_user.clinic_id, d, h)
 
 
 def _rango(desde: date | None, hasta: date | None) -> tuple[date, date]:
@@ -257,11 +376,12 @@ async def get_ventas(
     factura: str | None = Query(default=None, pattern="^(facturada|sin_facturar)$"),
     patient_id: uuid.UUID | None = None,
     anuladas: bool = False,
+    profesional: str | None = Query(default=None, pattern="^(sin|[0-9a-fA-F-]{36})$"),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("payments:read")),
 ):
     d, h = _rango(desde, hasta)
-    return await listar(db, current_user, d, h, q, pago, factura, patient_id, anuladas or pago == "anulada")
+    return await listar(db, current_user, d, h, q, pago, factura, patient_id, anuladas or pago == "anulada", profesional)
 
 
 @router.get("/export.csv")
@@ -272,17 +392,18 @@ async def get_ventas_csv(
     pago: str | None = Query(default=None, pattern="^(pendiente|parcial|pagada|anulada)$"),
     factura: str | None = Query(default=None, pattern="^(facturada|sin_facturar)$"),
     patient_id: uuid.UUID | None = None,
+    profesional: str | None = Query(default=None, pattern="^(sin|[0-9a-fA-F-]{36})$"),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("payments:read")),
 ):
     d, h = _rango(desde, hasta)
-    v = await listar(db, current_user, d, h, q, pago, factura, patient_id, pago == "anulada")
+    v = await listar(db, current_user, d, h, q, pago, factura, patient_id, pago == "anulada", profesional)
     salida = io.StringIO()
     w = csv.writer(salida, delimiter=";")
-    w.writerow(["Fecha", "Paciente", "Cédula", "Concepto", "Origen", "Valor", "Cobrado", "Pendiente", "Estado", "Factura", "Estado factura", "Pagos (fecha · medio · referencia · monto)"])
+    w.writerow(["Fecha", "Paciente", "Cédula", "Concepto", "Profesional", "Origen", "Valor", "Cobrado", "Pendiente", "Estado", "Factura", "Estado factura", "Pagos (fecha · medio · referencia · monto)"])
     for x in v.items:
         w.writerow([
-            x.fecha.isoformat(), x.paciente, x.cedula or "", x.descripcion, x.origen,
+            x.fecha.isoformat(), x.paciente, x.cedula or "", x.descripcion, x.profesional or "", x.origen,
             str(x.monto).replace(".", ","), str(x.pagado).replace(".", ","), str(x.pendiente).replace(".", ","), x.estado_pago,
             x.factura.numero if x.factura else ("" if x.facturable else x.motivo or ""), x.factura.estado if x.factura else "",
             " | ".join(f"{p.fecha.isoformat()} · {p.medio} · {p.referencia or '-'} · {str(p.monto).replace('.', ',')}" for p in x.pagos),

@@ -255,11 +255,13 @@ async def _sync_charge(
         charge = await payments.create_charge(
             db, clinic_id, actor_id, patient.id,
             ChargeCreate(description=f"Tratamiento de ortodoncia {code_for(case.number)}", amount=total,
-                         issued_on=case.started_on or date.today()),
+                         issued_on=case.started_on or date.today(), professional_id=case.professional_id),
         )
         case.charge_id = charge.id
         return
     charge = await db.get(Charge, case.charge_id)
+    if charge is not None and case.professional_id and charge.professional_id != case.professional_id:
+        charge.professional_id = case.professional_id
     if charge is None or charge.voided_at is not None:
         case.charge_id = None
         await _sync_charge(db, clinic_id, actor_id, case, patient)

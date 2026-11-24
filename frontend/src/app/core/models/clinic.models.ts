@@ -58,6 +58,7 @@ export interface Professional {
   license_number: string | null;
   color_hex: string;
   is_active: boolean;
+  commission_rate?: string | null;
 }
 
 export interface ProfessionalCreate {
@@ -66,6 +67,7 @@ export interface ProfessionalCreate {
   specialty_id?: string | null;
   license_number?: string | null;
   color_hex?: string;
+  commission_rate?: string | null;
 }
 
 export interface ProfessionalUpdate {
@@ -75,6 +77,7 @@ export interface ProfessionalUpdate {
   license_number?: string | null;
   color_hex?: string;
   is_active?: boolean;
+  commission_rate?: string | null;
 }
 
 export interface Branch {

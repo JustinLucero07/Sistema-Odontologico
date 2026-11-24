@@ -1,6 +1,7 @@
 import uuid
+from decimal import Decimal
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,5 +25,6 @@ class Professional(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     license_number: Mapped[str | None] = mapped_column(String(100))
     color_hex: Mapped[str] = mapped_column(String(20), default="#0F6FFF")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    commission_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
 
     specialty: Mapped["Specialty"] = relationship()

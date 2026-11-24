@@ -71,6 +71,7 @@ export class ProfessionalsComponent implements OnInit {
     last_name: ['', Validators.required],
     specialty_id: [''],
     license_number: [''],
+    commission_rate: [''],
     color_hex: [PROFESSIONAL_COLORS[0]],
   });
 
@@ -148,6 +149,7 @@ export class ProfessionalsComponent implements OnInit {
       last_name: professional?.last_name ?? '',
       specialty_id: professional?.specialty_id ?? '',
       license_number: professional?.license_number ?? '',
+      commission_rate: professional?.commission_rate ? String(Number(professional.commission_rate)) : '',
       color_hex: professional?.color_hex?.toUpperCase() ?? this.nextColor(),
     });
     this.error.set(null);
@@ -178,6 +180,7 @@ export class ProfessionalsComponent implements OnInit {
         ...value,
         specialty_id: value.specialty_id || null,
         license_number: value.license_number.trim() || null,
+        commission_rate: value.commission_rate.trim() ? value.commission_rate.trim().replace(',', '.') : null,
       };
       const editing = this.editing();
       if (editing) {

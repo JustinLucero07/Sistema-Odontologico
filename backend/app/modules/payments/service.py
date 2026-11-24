@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
 from app.modules.patients.service import get_patient_or_404
+from app.modules.professionals.service import get_professional_or_404
 from app.modules.payments.constants import (
     CASH_METHOD,
     PAYMENT_METHODS,
@@ -170,6 +171,62 @@ async def get_charge_or_404(
     return charge
 
 
+async def profesional_probable(
+    db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID, dia: date, actor_id: uuid.UUID | None
+) -> uuid.UUID | None:
+    from app.modules.appointments.models import Appointment
+    from app.modules.professionals.models import Professional
+
+    filas = (
+        await db.execute(
+            select(Appointment.professional_id, Appointment.starts_at, Appointment.status).where(
+                Appointment.clinic_id == clinic_id,
+                Appointment.patient_id == patient_id,
+                Appointment.status.notin_(("cancelada", "no_asistio")),
+            )
+        )
+    ).all()
+    del_dia = [f for f in filas if abs((f.starts_at.date() - dia).days) <= 1]
+    if del_dia:
+        del_dia.sort(key=lambda f: (f.status != "atendida", abs((f.starts_at.date() - dia).days)))
+        return del_dia[0].professional_id
+    if actor_id:
+        propio = await db.scalar(select(Professional.id).where(Professional.clinic_id == clinic_id, Professional.user_id == actor_id))
+        if propio:
+            return propio
+    return None
+
+
+async def profesional_de_presupuesto(db: AsyncSession, budget) -> uuid.UUID | None:
+    from collections import Counter
+
+    from app.modules.treatment_plans.models import TreatmentPlanItem
+
+    ids = [i.treatment_plan_item_id for i in budget.items if i.treatment_plan_item_id]
+    if not ids:
+        return None
+    profs = (await db.execute(select(TreatmentPlanItem.professional_id).where(TreatmentPlanItem.id.in_(ids)))).scalars().all()
+    cuenta = Counter(p for p in profs if p)
+    return cuenta.most_common(1)[0][0] if cuenta else None
+
+
+async def set_charge_professional(
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, charge_id: uuid.UUID, professional_id: uuid.UUID | None
+) -> Charge:
+    charge = await get_charge_or_404(db, clinic_id, charge_id)
+    if professional_id is not None:
+        await get_professional_or_404(db, clinic_id, professional_id)
+    antes = charge.professional_id
+    charge.professional_id = professional_id
+    await record_audit(
+        db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="charge", entity_id=str(charge_id),
+        before={"professional_id": str(antes) if antes else None},
+        after={"professional_id": str(professional_id) if professional_id else None},
+    )
+    await db.flush()
+    return charge
+
+
 async def create_charge(
     db: AsyncSession,
     clinic_id: uuid.UUID,
@@ -178,12 +235,19 @@ async def create_charge(
     payload: ChargeCreate,
 ) -> Charge:
     await get_patient_or_404(db, clinic_id, patient_id)
+    dia = payload.issued_on or date.today()
+    profesional = payload.professional_id
+    if profesional is not None:
+        await get_professional_or_404(db, clinic_id, profesional)
+    else:
+        profesional = await profesional_probable(db, clinic_id, patient_id, dia, actor_id)
     charge = Charge(
         clinic_id=clinic_id,
         patient_id=patient_id,
+        professional_id=profesional,
         description=payload.description,
         amount=money(payload.amount),
-        issued_on=payload.issued_on or date.today(),
+        issued_on=dia,
         created_by_id=actor_id,
         created_at=datetime.now(timezone.utc),
         notes=payload.notes,
@@ -217,6 +281,8 @@ async def charge_for_accepted_budget(
         clinic_id=clinic_id,
         patient_id=budget.patient_id,
         budget_id=budget.id,
+        professional_id=await profesional_de_presupuesto(db, budget)
+        or await profesional_probable(db, clinic_id, budget.patient_id, date.today(), actor_id),
         description=f"Presupuesto aceptado · {len(budget.items)} tratamiento(s)",
         amount=total,
         issued_on=date.today(),

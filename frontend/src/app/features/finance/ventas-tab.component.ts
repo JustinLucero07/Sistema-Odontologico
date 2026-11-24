@@ -12,7 +12,9 @@ import { Subject, debounceTime, firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/auth/auth.service';
+import { Professional } from '../../core/models/clinic.models';
 import { formatMoney } from '../../core/models/finance.models';
+import { ClinicService } from '../../core/services/clinic.service';
 import { openInvoiceCreate } from '../../shared/invoicing/invoice-create-dialog.component';
 import { openInvoiceDetail } from '../../shared/invoicing/invoice-detail-dialog.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
@@ -34,6 +36,8 @@ interface Venta {
   paciente: string;
   cedula: string | null;
   descripcion: string;
+  professional_id: string | null;
+  profesional: string | null;
   origen: 'ortodoncia' | 'credito' | 'presupuesto' | 'manual';
   monto: string;
   pagado: string;
@@ -60,6 +64,26 @@ interface Ventas {
   items: Venta[];
   facturacion_lista: boolean;
   faltantes: string[];
+}
+
+interface PorProfesional {
+  total_vendido: string;
+  total_cobrado_periodo: string;
+  total_comisiones: string;
+  filas: {
+    professional_id: string | null;
+    nombre: string;
+    color: string | null;
+    ventas: number;
+    pacientes: number;
+    vendido: string;
+    cobrado_ventas: string;
+    pendiente: string;
+    cobrado_periodo: string;
+    ticket_promedio: string;
+    comision_porcentaje: string | null;
+    comision: string | null;
+  }[];
 }
 
 interface Grupo {
@@ -106,6 +130,53 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
       }
     }
 
+    <div class="modo" role="tablist" aria-label="Vista de ventas">
+      <button type="button" role="tab" [class.on]="modo() === 'ventas'" (click)="modo.set('ventas')"><mat-icon>receipt_long</mat-icon>Ventas</button>
+      <button type="button" role="tab" [class.on]="modo() === 'profesional'" (click)="verProfesionales()"><mat-icon>badge</mat-icon>Por profesional</button>
+    </div>
+
+    @if (modo() === 'profesional') {
+      @if (porProf(); as pp) {
+        <section class="glass-card profs">
+          <header>
+            <div>
+              <h3>Ventas y comisiones por profesional</h3>
+              <p>La comisión se calcula sobre lo <b>cobrado en el periodo</b> de las ventas de cada profesional. El porcentaje se define en Configuración › Profesionales.</p>
+            </div>
+            <div class="totales numeric">
+              <span>Vendido <b>$ {{ money(pp.total_vendido) }}</b></span>
+              <span>Cobrado <b>$ {{ money(pp.total_cobrado_periodo) }}</b></span>
+              <span>Comisiones <b>$ {{ money(pp.total_comisiones) }}</b></span>
+            </div>
+          </header>
+          <div class="tabla-prof">
+            <div class="cab">
+              <span>Profesional</span><span>Ventas</span><span>Pacientes</span><span>Vendido</span><span>Cobrado</span><span>Pendiente</span><span>Ticket prom.</span><span>Comisión</span>
+            </div>
+            @for (f of pp.filas; track $index) {
+              <button type="button" class="fila-prof" (click)="filtrarProfesional(f.professional_id ?? 'sin')" [attr.aria-label]="'Ver ventas de ' + f.nombre">
+                <span class="nombre"><i [style.background]="f.color ?? 'var(--color-border-strong)'"></i>{{ f.nombre }}</span>
+                <span class="numeric">{{ f.ventas }}</span>
+                <span class="numeric">{{ f.pacientes }}</span>
+                <span class="numeric">$ {{ money(f.vendido) }}</span>
+                <span class="numeric ok">$ {{ money(f.cobrado_periodo) }}</span>
+                <span class="numeric" [class.alerta]="+f.pendiente > 0">$ {{ money(f.pendiente) }}</span>
+                <span class="numeric">$ {{ money(f.ticket_promedio) }}</span>
+                <span class="numeric com">
+                  @if (f.comision !== null) { <b>$ {{ money(f.comision) }}</b> <small>{{ +f.comision_porcentaje! }}%</small> }
+                  @else if (f.professional_id) { <small>Sin %</small> }
+                  @else { <small>—</small> }
+                </span>
+              </button>
+            } @empty {
+              <p class="vacio">No hay ventas en el periodo.</p>
+            }
+          </div>
+        </section>
+      } @else {
+        <app-skeleton variant="list" [rows]="4" />
+      }
+    } @else {
     <div class="filtros glass-card">
       <label class="buscar">
         <mat-icon>search</mat-icon>
@@ -121,6 +192,11 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
           <button type="button" [class.on]="factura() === o[0]" (click)="factura.set(o[0]); cargar()">{{ o[1] }}</button>
         }
       </div>
+      <select class="sel-prof" [ngModel]="profesional()" (ngModelChange)="profesional.set($event); cargar()" aria-label="Profesional">
+        <option value="">Todos los profesionales</option>
+        @for (p of profesionales(); track p.id) { <option [value]="p.id">{{ p.first_name }} {{ p.last_name }}</option> }
+        <option value="sin">Sin profesional asignado</option>
+      </select>
       <span class="espacio"></span>
       <button mat-button (click)="agrupar.set(!agrupar())"><mat-icon>{{ agrupar() ? 'view_list' : 'groups' }}</mat-icon>{{ agrupar() ? 'Ver lista' : 'Agrupar por paciente' }}</button>
       <button mat-stroked-button (click)="exportar()"><mat-icon>download</mat-icon>Excel (CSV)</button>
@@ -164,7 +240,7 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
                       <b>{{ v.descripcion }}</b>
                       @if (!agrupar()) { <small>{{ v.paciente }}</small> }
                     </span>
-                    <span class="origen">{{ origen(v) }}</span>
+                    <span class="origen" [class.sin]="!v.profesional">{{ v.profesional ?? 'Sin profesional' }}</span>
                     <span class="monto numeric">$ {{ money(v.monto) }}</span>
                     <span class="estado" [attr.data-e]="v.estado_pago">{{ estadoPago(v) }}</span>
                     <span class="fact">
@@ -199,6 +275,16 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
                       <p class="saldo numeric">Cobrado $ {{ money(v.pagado) }} · Pendiente $ {{ money(v.pendiente) }}</p>
                     </div>
                     <div class="col">
+                      <h4>Profesional</h4>
+                      @if (puedeCobrar) {
+                        <select class="sel-prof" [ngModel]="v.professional_id ?? ''" (ngModelChange)="cambiarProfesional(v, $event)" aria-label="Profesional de la venta">
+                          <option value="">Sin profesional</option>
+                          @for (p of profesionales(); track p.id) { <option [value]="p.id">{{ p.first_name }} {{ p.last_name }}</option> }
+                        </select>
+                      } @else {
+                        <p>{{ v.profesional ?? 'Sin profesional' }}</p>
+                      }
+                      <p class="vacio">Origen: {{ origen(v) }}</p>
                       <h4>Factura electrónica</h4>
                       @if (v.factura; as f) {
                         <p><b>{{ f.numero }}</b> · {{ estadoFactura(f.estado) }} · {{ f.fecha | date: 'dd/MM/yyyy' }}</p>
@@ -232,6 +318,7 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
         <button mat-flat-button (click)="facturarSeleccion()"><mat-icon>request_quote</mat-icon>Facturar selección</button>
       </div>
     }
+    }
   `,
   styles: [
     `
@@ -257,6 +344,29 @@ const ESTADO_FACTURA: Record<string, string> = { autorizada: 'Autorizada', pendi
           color: var(--color-ink-soft); cursor: pointer; }
         button.on { background: var(--color-surface); color: var(--color-ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); } }
       .espacio { flex: 1; }
+      .modo { display: flex; gap: 4px; justify-self: start; padding: 3px; border-radius: 999px; background: var(--color-surface-muted);
+        button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; border-radius: 999px; padding: 7px 14px;
+          font: inherit; font-size: .84rem; font-weight: 600; color: var(--color-ink-soft); cursor: pointer;
+          mat-icon { font-size: 18px; width: 18px; height: 18px; } }
+        button.on { background: var(--color-surface); color: var(--color-primary); box-shadow: 0 1px 4px rgba(0,0,0,.08); } }
+      .sel-prof { font: inherit; font-size: .82rem; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--color-border);
+        background: var(--color-surface); color: var(--color-ink); max-width: 230px; }
+      .origen.sin { font-style: italic; }
+      .profs { padding: 16px 18px;
+        > header { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; margin-bottom: 10px;
+          h3 { margin: 0; font-size: 1rem; } p { margin: 4px 0 0; font-size: .8rem; color: var(--color-ink-soft); max-width: 60ch; } }
+        .totales { display: flex; gap: 16px; align-items: flex-end; font-size: .8rem; color: var(--color-ink-soft); b { color: var(--color-ink); font-size: .95rem; } } }
+      .tabla-prof { display: grid; overflow-x: auto; }
+      .cab, .fila-prof { display: grid; grid-template-columns: minmax(170px, 1.6fr) repeat(2, 70px) repeat(4, minmax(90px, 1fr)) minmax(110px, 1fr); gap: 8px;
+        align-items: center; padding: 9px 8px; text-align: right; }
+      .cab { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--color-ink-faint);
+        border-bottom: 1px solid var(--color-border); span:first-child { text-align: left; } }
+      .fila-prof { border: 0; border-bottom: 1px solid var(--color-border); background: transparent; font: inherit; font-size: .86rem; color: var(--color-ink);
+        cursor: pointer; &:hover { background: var(--color-surface-muted); }
+        .nombre { display: flex; align-items: center; gap: 8px; text-align: left; font-weight: 600;
+          i { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; } }
+        .ok { color: var(--color-success); } .alerta { color: var(--color-danger); }
+        .com small { color: var(--color-ink-faint); margin-left: 4px; } }
       .grupo { padding: 4px 0; overflow: hidden;
         > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--color-border); } }
       .quien { display: grid; flex: 1 1 200px; a { font-weight: 700; color: var(--color-ink); text-decoration: none; &:hover { color: var(--color-primary); } }
@@ -323,6 +433,12 @@ export class VentasTabComponent implements OnChanges {
   readonly pago = signal<'' | 'pendiente' | 'parcial' | 'pagada' | 'anulada'>('');
   readonly factura = signal<'' | 'facturada' | 'sin_facturar'>('');
   readonly agrupar = signal(true);
+  readonly modo = signal<'ventas' | 'profesional'>('ventas');
+  readonly profesional = signal('');
+  readonly profesionales = signal<Professional[]>([]);
+  readonly porProf = signal<PorProfesional | null>(null);
+  readonly puedeCobrar = inject(AuthService).hasPermission('payments:write');
+  private readonly clinicas = inject(ClinicService);
   readonly abierta = signal<string | null>(null);
   readonly seleccion = signal(new Set<string>());
   readonly money = formatMoney;
@@ -367,6 +483,48 @@ export class VentasTabComponent implements OnChanges {
 
   ngOnChanges(): void {
     void this.cargar();
+    if (this.modo() === 'profesional') void this.cargarProfesionales();
+    if (!this.profesionales().length) {
+      firstValueFrom(this.clinicas.listProfessionals()).then((l) => this.profesionales.set(l)).catch(() => undefined);
+    }
+  }
+
+  verProfesionales(): void {
+    this.modo.set('profesional');
+    void this.cargarProfesionales();
+  }
+
+  private async cargarProfesionales(): Promise<void> {
+    try {
+      this.porProf.set(
+        await firstValueFrom(
+          this.http.get<PorProfesional>(`${environment.apiUrl}/sales/by-professional`, {
+            params: new HttpParams().set('desde', this.desde).set('hasta', this.hasta),
+          }),
+        ),
+      );
+    } catch {
+      this.snack.open('No se pudo cargar el resumen por profesional.', 'Cerrar', { duration: 3500 });
+    }
+  }
+
+  filtrarProfesional(id: string): void {
+    this.profesional.set(id);
+    this.modo.set('ventas');
+    void this.cargar();
+  }
+
+  async cambiarProfesional(v: Venta, id: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.put(`${environment.apiUrl}/finance/charges/${v.id}/professional`, { professional_id: id || null }),
+      );
+      this.snack.open('Profesional actualizado', undefined, { duration: 2000 });
+      await this.cargar();
+      this.porProf.set(null);
+    } catch {
+      this.snack.open('No se pudo cambiar el profesional.', 'Cerrar', { duration: 3500 });
+    }
   }
 
   limpiarSeleccion(): void {
@@ -383,6 +541,7 @@ export class VentasTabComponent implements OnChanges {
     if (this.texto().trim()) p = p.set('q', this.texto().trim());
     if (this.pago()) p = p.set('pago', this.pago());
     if (this.factura()) p = p.set('factura', this.factura());
+    if (this.profesional()) p = p.set('profesional', this.profesional());
     return p;
   }
 

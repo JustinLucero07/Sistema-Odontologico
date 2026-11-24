@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,6 +100,22 @@ async def post_void_charge(
     )
     await db.commit()
     return service._to_charge_out(charge, date.today())
+
+
+class ChargeProfessional(BaseModel):
+    professional_id: uuid.UUID | None = None
+
+
+@router.put("/charges/{charge_id}/professional")
+async def put_charge_professional(
+    charge_id: uuid.UUID,
+    payload: ChargeProfessional,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("payments:write")),
+):
+    charge = await service.set_charge_professional(db, current_user.clinic_id, current_user.id, charge_id, payload.professional_id)
+    await db.commit()
+    return {"id": str(charge.id), "professional_id": str(charge.professional_id) if charge.professional_id else None}
 
 
 @router.post("/charges/{charge_id}/installments", response_model=ChargeOut)

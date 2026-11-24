@@ -1647,6 +1647,17 @@ Future<void> nuevoCargo(
   BuildContext context,
   WidgetRef ref,
   String pacienteId,
+) async {
+  final profesionales = await cargarOAvisar(context, ref.read(profesionalesProvider.future));
+  if (profesionales == null || !context.mounted) return;
+  await _nuevoCargo(context, ref, pacienteId, profesionales);
+}
+
+Future<void> _nuevoCargo(
+  BuildContext context,
+  WidgetRef ref,
+  String pacienteId,
+  List<Map<String, dynamic>> profesionales,
 ) => mostrarFormulario(
   context,
   titulo: 'Nuevo cargo',
@@ -1667,6 +1678,16 @@ Future<void> nuevoCargo(
       tipo: TipoCampo.fecha,
       inicial: hoyIso(),
       mitad: true,
+    ),
+    Campo(
+      'professional_id',
+      'Profesional',
+      tipo: TipoCampo.seleccion,
+      opciones: [
+        for (final p in profesionales.where((p) => p['is_active'] != false))
+          ('${p['id']}', '${p['first_name']} ${p['last_name']}'),
+      ],
+      ayuda: 'Si lo deja vacío se asigna el que atendió al paciente.',
     ),
     const Campo('notes', 'Notas', tipo: TipoCampo.multilinea),
   ],

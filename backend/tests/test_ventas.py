@@ -70,3 +70,43 @@ async def test_ventas_respeta_periodo_y_permisos(client):
     d = (await client.get("/api/v1/sales", headers=h)).json()
     assert d["facturacion_lista"] is False and d["faltantes"]
     assert (await client.get("/api/v1/sales")).status_code == 401
+
+
+async def test_ventas_por_profesional_y_comision(client):
+    from datetime import datetime, timedelta, timezone
+
+    h = await _h(client)
+    ana = (await client.post("/api/v1/professionals", json={"first_name": "Ana", "last_name": "Paz", "commission_rate": "30"}, headers=h)).json()
+    assert ana["commission_rate"] == "30.00"
+    leo = (await client.post("/api/v1/professionals", json={"first_name": "Leo", "last_name": "Ruiz"}, headers=h)).json()
+    pid = await _paciente(client, h, "Rosa", "Vela", None)
+    ini = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    await client.post(
+        "/api/v1/appointments",
+        json={"patient_id": pid, "professional_id": ana["id"], "starts_at": ini.isoformat(),
+              "ends_at": (ini + timedelta(minutes=30)).isoformat(), "reminder_channels": []},
+        headers=h,
+    )
+    c1 = await _cargo(client, h, pid, "Resina", "100")
+    c2 = (await client.post(f"/api/v1/patients/{pid}/charges", json={"description": "Blanqueamiento", "amount": "200", "professional_id": leo["id"]}, headers=h)).json()["id"]
+    await client.post(f"/api/v1/patients/{pid}/payments", json={"amount": "100", "method": "efectivo", "charge_id": c1}, headers=h)
+    await client.post(f"/api/v1/patients/{pid}/payments", json={"amount": "50", "method": "efectivo", "charge_id": c2}, headers=h)
+
+    ventas = {v["descripcion"]: v for v in (await client.get("/api/v1/sales", headers=h)).json()["items"]}
+    assert ventas["Resina"]["profesional"] == "Ana Paz"
+    assert ventas["Blanqueamiento"]["profesional"] == "Leo Ruiz"
+
+    filas = {f["nombre"]: f for f in (await client.get("/api/v1/sales/by-professional", headers=h)).json()["filas"]}
+    assert filas["Ana Paz"]["vendido"] == "100.00" and filas["Ana Paz"]["cobrado_periodo"] == "100.00"
+    assert filas["Ana Paz"]["comision"] == "30.00"
+    assert filas["Leo Ruiz"]["comision"] is None and filas["Leo Ruiz"]["pendiente"] == "150.00"
+
+    r = await client.put(f"/api/v1/finance/charges/{c2}/professional", json={"professional_id": ana["id"]}, headers=h)
+    assert r.status_code == 200
+    filas = {f["nombre"]: f for f in (await client.get("/api/v1/sales/by-professional", headers=h)).json()["filas"]}
+    assert filas["Ana Paz"]["ventas"] == 2 and filas["Ana Paz"]["comision"] == "45.00"
+    solo = (await client.get(f"/api/v1/sales?profesional={ana['id']}", headers=h)).json()["items"]
+    assert len(solo) == 2
+    await client.put(f"/api/v1/finance/charges/{c1}/professional", json={"professional_id": None}, headers=h)
+    sin = (await client.get("/api/v1/sales?profesional=sin", headers=h)).json()["items"]
+    assert [v["descripcion"] for v in sin] == ["Resina"]

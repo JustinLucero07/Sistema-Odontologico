@@ -133,6 +133,12 @@
           <input matInput formControlName="license_number" />
         </mat-form-field>
 
+        <mat-form-field appearance="outline">
+          <mat-label>Comisión % (opcional)</mat-label>
+          <input matInput formControlName="commission_rate" inputmode="decimal" placeholder="Ej. 30" />
+          <mat-hint>Se calcula sobre lo cobrado de sus ventas. Vea Finanzas › Ventas › Por profesional.</mat-hint>
+        </mat-form-field>
+
         <div class="full color-row">
           <span class="color-label">Color en la agenda</span>
           <div class="swatches" role="radiogroup" aria-label="Color en la agenda">

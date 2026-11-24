@@ -39,6 +39,8 @@ import { printReceipt } from '../../shared/print/receipt-print';
 import { PortalReceiptsComponent } from '../../shared/payment-info/portal-receipts.component';
 import { environment } from '../../../environments/environment';
 import { HttpClient } from '@angular/common/http';
+import { Professional } from '../../core/models/clinic.models';
+import { ClinicService } from '../../core/services/clinic.service';
 
 type Pending = { kind: 'payment'; item: Payment } | { kind: 'charge'; item: Charge };
 
@@ -85,7 +87,10 @@ export class AccountTabComponent implements OnInit {
     description: ['', Validators.required],
     amount: ['', [Validators.required, Validators.pattern(/^\d+([.,]\d{1,2})?$/)]],
     notes: [''],
+    professional_id: [''],
   });
+  readonly profesionales = signal<Professional[]>([]);
+  private readonly clinicas = inject(ClinicService);
 
   readonly paymentForm = this.fb.nonNullable.group({
     amount: ['', [Validators.required, Validators.pattern(/^\d+([.,]\d{1,2})?$/)]],
@@ -134,6 +139,7 @@ export class AccountTabComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.methods.set(await firstValueFrom(this.finance.getMethods()));
+    firstValueFrom(this.clinicas.listProfessionals()).then((l) => this.profesionales.set(l.filter((p) => p.is_active))).catch(() => undefined);
     await this.reload();
   }
 
@@ -168,6 +174,7 @@ export class AccountTabComponent implements OnInit {
           description: raw.description,
           amount: this.normalize(raw.amount),
           notes: raw.notes || null,
+          professional_id: raw.professional_id || null,
         }),
       );
       this.chargeForm.reset();

@@ -44,7 +44,7 @@ export class FinanceService {
 
   createCharge(
     patientId: string,
-    body: { description: string; amount: string; issued_on?: string | null; notes?: string | null },
+    body: { description: string; amount: string; issued_on?: string | null; notes?: string | null; professional_id?: string | null },
   ): Observable<Charge> {
     return this.http.post<Charge>(`${environment.apiUrl}/patients/${patientId}/charges`, body);
   }

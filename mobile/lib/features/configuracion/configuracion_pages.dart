@@ -182,6 +182,14 @@ class ProfesionalesPage extends ConsumerWidget {
           mitad: true,
         ),
         Campo(
+          'commission_rate',
+          'Comisión % (opcional)',
+          tipo: TipoCampo.numero,
+          inicial: p?['commission_rate'] == null ? null : '${double.tryParse('${p!['commission_rate']}')?.toStringAsFixed(0)}',
+          ayuda: 'Sobre lo cobrado de sus ventas. Vea Finanzas › Ventas.',
+          mitad: true,
+        ),
+        Campo(
           'color_hex',
           'Color en la agenda',
           tipo: TipoCampo.seleccion,

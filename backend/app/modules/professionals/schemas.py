@@ -1,6 +1,7 @@
+from decimal import Decimal
 import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SpecialtyCreate(BaseModel):
@@ -25,6 +26,12 @@ class ProfessionalCreate(BaseModel):
     license_number: str | None = None
     color_hex: str = "#0F6FFF"
     user_id: uuid.UUID | None = None
+    commission_rate: Decimal | None = Field(default=None, ge=0, le=100)
+
+    @field_validator("commission_rate")
+    @classmethod
+    def _tasa(cls, v):
+        return v.quantize(Decimal("0.01")) if v is not None else v
 
 
 class ProfessionalUpdate(BaseModel):
@@ -34,6 +41,12 @@ class ProfessionalUpdate(BaseModel):
     license_number: str | None = None
     color_hex: str | None = None
     is_active: bool | None = None
+    commission_rate: Decimal | None = Field(default=None, ge=0, le=100)
+
+    @field_validator("commission_rate")
+    @classmethod
+    def _tasa(cls, v):
+        return v.quantize(Decimal("0.01")) if v is not None else v
 
 
 class ProfessionalOut(BaseModel):
@@ -44,5 +57,6 @@ class ProfessionalOut(BaseModel):
     license_number: str | None
     color_hex: str
     is_active: bool
+    commission_rate: Decimal | None = None
 
     model_config = {"from_attributes": True}

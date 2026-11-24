@@ -17,6 +17,7 @@ class ChargeCreate(BaseModel):
     amount: Decimal = Field(gt=0, le=MAX_AMOUNT)
     issued_on: date | None = None
     notes: str | None = None
+    professional_id: uuid.UUID | None = None
 
     @field_validator("amount")
     @classmethod
@@ -55,6 +56,7 @@ class ChargeOut(BaseModel):
     id: uuid.UUID
     patient_id: uuid.UUID
     budget_id: uuid.UUID | None
+    professional_id: uuid.UUID | None = None
     description: str
     amount: Decimal
     issued_on: date

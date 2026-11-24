@@ -38,6 +38,9 @@ class Charge(UUIDPKMixin, TenantMixin, Base):
     description: Mapped[str] = mapped_column(String(300), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     issued_on: Mapped[date] = mapped_column(Date, nullable=False)
+    professional_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("professionals.id"), nullable=True, index=True
+    )
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
