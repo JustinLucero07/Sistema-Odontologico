@@ -16,8 +16,6 @@ export interface ConsentLinkData {
   email: string | null;
 }
 
-/** Firma a distancia: genera un enlace que el paciente abre en su teléfono
- *  para leer y firmar. El enlace se ve una sola vez (solo se guarda su huella). */
 @Component({
   selector: 'app-consent-link-dialog',
   standalone: true,

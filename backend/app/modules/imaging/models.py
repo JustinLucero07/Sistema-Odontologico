@@ -21,22 +21,10 @@ IMAGE_TYPES = [
 ]
 IMAGE_TYPE_CODES = {code for code, _ in IMAGE_TYPES}
 
-# Radiographs that are read tooth by tooth. For these the chart asks which
-# pieces are in frame, so an image can be opened from the odontogram.
 TOOTH_SCOPED_TYPES = {"periapical", "bitewing", "oclusal"}
 
 
 class ClinicalImage(UUIDPKMixin, TenantMixin, Base):
-    """A radiograph or clinical photograph belonging to a patient.
-
-    The pixels live wherever the configured StorageProvider puts them; this row
-    holds only what a person needs to find the study again and what the chart
-    needs to link it to teeth.
-
-    Images are never hard-deleted. A wrong image is ARCHIVED with a reason —
-    the same rule the rest of the clinical record follows, because "this
-    radiograph was withdrawn and why" is itself clinical information."""
-
     __tablename__ = "clinical_images"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
@@ -53,8 +41,6 @@ class ClinicalImage(UUIDPKMixin, TenantMixin, Base):
     image_type: Mapped[str] = mapped_column(String(40), nullable=False, default="otro")
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    # When the study was TAKEN, which is not when it was uploaded — an old
-    # radiograph scanned today must still sort by its own date.
     taken_on: Mapped[date | None] = mapped_column(Date)
     fdi_numbers: Mapped[list[str] | None] = mapped_column(ARRAY(String(3)))
 

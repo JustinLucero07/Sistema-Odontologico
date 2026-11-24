@@ -31,13 +31,6 @@ const CAMPOS = [
 ] as const;
 type Form = Partial<Pick<Clinic, (typeof CAMPOS)[number]>>;
 
-/**
- * Configuración › Legal y cumplimiento: lo que una consulta necesita tener en
- * regla (responsable y representante, SRI, permiso de funcionamiento,
- * protección de datos, seguridad de sesión, términos aceptados y solicitudes
- * de los pacientes sobre sus datos). Se guarda en el servidor: la web y el
- * celular ven lo mismo.
- */
 @Component({
   selector: 'app-compliance-page',
   standalone: true,

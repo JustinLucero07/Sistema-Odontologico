@@ -34,10 +34,6 @@ class BirthdayEntry(BaseModel):
 
 
 class Attention(BaseModel):
-    """Lo que alguien tiene que resolver hoy. Cada cifra es None cuando el
-    usuario no tiene permiso para ver ese módulo, no cero: cero significaría
-    "todo en orden", y eso no lo sabe."""
-
     stock_alerts: int | None
     lab_overdue: int | None
     budgets_awaiting: int | None

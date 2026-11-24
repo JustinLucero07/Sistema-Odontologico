@@ -17,8 +17,6 @@ class TreatmentPlan(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False, default="Plan de tratamiento")
     notes: Mapped[str | None] = mapped_column(Text)
-    # Cancelar el plan entero: los ítems pendientes pasan a «cancelado» y
-    # queda el motivo. Lo ya realizado se conserva.
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(Text)
 

@@ -157,8 +157,6 @@ export class InvoicingPageComponent implements OnInit {
     await this.reload();
   }
 
-  // ---- Configuración ----------------------------------------------------
-
   private report(err: unknown, fallback: string): void {
     const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
     this.snackBar.open(typeof detail === 'string' ? detail : fallback, 'Cerrar', { duration: 7000 });

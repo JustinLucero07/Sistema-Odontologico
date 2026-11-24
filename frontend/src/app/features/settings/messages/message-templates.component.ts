@@ -13,7 +13,6 @@ import { firstValueFrom } from 'rxjs';
 import { MessageChannel, MessageTemplate } from '../../../core/models/communication.models';
 import { CommunicationService } from '../../../core/services/communication.service';
 
-/** Variables que el servidor sabe rellenar (ver _placeholders en messaging). */
 const PLACEHOLDERS = [
   { key: '{paciente}', label: 'Nombre del paciente' },
   { key: '{nombre_completo}', label: 'Nombre y apellido' },

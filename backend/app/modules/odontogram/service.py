@@ -39,6 +39,58 @@ async def get_version(
     return result.scalar_one_or_none()
 
 
+MAX_TIMELINE = 200
+
+
+async def timeline(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> list[dict]:
+    """Todas las versiones de la más antigua a la más nueva, con sus cambios."""
+    from app.modules.users.models import User
+
+    await get_patient_or_404(db, clinic_id, patient_id)
+    versiones = list(
+        (
+            await db.execute(
+                select(Odontogram)
+                .options(selectinload(Odontogram.conditions))
+                .where(Odontogram.clinic_id == clinic_id, Odontogram.patient_id == patient_id)
+                .order_by(Odontogram.created_at.desc())
+                .limit(MAX_TIMELINE)
+            )
+        ).scalars().all()
+    )
+    versiones.reverse()
+    ids = {v.created_by_id for v in versiones if v.created_by_id}
+    nombres = {}
+    if ids:
+        for u in (await db.execute(select(User).where(User.id.in_(ids)))).scalars().all():
+            nombres[u.id] = f"{u.first_name} {u.last_name}".strip()
+
+    def clave(c) -> tuple[str, str, str]:
+        return (c.fdi_number, c.surface, c.condition)
+
+    salida = []
+    antes: set[tuple[str, str, str]] = set()
+    for v in versiones:
+        ahora = {clave(c) for c in v.conditions if c.condition != "sano"}
+        como = lambda conjunto: [  # noqa: E731
+            {"fdi_number": f, "surface": s, "condition": c} for f, s, c in sorted(conjunto)
+        ]
+        salida.append(
+            {
+                "id": v.id,
+                "created_at": v.created_at,
+                "type": v.type,
+                "notes": v.notes,
+                "author_name": nombres.get(v.created_by_id),
+                "conditions": como(ahora),
+                "added": como(ahora - antes),
+                "removed": como(antes - ahora),
+            }
+        )
+        antes = ahora
+    return salida
+
+
 async def list_versions(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> list[Odontogram]:
     await get_patient_or_404(db, clinic_id, patient_id)
     result = await db.execute(

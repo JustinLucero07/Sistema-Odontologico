@@ -103,8 +103,6 @@ async def create_expense(
 
     supplier_name = payload.supplier_name or await _supplier_name(db, clinic_id, payload.supplier_id)
     session = None
-    # Un gasto en efectivo de hoy sale de la caja abierta: el arqueo lo
-    # descontará. Si es de otro día, o no hay caja abierta, no se asigna.
     if payload.method == CASH_METHOD and payload.spent_on == date.today():
         session = await get_open_session(db, clinic_id)
     expense = Expense(
@@ -178,9 +176,6 @@ async def cash_expenses_total(db: AsyncSession, clinic_id: uuid.UUID, session_id
         )
     ).scalars().all()
     return money(sum(rows, ZERO))
-
-
-# ---- Listados y resumen ----------------------------------------------------
 
 
 async def list_payments(
@@ -343,8 +338,6 @@ async def cash_sessions(db: AsyncSession, clinic_id: uuid.UUID, limit: int = 60)
                 opening_float=money(s.opening_float),
                 cash_in=cash_in,
                 cash_out=cash_out,
-                # Una caja cerrada muestra lo que se calculó al cerrarla (queda
-                # guardado); una abierta, lo que va hasta ahora.
                 expected_cash=money(s.expected_cash)
                 if s.expected_cash is not None
                 else money(s.opening_float + cash_in - cash_out),

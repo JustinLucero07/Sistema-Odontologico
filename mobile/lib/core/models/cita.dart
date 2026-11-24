@@ -28,8 +28,6 @@ class Cita {
     pacienteId: json['patient_id'] as String,
     pacienteNombre: json['patient_name'] as String? ?? '',
     profesionalNombre: json['professional_name'] as String? ?? '',
-    // El servidor manda UTC; se convierte a la hora del dispositivo para
-    // que «11:00» sea las once donde está el odontólogo.
     inicio: DateTime.parse(json['starts_at'] as String).toLocal(),
     fin: DateTime.parse(json['ends_at'] as String).toLocal(),
     estado: json['status'] as String,

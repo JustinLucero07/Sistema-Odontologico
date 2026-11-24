@@ -39,8 +39,6 @@ async def update_specialty(
 
 
 async def delete_specialty(db: AsyncSession, clinic_id: uuid.UUID, specialty_id: uuid.UUID) -> None:
-    """Una especialidad es solo una etiqueta, así que sí se borra, pero nunca
-    si algún profesional la tiene: se quedaría sin clasificar sin que nadie lo decida."""
     specialty = await get_specialty_or_404(db, clinic_id, specialty_id)
     in_use = await db.scalar(
         select(func.count()).select_from(Professional).where(Professional.specialty_id == specialty_id)

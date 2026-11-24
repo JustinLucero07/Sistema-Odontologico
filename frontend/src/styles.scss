@@ -3,9 +3,6 @@
 
 @include mat.core();
 
-// Cyan/orange are the closest stock M3 tonal neighborhood to the real brand
-// colours (clinical teal + warm gold). Material's per-component tokens are
-// repointed at the exact brand values below, per theme.
 $frontend-theme: mat.define-theme((
   color: (theme-type: light, primary: mat.$cyan-palette, tertiary: mat.$orange-palette),
   density: (scale: 0),
@@ -15,11 +12,6 @@ $frontend-theme: mat.define-theme((
   @include mat.all-component-themes($frontend-theme);
 }
 
-/* ============================================================
-   Design tokens — light
-   The dark set further down is *chosen*, not an inversion: a
-   flipped palette gives muddy mid-tones and dead primaries.
-   ============================================================ */
 :root,
 :root[data-theme='light'] {
   color-scheme: light;
@@ -28,8 +20,6 @@ $frontend-theme: mat.define-theme((
   --color-ink-soft: rgba(15, 36, 39, 0.66);
   --color-ink-faint: rgba(15, 36, 39, 0.45);
 
-  // Un fondo con luz de color: el vidrio necesita algo detrás que refractar,
-  // o no se distingue de un panel blanco. Las luces son suaves y fijas.
   --color-base: #e6eeee;
   --color-base-gradient: linear-gradient(180deg, #edf3f3 0%, #e2eaea 100%);
   --ambient-1: rgba(47, 191, 174, 0.34);
@@ -56,22 +46,12 @@ $frontend-theme: mat.define-theme((
   --color-success: #2b7a4b;
   --color-success-soft: rgba(43, 122, 75, 0.11);
 
-  // ---- Liquid Glass -------------------------------------------------
-  // El vidrio se lee como material por tres cosas a la vez: deja ver lo que
-  // hay detrás (desenfoque + saturación), tiene un canto iluminado (el borde
-  // claro y el brillo interior de arriba) y proyecta una sombra suave que lo
-  // separa del fondo. Sin las tres, parece solo un panel semitransparente.
-  //
-  // El peso del material marca la jerarquía: el menú es la capa estructural
-  // más densa; las tarjetas, más ligeras; los chips, casi transparentes.
   --glass-sidebar-bg:
     linear-gradient(175deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 255, 255, 0.52) 100%);
   --glass-sidebar-blur: blur(34px) saturate(190%);
   --glass-sidebar-edge: rgba(255, 255, 255, 0.8);
   --glass-sidebar-shadow: 0 30px 60px -34px rgba(13, 70, 66, 0.42), 0 2px 6px -2px rgba(13, 70, 66, 0.08);
 
-  // Tinta del menú lateral: sobre vidrio claro, texto oscuro con algo más de
-  // peso para que se lea pase lo que pase por detrás.
   --nav-ink: #0f2427;
   --nav-ink-soft: rgba(15, 36, 39, 0.74);
   --nav-ink-faint: rgba(15, 36, 39, 0.44);
@@ -93,7 +73,6 @@ $frontend-theme: mat.define-theme((
   --glass-rim: 0 0 0 1px rgba(15, 36, 39, 0.05);
   --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
 
-  // Campos y superficies dentro de una tarjeta: un grado más transparentes.
   --glass-field-bg: rgba(255, 255, 255, 0.55);
   --glass-field-hover-bg: rgba(255, 255, 255, 0.75);
   --glass-chip-bg: rgba(255, 255, 255, 0.5);
@@ -101,8 +80,6 @@ $frontend-theme: mat.define-theme((
   --sk-shine: rgba(255, 255, 255, 0.75);
 
   --glass-overlay-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(246, 250, 250, 0.86));
-  // Mismo material como color liso, para los tokens de Material que no
-  // aceptan un degradado (un degradado ahí deja el fondo transparente).
   --glass-overlay-color: rgba(250, 252, 252, 0.9);
   --glass-scrim: rgba(8, 28, 29, 0.36);
 
@@ -110,9 +87,6 @@ $frontend-theme: mat.define-theme((
   --shadow-md: 0 1px 2px rgba(10, 35, 37, 0.04), 0 14px 34px -14px rgba(10, 35, 37, 0.22);
   --shadow-lg: 0 2px 6px rgba(8, 28, 29, 0.06), 0 30px 70px -20px rgba(8, 28, 29, 0.35);
 
-  // ---- Appointment states ---------------------------------------------
-  // Validated as a set, not chosen by eye — see APPOINTMENT_STATUS_COLORS.
-  // Worst adjacent pair here: ΔE 9.5 protan, 21.3 normal vision.
   --status-programada: #22b8cf;
   --status-confirmada: #2b8a3e;
   --status-en-espera: #f08c00;
@@ -141,7 +115,6 @@ $frontend-theme: mat.define-theme((
   --color-border: rgba(231, 241, 241, 0.12);
   --color-border-strong: rgba(231, 241, 241, 0.22);
 
-  // Primaries are lifted for dark: the light-mode teal reads almost black here.
   --color-primary: #34d3c0;
   --color-primary-dark: #22a897;
   --color-primary-soft: rgba(52, 211, 192, 0.14);
@@ -196,9 +169,6 @@ $frontend-theme: mat.define-theme((
   --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.25), 0 16px 38px -14px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.3), 0 32px 70px -20px rgba(0, 0, 0, 0.75);
 
-  // Three of the day steps fall under 3:1 on the night surface, so indigo, red
-  // and purple are re-stepped lighter. The rest carry over unchanged — a status
-  // should not change identity when the theme flips.
   --status-programada: #22b8cf;
   --status-confirmada: #2b8a3e;
   --status-en-espera: #f08c00;
@@ -209,15 +179,11 @@ $frontend-theme: mat.define-theme((
 }
 
 :root {
-  // The content column's ceiling. Pages no longer set their own: they fill the
-  // shell, and only a very wide monitor sees any margin at all.
   --page-max: 1720px;
 
   --radius-sm: 12px;
   --radius-md: 20px;
   --radius-lg: 26px;
-  // Curva de muelle críticamente amortiguada: responde rápido y se asienta
-  // sin rebote, para todo lo que aparece o se mueve en pantalla.
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 
   --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
@@ -318,10 +284,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-// Luz ambiental: manchas de color grandes y muy desenfocadas en una capa fija
-// detrás de todo. Es lo que el vidrio refracta. Va en su propia capa (no como
-// background-attachment: fixed) para que el navegador no la repinte al hacer
-// scroll.
 body::before {
   content: '';
   position: fixed;
@@ -336,7 +298,6 @@ body::before {
   filter: saturate(115%);
 }
 
-// Type: tracking is size-specific — tighten as it grows, body stays near 0.
 h1,
 h2,
 h3,
@@ -360,11 +321,6 @@ h4 {
   letter-spacing: -0.008em;
 }
 
-/* ============================================================
-   Liquid Glass utilities
-   Never stack one light glass surface directly on another —
-   the page background is solid so cards have something to blur.
-   ============================================================ */
 .glass-card {
   position: relative;
   background: var(--glass-card-bg);
@@ -375,8 +331,6 @@ h4 {
   box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-md);
   overflow: hidden;
 
-  // Reflejo especular: una franja de luz en el canto superior, más intensa
-  // al centro, como la luz que atrapa el borde de un vidrio curvo.
   &::before {
     content: '';
     position: absolute;
@@ -417,7 +371,6 @@ mat-card.mat-mdc-card {
     color 260ms ease !important;
 }
 
-/* ---- Accessibility: the material adapts, it doesn't just disappear ---- */
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-card-bg: var(--color-surface);
@@ -449,12 +402,6 @@ mat-card.mat-mdc-card {
   }
 }
 
-/* ============================================================
-   Diálogos
-   Un solo material para todas las ventanas emergentes: el mismo
-   vidrio que las tarjetas, y un velo que oscurece lo de detrás
-   para que quede claro que la tarea activa es el diálogo.
-   ============================================================ */
 :root {
   --mdc-dialog-container-color: var(--glass-overlay-color);
   --mdc-dialog-container-shape: var(--radius-lg);
@@ -470,8 +417,13 @@ mat-card.mat-mdc-card {
   box-shadow: var(--shadow-lg);
 }
 
-.app-dialog .mat-mdc-dialog-content {
-  max-height: min(70vh, 640px);
+.app-dialog .mat-mdc-dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-dialog .mat-mdc-dialog-content::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: var(--color-border-strong);
 }
 
 .cdk-overlay-dark-backdrop {
@@ -479,11 +431,6 @@ mat-card.mat-mdc-card {
   backdrop-filter: blur(3px);
 }
 
-/* ============================================================
-   Encabezado de página
-   Título a la izquierda, acción principal a la derecha: el mismo
-   sitio en todas las pantallas para "crear" algo.
-   ============================================================ */
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -504,7 +451,6 @@ mat-card.mat-mdc-card {
   color: var(--color-ink-faint);
 }
 
-/* Formularios dentro de un diálogo: dos columnas que caen a una en móvil. */
 .dialog-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -629,14 +575,11 @@ mat-card.mat-mdc-card {
   font-size: 0.84rem;
 }
 
-/* Acción destructiva dentro de un menú: en rojo para que no se pulse por inercia. */
 .mat-mdc-menu-item.danger-item,
 .mat-mdc-menu-item.danger-item .mat-icon {
   color: var(--color-danger);
 }
 
-/* color="warn" en botones de texto y contorno: el tema solo pinta el primario,
-   así que lo destructivo se veía igual que lo normal. */
 .mat-mdc-button.mat-warn,
 .mat-mdc-outlined-button.mat-warn {
   --mdc-text-button-label-text-color: var(--color-danger);
@@ -645,15 +588,6 @@ mat-card.mat-mdc-card {
   --mat-text-button-ripple-color: var(--color-danger-soft);
 }
 
-/* ============================================================
-   Liquid Glass: controles
-   Material pinta sus componentes planos; aquí reciben el mismo
-   material que las tarjetas, para que toda la interfaz sea una.
-   ============================================================ */
-
-// Botón principal: cápsula con un velo de luz arriba y una sombra de su propio
-// color, como una gota de vidrio tintado. El velo es blanco translúcido, así
-// sirve sobre cualquier color de fondo del botón.
 .mat-mdc-unelevated-button:not(:disabled) {
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 55%);
   box-shadow:
@@ -733,16 +667,12 @@ mat-card.mat-mdc-card {
   width: calc(100% - 12px) !important;
 }
 
-// El tema base de Material es claro: sin esto, todo texto sin color propio
-// dentro de pestañas y chips hereda su tinta oscura y en modo oscuro
-// desaparece. Se reasigna a la tinta del tema de la app.
 .mat-mdc-tab-group,
 .mat-mdc-tab-body-content,
 .mat-mdc-chip {
   color: var(--color-ink);
 }
 
-// Pestañas: un selector segmentado de vidrio en vez de una línea subrayada.
 .mat-mdc-tab-group .mat-mdc-tab-header {
   padding: 5px;
   border-radius: 999px;
@@ -814,7 +744,6 @@ mat-card.mat-mdc-card {
     padding: 0 14px;
   }
 
-  // La marca de verificación sobra: la cápsula iluminada ya dice cuál está activa.
   .mat-pseudo-checkbox {
     display: none;
   }
@@ -873,8 +802,6 @@ mat-card.mat-mdc-card {
   box-shadow: var(--glass-specular), var(--glass-rim), var(--shadow-lg) !important;
 }
 
-// Aparición de pantallas: sube 6 px y se funde. Corto y sin rebote, para que
-// cambiar de sección se sienta continuo en vez de un parpadeo.
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -944,14 +871,6 @@ mat-card.mat-mdc-card {
   }
 }
 
-/* ============================================================
-   Barras de desplazamiento
-   Finas, sin flechas y sobre fondo transparente: la clásica con
-   botones de subir/bajar se veía pesada en cada panel. Solo el
-   pulgar, discreto, que se aclara al pasar el ratón.
-   Chrome ignora ::-webkit-scrollbar si se declaran scrollbar-width
-   o scrollbar-color, así que esas dos solo van para Firefox.
-   ============================================================ */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -986,12 +905,6 @@ mat-card.mat-mdc-card {
   }
 }
 
-/* ============================================================
-   Diálogos — acabado
-   Título con la tipografía de marca, contenido que se desliza bajo
-   un pie fijo de vidrio con canto, y botones en cápsula. Aplica a
-   todas las ventanas a la vez para que se sientan una sola familia.
-   ============================================================ */
 .app-dialog {
   --mdc-dialog-container-shape: 26px;
   --mdc-dialog-subhead-font: var(--font-display);
@@ -1020,11 +933,13 @@ mat-card.mat-mdc-card {
 
   .mat-mdc-dialog-content {
     padding-top: 10px !important;
-    // El borde inferior del contenido se desvanece bajo el pie: se nota que
-    // hay más sin dibujar una raya dura.
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
-    scrollbar-gutter: stable;
+    padding-bottom: 14px !important;
+    max-height: max(140px, calc(100dvh - 190px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
   }
 
   .mat-mdc-dialog-actions {
@@ -1055,7 +970,6 @@ mat-card.mat-mdc-card {
   }
 }
 
-// Velo un poco más profundo y desenfocado: el diálogo es la tarea activa.
 .cdk-overlay-dark-backdrop {
   backdrop-filter: blur(6px) saturate(120%);
   -webkit-backdrop-filter: blur(6px) saturate(120%);

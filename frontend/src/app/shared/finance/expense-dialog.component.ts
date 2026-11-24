@@ -17,9 +17,6 @@ function today(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Registrar o corregir un egreso. Al editar, el importe y el medio quedan
- *  fijos: se corrigen anulando y registrando de nuevo, para no descuadrar la
- *  caja del día en que se pagó. */
 @Component({
   selector: 'app-expense-dialog',
   standalone: true,

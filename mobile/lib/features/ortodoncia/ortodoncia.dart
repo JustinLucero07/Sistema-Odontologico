@@ -15,11 +15,8 @@ import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
+import '../configuracion/datos_pago.dart' show mostrarDatosPago;
 import '../pacientes/paciente_detalle_page.dart';
-
-// ---------------------------------------------------------------------------
-// Catálogos (mismos códigos que la web y el servidor)
-// ---------------------------------------------------------------------------
 
 const estadosOrto = <Opcion>[
   ('activo', 'Activo'),
@@ -73,10 +70,6 @@ Color _colorDoc(String? e) => switch (e) {
 
 String _dos(dynamic n) => '${n ?? 0}'.padLeft(2, '0');
 
-// ---------------------------------------------------------------------------
-// Datos
-// ---------------------------------------------------------------------------
-
 /// Filtros de la lista: código → valor (null = todos).
 final _filtrosProvider = StateProvider.autoDispose<Map<String, String?>>(
   (ref) => {'status': 'abiertos'},
@@ -105,10 +98,6 @@ void _refrescar(WidgetRef ref, {String? pacienteId, String? fichaId}) {
   if (fichaId != null) ref.invalidate(fichaOrtoProvider(fichaId));
   ref.invalidate(_listaOrtoProvider);
 }
-
-// ---------------------------------------------------------------------------
-// Lista: Pacientes de ortodoncia
-// ---------------------------------------------------------------------------
 
 class OrtodonciaPage extends ConsumerStatefulWidget {
   const OrtodonciaPage({super.key});
@@ -295,10 +284,6 @@ class _FilaOrto extends ConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Pestaña Ortodoncia dentro de la ficha del paciente
-// ---------------------------------------------------------------------------
-
 class PestanaOrtodoncia extends ConsumerWidget {
   const PestanaOrtodoncia({super.key, required this.pacienteId, required this.nombre});
 
@@ -426,6 +411,16 @@ class _DetalleFichaState extends ConsumerState<_DetalleFicha> {
                                   await _exportar(context, ref, c, 'pdf');
                                 case 'csv':
                                   await _exportar(context, ref, c, 'csv');
+                                case 'pago':
+                                  final p = (c['patient'] as Map).cast<String, dynamic>();
+                                  final cuota = controles.where((x) => numero(x['balance']) > 0).firstOrNull;
+                                  await mostrarDatosPago(
+                                    context,
+                                    nombre: '${p['first_name']} ${p['last_name']}',
+                                    telefono: '${p['whatsapp'] ?? p['phone'] ?? ''}',
+                                    monto: cuota == null ? null : numero(cuota['balance']),
+                                    concepto: cuota == null ? null : 'cuota ${_dos(cuota['number'])} de ortodoncia',
+                                  );
                                 case 'editar':
                                   if (await editarFichaOrto(context, ref, c)) _ref();
                                 case 'nueva':
@@ -447,6 +442,7 @@ class _DetalleFichaState extends ConsumerState<_DetalleFicha> {
                               }
                             },
                             itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'pago', child: Text('Datos de pago / QR')),
                               const PopupMenuItem(value: 'pdf', child: Text('Imprimir / PDF')),
                               const PopupMenuItem(value: 'csv', child: Text('Exportar a Excel')),
                               if (puede) const PopupMenuItem(value: 'editar', child: Text('Editar ficha')),
@@ -835,10 +831,6 @@ class _TarjetaCuota extends StatelessWidget {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Acciones (todas en ventana emergente)
-// ---------------------------------------------------------------------------
-
 Future<List<Opcion>> _profesionales(WidgetRef ref) async {
   try {
     final l = await ref.read(apiProvider).lista('/clinics/professionals');
@@ -1099,8 +1091,6 @@ Future<void> _exportar(BuildContext context, WidgetRef ref, Map<String, dynamic>
   }
 }
 
-/// Atajo para el botón flotante de la pestaña: crea la ficha si no hay una
-/// abierta; si la hay, agrega cuotas.
 Future<void> accionOrtodoncia(BuildContext context, WidgetRef ref, String pacienteId, String nombre) async {
   final fichas = await cargarOAvisar(context, ref.read(fichasOrtoPacienteProvider(pacienteId).future));
   if (fichas == null || !context.mounted) return;

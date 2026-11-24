@@ -89,8 +89,6 @@ export class UsersComponent implements OnInit {
       password: '',
       role_ids: user?.roles.map((r) => r.id) ?? [],
     });
-    // Al editar, el correo es el usuario de acceso y no cambia; la contraseña
-    // tiene su propia acción. Se desactivan para que no bloqueen el guardado.
     if (user) {
       this.form.controls.email.disable();
       this.form.controls.password.disable();

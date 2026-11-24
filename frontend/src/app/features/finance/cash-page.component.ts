@@ -53,8 +53,6 @@ export class CashPageComponent implements OnInit {
     return this.auth.hasPermission('payments:write');
   }
 
-  /** The largest method total sets the bar scale, so the bars compare against
-   *  each other rather than against an arbitrary maximum. */
   readonly maxMethodTotal = computed(() =>
     Math.max(...(this.report()?.by_method.map((m) => Number(m.total)) ?? [0]), 1),
   );

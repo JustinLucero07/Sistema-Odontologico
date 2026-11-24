@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -19,9 +18,6 @@ from app.modules.users.models import RefreshToken, Role, User
 settings = get_settings()
 
 
-# After this many consecutive failures the account locks itself for a while.
-# The per-IP rate limit does not cover a distributed attempt against ONE
-# account, which is the shape an attack on a known clinician's email takes.
 MAX_FAILED_LOGINS = 8
 LOCKOUT_MINUTES = 15
 
@@ -57,8 +53,6 @@ async def authenticate(db: AsyncSession, email: str, password: str, ip_address: 
                     after={"minutes": LOCKOUT_MINUTES},
                 )
             await db.commit()
-        # The same answer either way: saying "that account exists but the
-        # password was wrong" tells an attacker which emails are real.
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales inválidas")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario inactivo")
@@ -147,8 +141,6 @@ async def revoke_refresh_token(db: AsyncSession, raw_token: str) -> None:
     if stored is not None and stored.revoked_at is None:
         stored.revoked_at = datetime.now(timezone.utc)
     if stored is not None:
-        # Cerrar sesión termina también la gracia de los tokens recién
-        # renovados de este usuario: nada vuelve a entrar después de salir.
         await db.execute(
             update(RefreshToken).where(RefreshToken.user_id == stored.user_id).values(rotated_at=None)
         )
@@ -169,7 +161,6 @@ async def change_own_password(db: AsyncSession, user: User, current_password: st
     user.hashed_password = hash_password(new_password)
     user.must_change_password = False
     user.password_changed_at = datetime.now(timezone.utc)
-    # Quien tuviera la contraseña anterior queda fuera en todos los dispositivos.
     await _revoke_sessions(db, user.id)
     await record_audit(
         db, clinic_id=user.clinic_id, user_id=user.id, action="change_password", entity_type="user",

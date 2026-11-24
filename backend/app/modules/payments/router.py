@@ -36,9 +36,6 @@ async def get_payment_methods(
     ]
 
 
-# ---- Patient account ----------------------------------------------------
-
-
 @patient_router.get("/account", response_model=AccountStatement)
 async def get_account(
     patient_id: uuid.UUID,
@@ -74,9 +71,6 @@ async def post_payment(
     )
     await db.commit()
     return payment
-
-
-# ---- Corrections --------------------------------------------------------
 
 
 @router.post("/payments/{payment_id}/void", response_model=PaymentOut)
@@ -119,9 +113,6 @@ async def post_installments(
     )
     await db.commit()
     return service._to_charge_out(charge, date.today())
-
-
-# ---- Till ---------------------------------------------------------------
 
 
 @router.get("/cash-session", response_model=CashSessionOut | None)

@@ -1,10 +1,3 @@
-"""Finanzas: egresos, resultado del periodo y caja.
-
-Lo que tiene que cuadrar siempre: lo cobrado menos lo gastado es la utilidad,
-y el efectivo esperado al cerrar la caja es el fondo más los cobros en
-efectivo menos los gastos pagados en efectivo de esa caja.
-"""
-
 from datetime import date, timedelta
 
 

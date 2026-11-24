@@ -8,8 +8,6 @@ from app.modules.mail.schemas import MailSettingsOut, MailSettingsUpdate, MailTe
 
 router = APIRouter(prefix="/api/v1/mail", tags=["mail"])
 
-# Atajos para los proveedores más comunes: así nadie tiene que buscar
-# servidores y puertos.
 PROVEEDORES = [
     {"code": "gmail", "label": "Gmail / Google Workspace", "host": "smtp.gmail.com", "port": 587, "security": "starttls",
      "help": "Active la verificación en dos pasos y cree una «contraseña de aplicación» en myaccount.google.com → Seguridad."},

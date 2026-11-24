@@ -21,13 +21,6 @@ from app.shared.mixins import TenantMixin, TimestampMixin, UUIDPKMixin
 
 
 class OrthoCase(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
-    """Ficha de ortodoncia de un paciente (ORT-0001).
-
-    El dinero no se guarda aquí: el valor del tratamiento es un cargo normal de
-    la cuenta del paciente (`charge_id`) y cada abono es un pago normal ligado
-    a ese cargo. Así ortodoncia aparece sola en cartera, caja y finanzas, y se
-    puede facturar al SRI como cualquier otro tratamiento."""
-
     __tablename__ = "ortho_cases"
     __table_args__ = (
         UniqueConstraint("clinic_id", "number", name="uq_ortho_case_number"),
@@ -57,7 +50,6 @@ class OrthoCase(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     special_attention: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     special_attention_note: Mapped[str | None] = mapped_column(String(300))
 
-    # Lista de control de documentación (por_revisar | pendiente | listo | no_requiere).
     doc_xrays: Mapped[str] = mapped_column(String(15), nullable=False, default="por_revisar")
     doc_photos: Mapped[str] = mapped_column(String(15), nullable=False, default="por_revisar")
     doc_models: Mapped[str] = mapped_column(String(15), nullable=False, default="por_revisar")
@@ -73,12 +65,6 @@ class OrthoCase(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
 
 
 class OrthoControl(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
-    """Una fila del plan: el control clínico de ese mes y su cuota.
-
-    Une lo clínico (qué se planificó, qué arcos, elásticos y TADs) con lo
-    económico (vencimiento y valor de la cuota), porque en ortodoncia ambas
-    cosas pasan en la misma visita."""
-
     __tablename__ = "ortho_controls"
     __table_args__ = (CheckConstraint("amount >= 0", name="ck_ortho_control_amount"),)
 

@@ -84,7 +84,6 @@ export interface CashSession {
   difference: string | null;
   notes: string | null;
   is_open: boolean;
-  /** Solo en la caja abierta: efectivo que entró, que salió y lo que debería haber. */
   cash_in?: string | null;
   cash_out?: string | null;
   expected_now?: string | null;
@@ -197,8 +196,6 @@ export interface CashSessionRow {
   notes: string | null;
 }
 
-/** Amounts cross the wire as strings so no cent is lost to a JSON float on the
- *  way in. They are parsed only at the moment of display. */
 export function formatMoney(value: string | number): string {
   const amount = typeof value === 'number' ? value : Number(value);
   return new Intl.NumberFormat('es', {

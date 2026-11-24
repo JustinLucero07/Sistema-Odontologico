@@ -1,5 +1,3 @@
-// A real tooth is two materials: pearl-white enamel over a warmer, more opaque
-// ivory root. Both lift in dark mode or the figure disappears into the panel.
 :host {
   --tooth-enamel: #fcfcfa;
   --tooth-root: #ecdfc4;
@@ -18,7 +16,6 @@
   --tooth-detail: rgba(6, 18, 20, 0.45);
   --tooth-gloss: rgba(255, 255, 255, 0.55);
   --tooth-shade: rgba(6, 18, 20, 0.22);
-  // Las ruedas van sobre el panel, no sobre el diente: necesitan trazo claro.
   --wheel-stroke: rgba(231, 241, 241, 0.42);
   --wheel-fill: rgba(255, 255, 255, 0.04);
 }
@@ -59,7 +56,6 @@
   min-width: max-content;
 }
 
-// Two halves of equal weight, so the divider between them lands on the midline.
 .quadrant-captions {
   display: flex;
   width: 100%;
@@ -79,9 +75,6 @@
   align-items: flex-end;
   gap: 2px;
 
-  // Abajo la columna va invertida (número arriba): se alinea por arriba para
-  // que números y ruedas de caras queden en una sola línea, como en la arcada
-  // superior, y las raíces largas o cortas cuelguen libres.
   &.lower {
     align-items: flex-start;
   }
@@ -150,8 +143,6 @@
   }
 }
 
-// ---- Anatomical figure -------------------------------------------------
-
 .tooth-figure {
   display: block;
   cursor: pointer;
@@ -172,8 +163,6 @@
   transition: fill 0.18s ease;
 }
 
-// Landmarks — the cementoenamel junction and the grooves between cusps. They
-// are hairlines: present when you look, invisible when you don't.
 .tooth-detail {
   fill: none;
   stroke: var(--tooth-detail);
@@ -190,8 +179,6 @@
   pointer-events: none;
 }
 
-// The shadow is what actually reads: a highlight is invisible on a white
-// crown, but the dark wall works on white and on a filled tooth alike.
 .tooth-shade {
   fill: none;
   stroke: var(--tooth-shade);
@@ -224,11 +211,6 @@
   stroke-linecap: round;
 }
 
-// ---- Circular five-surface wheel ---------------------------------------
-
-// The wheel fills its tooth's column and never exceeds it: a lower central
-// incisor is the narrowest cell in the mouth, and a fixed width wider than that
-// makes neighbouring wheels overlap.
 .surface-wheel {
   display: block;
   width: 100%;
@@ -266,8 +248,6 @@
     pointer-events: none;
   }
 }
-
-// ---- FDI number --------------------------------------------------------
 
 .tooth-number {
   font-size: 0.74rem;
@@ -324,8 +304,6 @@
   }
 }
 
-// ---- Símbolos clínicos y selección ---------------------------------------
-
 .mark-extract {
   stroke: #e8590c;
   stroke-width: 2.4;
@@ -369,7 +347,6 @@
   }
 }
 
-// Respuesta al tocar: la superficie se ilumina antes de aplicar el cambio.
 .tooth-cell:not(.readonly) .surface {
   transition: filter 0.12s ease, opacity 0.12s ease;
 

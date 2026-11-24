@@ -1,6 +1,3 @@
-"""Panel de pagos de una ficha de ortodoncia, para imprimir (PDF) o abrir en
-Excel (CSV con separador «;» y BOM, que Excel en español abre directo)."""
-
 import csv
 import io
 from datetime import date

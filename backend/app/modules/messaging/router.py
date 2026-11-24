@@ -84,10 +84,6 @@ async def post_dispatch(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("appointments:write")),
 ):
-    """Sends the reminders whose moment has arrived.
-
-    Exposed as an endpoint rather than hidden in a background loop so a real
-    deployment can drive it from cron and see exactly what happened."""
     result = await service.dispatch_due_reminders(
         db, current_user.clinic_id, current_user.id
     )

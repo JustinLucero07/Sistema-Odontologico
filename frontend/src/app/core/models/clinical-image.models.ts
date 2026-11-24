@@ -18,8 +18,6 @@ export interface ClinicalImage {
   image_type: ClinicalImageType;
   title: string;
   description: string | null;
-  /** When the study was TAKEN — an old radiograph scanned today still sorts
-   *  by its own date, not by the upload. */
   taken_on: string | null;
   fdi_numbers: string[] | null;
   original_filename: string;
@@ -34,7 +32,6 @@ export interface ClinicalImage {
 export interface ClinicalImageTypeOption {
   code: ClinicalImageType;
   label: string;
-  /** Radiographs read tooth by tooth: the form asks which pieces are in frame. */
   tooth_scoped: boolean;
 }
 

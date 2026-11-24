@@ -1,7 +1,4 @@
 :host {
-  // The two profile lines are the chart's signal. They must stay apart for a
-  // colour-blind reader, so they differ in lightness as well as hue and the
-  // pocket line is thicker.
   --perio-margin: #c2410c;
   --perio-pocket: #1d4ed8;
   --perio-bleed: #dc2626;
@@ -94,8 +91,6 @@
     color: var(--color-primary);
   }
 
-  // An absent tooth is struck through rather than hidden: the gap in the arch
-  // is itself a finding, and the column has to stay for the numbers to line up.
   &.is-absent {
     text-decoration: line-through;
     color: var(--color-ink-faint);
@@ -105,8 +100,6 @@
 .wall {
   position: relative;
   margin-top: 10px;
-  // The wall's name gets its own line in the gutter; without this padding it
-  // lands on top of the first row's label.
   padding-top: 22px;
   border-top: 1px dashed var(--color-border);
 }
@@ -152,8 +145,6 @@
   width: 22px;
 }
 
-// Depth cells carry a tint as well as the number, so a deep pocket is visible
-// while scanning the row rather than only when read.
 .depth-moderate {
   background: var(--perio-moderate);
   font-weight: 700;

@@ -31,8 +31,9 @@ import { FinanceService } from '../../core/services/finance.service';
 import { promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
 import { openExpenseDialog } from '../../shared/finance/expense-dialog.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { VentasTabComponent } from './ventas-tab.component';
 
-type View = 'resumen' | 'cobros' | 'egresos' | 'fijos' | 'proyeccion' | 'cajas';
+type View = 'resumen' | 'ventas' | 'cobros' | 'egresos' | 'fijos' | 'proyeccion' | 'cajas';
 type Preset = 'mes' | 'mes_anterior' | 'trimestre' | 'anio' | 'personalizado';
 
 function iso(d: Date): string {
@@ -44,7 +45,7 @@ const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', '
 @Component({
   selector: 'app-finance-page',
   standalone: true,
-  imports: [SkeletonComponent, 
+  imports: [SkeletonComponent, VentasTabComponent, 
     DatePipe,
     FormsModule,
     RouterLink,
@@ -93,7 +94,6 @@ export class FinancePageComponent implements OnInit {
   readonly paymentsTotal = computed(() => this.livePayments().reduce((s, p) => s + Number(p.amount), 0));
   readonly expensesTotal = computed(() => this.liveExpenses().reduce((s, e) => s + Number(e.amount), 0));
 
-  /** Barras mensuales: ingresos y egresos lado a lado, sobre una escala común. */
   readonly chart = computed(() => {
     const months = this.summary()?.monthly ?? [];
     const max = Math.max(1, ...months.flatMap((m) => [Number(m.income), Number(m.expenses)]));
@@ -120,8 +120,6 @@ export class FinancePageComponent implements OnInit {
     void this.loadRecurring();
     void this.loadProjection();
   }
-
-  // ---- Gastos fijos -----------------------------------------------------
 
   @ViewChild('recurringDialog') recurringDialog!: TemplateRef<unknown>;
   private recurringRef: MatDialogRef<unknown> | null = null;
@@ -204,8 +202,6 @@ export class FinancePageComponent implements OnInit {
       this.snackBar.open(typeof d === 'string' ? d : 'No se pudo registrar', 'Cerrar', { duration: 4000 });
     }
   }
-
-  // ---- Proyección -------------------------------------------------------
 
   readonly projDays = signal(30);
   readonly projection = signal<Projection | null>(null);

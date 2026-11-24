@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// La marca del producto: un molar dibujado desde su anatomía —corona ancha
-/// con dos cúspides y dos raíces— en vez del maletín médico genérico.
-///
-/// Es el mismo trazado que el SVG de la web, portado a `Path` para que las dos
-/// aplicaciones tengan literalmente el mismo logotipo.
 class ToothMark extends StatelessWidget {
   const ToothMark({super.key, this.size = 28, this.color, this.filled = false});
 
@@ -68,8 +63,6 @@ class _ToothMarkPainter extends CustomPainter {
       old.color != color || old.filled != filled;
 }
 
-/// Contorno del molar en una caja de 32×32 escalada por [k]: el mismo trazado
-/// que el SVG de la web.
 Path trazoDiente(double k) => Path()
   ..moveTo(16 * k, 3.4 * k)
   ..cubicTo(9.9 * k, 3.4 * k, 5.4 * k, 6.7 * k, 5.4 * k, 12.3 * k)

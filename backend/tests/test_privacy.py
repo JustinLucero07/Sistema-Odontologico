@@ -1,12 +1,3 @@
-"""Protección de datos: lo que la ley pide poder demostrar.
-
-- Que al paciente se le informó (aviso de privacidad), con qué versión y cómo.
-- Que sus autorizaciones se pueden retirar, y que retirarlas tiene efecto.
-- Que puede obtener una copia de todos sus datos.
-- Quién abrió su historia.
-- Que el personal aceptó guardar confidencialidad.
-"""
-
 from datetime import date
 
 

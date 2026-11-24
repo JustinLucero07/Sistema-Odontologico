@@ -39,8 +39,6 @@ Color colorOrden(String? estado) => switch (estado) {
   _ => Tonos.violeta,
 };
 
-/// Alta o edición de una orden de laboratorio. Si se da [pacienteId], no se
-/// pregunta el paciente (se abre desde su ficha).
 Future<void> editarOrdenLab(
   BuildContext context,
   WidgetRef ref, {

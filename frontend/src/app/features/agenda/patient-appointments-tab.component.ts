@@ -51,7 +51,6 @@ export class PatientAppointmentsTabComponent implements OnChanges {
     );
   }
 
-  /** Cancelar pide el motivo: sin él, nadie sabe después si fue la clínica o el paciente. */
   async cancel(appointment: Appointment): Promise<void> {
     const reason = await promptText(this.dialog, {
       title: 'Cancelar cita',

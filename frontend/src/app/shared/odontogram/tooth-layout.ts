@@ -1,9 +1,6 @@
 export interface ToothLayout {
   fdi: string;
   arch: 'upper' | 'lower';
-  /** Which screen side (in this row's left-to-right order) faces the midline
-   * for THIS tooth — i.e. its mesial surface. Quadrants 1/4 (and 5/8) are
-   * arranged with the midline to their right; quadrants 2/3 (6/7) to their left. */
   mesialSide: 'left' | 'right';
 }
 

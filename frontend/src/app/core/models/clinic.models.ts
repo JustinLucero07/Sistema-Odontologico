@@ -1,3 +1,5 @@
+export type SpecialtyFocus = 'general' | 'ortodoncia' | 'estetica' | 'pediatria';
+
 export interface Clinic {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ export interface Clinic {
   work_days: string;
   hidden_modules: string[];
   orthodontics_enabled?: boolean;
+  specialty_focus?: SpecialtyFocus;
   setup_completed_at: string | null;
   legal_rep_name: string | null;
   legal_rep_id: string | null;

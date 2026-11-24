@@ -1,5 +1,3 @@
-"""XML de factura y nota de crédito según la ficha técnica del SRI."""
-
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -133,8 +131,6 @@ def construir(emisor: Emisor, c: Comprobante) -> etree._Element:
     _sub(info, "fechaEmision", c.fecha_emision)
     _sub(info, "dirEstablecimiento", limpio(emisor.direccion_establecimiento))
     if es_factura:
-        # El orden de los elementos lo fija el XSD del SRI y difiere entre
-        # factura y nota de crédito.
         if emisor.contribuyente_especial:
             _sub(info, "contribuyenteEspecial", emisor.contribuyente_especial)
         _sub(info, "obligadoContabilidad", "SI" if emisor.obligado_contabilidad else "NO")

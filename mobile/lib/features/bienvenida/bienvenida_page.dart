@@ -39,8 +39,6 @@ const _ocultosPorTipo = {
   'clinica': <String>{},
 };
 
-/// Asistente de bienvenida en el celular: el mismo que la web, en pasos
-/// cortos para el pulgar. Con [editar] es la pantalla de Personalización.
 class BienvenidaPage extends ConsumerStatefulWidget {
   const BienvenidaPage({super.key, this.editar = false});
 
@@ -77,6 +75,24 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
 
   /// Especialidad de ortodoncia (la misma opción que en la web).
   bool _ortodoncia = false;
+  String _foco = 'general';
+  static const _focos = <(String, String, IconData, int?)>[
+    ('general', 'Odontología general', Icons.medical_services_outlined, null),
+    ('ortodoncia', 'Ortodoncia', Icons.sentiment_very_satisfied_outlined, 0xFF4F46E5),
+    ('estetica', 'Estética dental', Icons.auto_awesome_outlined, 0xFFD0457E),
+    ('pediatria', 'Odontopediatría', Icons.child_care_outlined, 0xFFE0614A),
+  ];
+
+  void _elegirFoco(String v) {
+    final sugeridos = {0xFF0D7F76, for (final f in _focos) ?f.$4};
+    setState(() {
+      _foco = v;
+      if (v == 'ortodoncia') _ortodoncia = true;
+      if (sugeridos.contains(_color.toARGB32())) {
+        _color = Color(_focos.firstWhere((f) => f.$1 == v).$4 ?? 0xFF0D7F76);
+      }
+    });
+  }
 
   static const _titulos = ['Tu consulta', 'Datos', 'Tu marca', 'Horario', 'Módulos'];
 
@@ -95,8 +111,6 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
       }
 
       final configurada = c['setup_completed_at'] != null;
-      // Se configura una sola vez: si ya se hizo en la web (u otro celular),
-      // basta con traer la marca y la app sigue a la pantalla principal.
       if (configurada && !widget.editar) {
         await ref.read(marcaProvider.notifier).actualizar();
         return;
@@ -121,6 +135,7 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
           _ocultos = {...((c['hidden_modules'] as List?) ?? []).map((e) => '$e')};
         }
         _ortodoncia = c['orthodontics_enabled'] == true;
+        _foco = '${c['specialty_focus'] ?? 'general'}';
       });
     } catch (_) {}
   }
@@ -183,6 +198,7 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
       'work_days': (_dias.toList()..sort()).join(),
       'hidden_modules': _ocultos.toList(),
       'orthodontics_enabled': _ortodoncia,
+      'specialty_focus': _foco,
     };
     try {
       final api = ref.read(apiProvider);
@@ -581,6 +597,26 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
       titulo: '¿Qué quieres ver?',
       sub: 'Agenda, pacientes y finanzas siempre están. Lo demás lo activas cuando quieras.',
       hijos: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(4, 0, 4, 6),
+          child: Text('¿En qué se enfoca tu consulta? El inicio se adapta a esa especialidad.',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (v, nombre, icono, color) in _focos)
+              ChoiceChip(
+                key: Key('foco-$v'),
+                avatar: Icon(icono, size: 18, color: Color(color ?? 0xFF0D7F76)),
+                label: Text(nombre),
+                selected: _foco == v,
+                onSelected: (_) => _elegirFoco(v),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: GlassCard(
@@ -646,7 +682,6 @@ class _BienvenidaPageState extends ConsumerState<BienvenidaPage> {
   }
 }
 
-/// Logo de la consulta (o el diente por defecto) para usar en cualquier sitio.
 class LogoConsulta extends ConsumerWidget {
   const LogoConsulta({super.key, this.tamano = 30});
 

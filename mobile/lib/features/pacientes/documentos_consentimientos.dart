@@ -1,11 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -18,8 +14,7 @@ import '../../shared/contacto.dart';
 import '../../shared/widgets/firma.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
-
-// ---------------------------------------------------------------- Documentos
+import '../../shared/abrir_pdf.dart';
 
 final documentosProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>(
   (ref, id) => ref.watch(apiProvider).lista('/patients/$id/documents', query: {'include_archived': true}),
@@ -29,8 +24,6 @@ final _tiposDocumentoProvider = FutureProvider.autoDispose<List<Opcion>>((ref) a
   return [for (final t in l) ('${t['code']}', '${t['label']}')];
 });
 
-/// Sube un documento (foto de un informe, una orden, un consentimiento
-/// firmado en papel…) desde la cámara o la galería.
 Future<void> subirDocumento(BuildContext context, WidgetRef ref, String pacienteId, ImageSource origen) async {
   final archivo = await ImagePicker().pickImage(source: origen, maxWidth: 2400, imageQuality: 88);
   if (archivo == null || !context.mounted) return;
@@ -183,8 +176,6 @@ class PestanaDocumentos extends ConsumerWidget {
   }
 }
 
-// ----------------------------------------------------------- Consentimientos
-
 final consentimientosProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>(
   (ref, id) => ref.watch(apiProvider).lista('/patients/$id/consents'),
 );
@@ -197,8 +188,6 @@ final _profesionalesProvider = FutureProvider.autoDispose<List<Map<String, dynam
 
 const parentescos = ['Paciente', 'Madre', 'Padre', 'Tutor legal', 'Cónyuge', 'Hijo/a', 'Otro representante'];
 
-/// Prepara un consentimiento desde una plantilla (o en blanco). Los datos del
-/// paciente, la pieza y el profesional se escriben solos en el texto.
 Future<void> nuevoConsentimiento(BuildContext context, WidgetRef ref, String pacienteId) async {
   final plantillas = await cargarOAvisar(context, ref.read(_plantillasProvider.future));
   if (plantillas == null || !context.mounted) return;
@@ -448,17 +437,7 @@ class PestanaConsentimientos extends ConsumerWidget {
   }
 
   Future<void> _pdf(BuildContext context, WidgetRef ref, Map<String, dynamic> c) async {
-    if (kIsWeb) {
-      avisar(context, 'Abra el PDF desde la versión web.');
-      return;
-    }
-    final bytes = await cargarOAvisar(context, ref.read(apiProvider).bytes('/consents/${c['id']}/pdf'));
-    if (bytes == null) return;
-    final dir = await getTemporaryDirectory();
-    final archivo = File('${dir.path}/consentimiento-${c['id']}.pdf');
-    await archivo.writeAsBytes(bytes, flush: true);
-    final r = await OpenFilex.open(archivo.path, type: 'application/pdf');
-    if (r.type != ResultType.done && context.mounted) avisar(context, 'No hay una aplicación para abrir PDF.');
+    await abrirArchivo(context, ref, '/consents/${c['id']}/pdf', 'consentimiento-${c['id']}.pdf');
   }
 
   void _detalle(BuildContext context, WidgetRef ref, Map<String, dynamic> c) {

@@ -24,9 +24,7 @@ import {
 } from './tooth-layout';
 
 interface RenderedTooth extends ToothLayout {
-  /** El hallazgo de pieza completa más reciente: es el que da color a la corona. */
   wholeCondition: ToothCondition | null;
-  /** Todos los de pieza completa, para dibujar cada símbolo (corona + endodoncia…). */
   wholeCodes: Set<string>;
   /** Cuántos hallazgos tiene la pieza en total. */
   count: number;
@@ -68,8 +66,6 @@ export class OdontogramChartComponent {
 
   readonly wheelSegment = SURFACE_WHEEL_SEGMENT;
 
-  /** Ancho disponible: el gráfico se encoge para caber entero en vez de
-   *  obligar a desplazarse de lado, que parte la boca en dos. */
   private readonly hostWidth = signal(0);
 
   constructor() {
@@ -109,8 +105,6 @@ export class OdontogramChartComponent {
     return Math.max(0.6, Math.min(1, available / natural));
   });
 
-  /** Quadrant captions name the side as the *patient's* left and right, which
-   *  is the mirror of the viewer's — the convention every dental chart uses. */
   readonly captions = computed(() => {
     const upper = this.upperRow();
     const lower = this.lowerRow();

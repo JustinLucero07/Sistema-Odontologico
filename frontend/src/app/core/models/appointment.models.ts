@@ -59,24 +59,6 @@ export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   no_asistio: 'No asistió',
 };
 
-/** Colour per state, so a glance at the agenda tells you where each patient is
- * in the visit, independent of the professional's own colour.
- *
- * These resolve to CSS custom properties rather than literal hexes, because the
- * day and night sets are *chosen* separately — the real values live in
- * `styles.scss`. A flipped palette gives dead mid-tones, and three of the day
- * colours fall under 3:1 against the night surface.
- *
- * Neither set is picked by eye. Both are run through the data-viz validator:
- * worst adjacent pair ΔE 9.5 protan / 21.3 normal in light, 8.6 deutan / 21.3
- * normal in dark, every step above the chroma floor and (in dark) above 3:1
- * against the surface. Two earlier defects the validator caught: "cancelada"
- * and "no asistió" sat at ΔE 8.6 — two bad outcomes that looked alike even to
- * full-colour vision — and "atendida" was a neutral grey that fell below the
- * chroma floor, reading as absent data rather than as a state.
- *
- * Every place these colours appear also shows the status label, so state is
- * never conveyed by colour alone. */
 export const APPOINTMENT_STATUS_COLORS: Record<AppointmentStatus, string> = {
   programada: 'var(--status-programada)',
   confirmada: 'var(--status-confirmada)',

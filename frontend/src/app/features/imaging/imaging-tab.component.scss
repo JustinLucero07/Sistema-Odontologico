@@ -30,8 +30,6 @@
   flex-wrap: wrap;
 }
 
-// ---- Upload ------------------------------------------------------------
-
 .upload-card {
   display: grid;
   gap: 12px;
@@ -81,8 +79,6 @@
   }
 }
 
-// ---- Gallery -----------------------------------------------------------
-
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -106,7 +102,6 @@
     transform: translateY(-2px);
   }
 
-  // Archived studies stay visible but recede — they are history, not clutter.
   &.is-archived {
     opacity: 0.62;
   }
@@ -221,8 +216,6 @@
   font-size: 0.88rem;
 }
 
-// ---- Overlays ----------------------------------------------------------
-
 .overlay {
   position: fixed;
   inset: 0;
@@ -287,8 +280,6 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  // The stage is dark whatever the theme: a radiograph is judged against
-  // black, and a light surround washes out the low-density areas.
   background: #0b1114;
   min-height: 300px;
 

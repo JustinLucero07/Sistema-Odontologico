@@ -17,8 +17,6 @@ async def get_portfolio(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("payments:read")),
 ):
-    """Cartera completa: saldo de cada paciente, cargos abiertos y pagados, y
-    tratamientos en curso o planificados de todos los pacientes."""
     return await service.portfolio(db, current_user.clinic_id)
 
 

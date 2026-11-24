@@ -42,6 +42,17 @@
               </button>
             }
           </div>
+          <h2 class="sub-titulo">¿En qué se enfoca tu consulta?</h2>
+          <p class="sub">El inicio se adapta: muestra primero lo que usa ese especialista. Te sugerimos un color, que puedes cambiar en «Tu marca».</p>
+          <div class="focos">
+            @for (f of focos; track f.v) {
+              <button type="button" class="foco glass-card" [class.on]="foco() === f.v" [style.--foco]="f.color ?? '#0D7F76'" (click)="elegirFoco(f.v)">
+                <span class="foco-icono"><mat-icon>{{ f.i }}</mat-icon></span>
+                <span class="foco-txt"><strong>{{ f.t }}</strong><span>{{ f.d }}</span></span>
+                <mat-icon class="check">check_circle</mat-icon>
+              </button>
+            }
+          </div>
           <label class="modulo glass-card especialidad" [class.off]="!ortodoncia()">
             <span class="m-icono"><mat-icon>sentiment_very_satisfied</mat-icon></span>
             <div>

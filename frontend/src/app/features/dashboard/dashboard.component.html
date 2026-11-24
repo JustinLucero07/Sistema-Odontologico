@@ -1,6 +1,5 @@
 @if (auth.currentUser(); as user) {
   <div class="dashboard">
-    <!-- Hero: el día contado en una frase, y lo que se hace primero a un clic. -->
     <header class="hero">
       <div class="hero-mark" aria-hidden="true">
         <app-tooth-mark [size]="260" [filled]="true" />
@@ -54,8 +53,10 @@
       }
     </header>
 
+    <app-especialidad />
+    <app-mando-control />
+
     @if (summary(); as data) {
-      <!-- KPIs: con permiso de caja, el dinero; sin él, la actividad clínica. -->
       <section class="stat-row">
         <article class="glass-card stat-card">
           <div class="stat-body">
@@ -297,7 +298,6 @@
       </section>
 
       <section class="charts-row">
-        <!-- Citas por día: one measure over time → area, single hue, no legend. -->
         <article class="glass-card chart-card">
           <header class="card-head">
             <div>
@@ -377,8 +377,6 @@
           }
         </article>
 
-        <!-- Estado de las citas: identity, so every slice is named and counted —
-             the colour never carries the meaning on its own. -->
         <article class="glass-card chart-card">
           <header class="card-head">
             <div>

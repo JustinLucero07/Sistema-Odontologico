@@ -9,6 +9,7 @@ import {
   DispatchResult,
   MessageTemplate,
   OutboundMessage,
+  PortalComprobante,
   PortalLink,
   PortalLinkCreated,
   PortalView,
@@ -19,8 +20,6 @@ import {
 export class CommunicationService {
   private readonly http = inject(HttpClient);
   private readonly api = environment.apiUrl;
-
-  // ---- Messaging --------------------------------------------------------
 
   getProviderStatus(): Observable<ProviderStatus> {
     return this.http.get<ProviderStatus>(`${this.api}/messaging/status`);
@@ -48,13 +47,9 @@ export class CommunicationService {
     return this.http.post<OutboundMessage>(`${this.api}/messaging/messages`, body);
   }
 
-  /** Sends the reminders whose moment has arrived. Driven from a button here
-   *  and from cron in a real deployment — same endpoint either way. */
   dispatchReminders(): Observable<DispatchResult> {
     return this.http.post<DispatchResult>(`${this.api}/messaging/dispatch`, {});
   }
-
-  // ---- Assistant --------------------------------------------------------
 
   getAiStatus(): Observable<AiStatus> {
     return this.http.get<AiStatus>(`${this.api}/ai/status`);
@@ -85,14 +80,14 @@ export class CommunicationService {
     });
   }
 
-  // ---- Portal -----------------------------------------------------------
-
   getPortalLinks(patientId: string): Observable<PortalLink[]> {
     return this.http.get<PortalLink[]>(`${this.api}/patients/${patientId}/portal`);
   }
 
-  createPortalLink(patientId: string): Observable<PortalLinkCreated> {
-    return this.http.post<PortalLinkCreated>(`${this.api}/patients/${patientId}/portal`, {});
+  createPortalLink(patientId: string, includeClinical = false): Observable<PortalLinkCreated> {
+    return this.http.post<PortalLinkCreated>(`${this.api}/patients/${patientId}/portal`, {
+      include_clinical: includeClinical,
+    });
   }
 
   revokePortalLink(accessId: string, reason?: string | null): Observable<PortalLink> {
@@ -101,8 +96,15 @@ export class CommunicationService {
     });
   }
 
-  /** The public view. No auth header is needed — the token is the credential. */
   getPortalView(token: string): Observable<PortalView> {
     return this.http.get<PortalView>(`${this.api}/portal/view/${token}`);
+  }
+
+  portalImageUrl(token: string, imageId: string): string {
+    return `${this.api}/portal/view/${token}/images/${imageId}`;
+  }
+
+  sendPortalReceipt(token: string, data: FormData): Observable<PortalComprobante> {
+    return this.http.post<PortalComprobante>(`${this.api}/portal/view/${token}/receipts`, data);
   }
 }

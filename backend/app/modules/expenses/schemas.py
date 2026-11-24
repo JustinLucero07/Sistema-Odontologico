@@ -43,8 +43,7 @@ class ExpenseCreate(_ExpenseFields):
 
 
 class ExpenseUpdate(_ExpenseFields):
-    """El importe y el medio no se editan: cambiar el dinero de un gasto ya
-    registrado descuadraría la caja de ese día. Se anula y se registra bien."""
+    pass
 
 
 class ExpenseOut(BaseModel):

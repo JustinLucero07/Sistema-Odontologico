@@ -11,8 +11,6 @@ List<String> filaArcada(String arcada, {bool temporal = false}) {
   final porCuadrante = temporal ? 5 : 8;
   final fila = <String>[];
   for (var q = 0; q < 2; q++) {
-    // El primer cuadrante se dibuja descendiendo hacia la línea media; el
-    // segundo ascendiendo desde ella.
     final numeros = q == 0
         ? List.generate(porCuadrante, (i) => porCuadrante - i)
         : List.generate(porCuadrante, (i) => i + 1);
@@ -23,10 +21,6 @@ List<String> filaArcada(String arcada, {bool temporal = false}) {
   return fila;
 }
 
-/// Geometría vertical del odontograma, compartida por el dibujo y por la
-/// detección de toques. Antes cada uno calculaba la suya y el hueco entre
-/// arcadas (12 px) no dejaba sitio a las dos filas de números: se pintaban
-/// encimados en la línea media.
 class _Metrica {
   _Metrica(this.escala);
 
@@ -73,11 +67,6 @@ class Diente {
   final Map<String, Color> caras;
 }
 
-/// El odontograma.
-///
-/// Se dibuja con `CustomPaint` en vez de con imágenes: son trazados vectoriales
-/// y tienen que verse nítidos tanto en un móvil de 5" como en una tablet, y
-/// además cada pieza responde al toque.
 class OdontogramaWidget extends StatelessWidget {
   const OdontogramaWidget({
     super.key,
@@ -129,8 +118,6 @@ class OdontogramaWidget extends StatelessWidget {
             .map((fdi) => anatomiaDe(fdi, 'upper').width.toDouble() + 2)
             .toList();
         final anchoTotal = anchos.fold<double>(0, (a, b) => a + b);
-        // Se escala para que la arcada entera quepa: un odontograma que exige
-        // desplazamiento lateral se lee a trozos, y el punto es verlo de golpe.
         final escala = (constraints.maxWidth - 8) / anchoTotal;
         final metrica = _Metrica(escala);
 
@@ -162,8 +149,6 @@ class OdontogramaWidget extends StatelessWidget {
     );
   }
 
-  /// Qué pieza cae bajo el dedo. El alto de un diente es 64 unidades de la
-  /// caja canónica; el resto de la celda es el número.
   String? _dienteEn(
     Offset punto,
     List<String> superior,
@@ -300,8 +285,6 @@ class _OdontogramaPainter extends CustomPainter {
       canvas.save();
       canvas.translate(x, y);
       if (invertir) {
-        // La arcada inferior es la misma forma reflejada, igual que en un
-        // odontograma impreso.
         canvas.translate(0, 64 * escala);
         canvas.scale(1, -1);
       }
@@ -348,9 +331,6 @@ class _OdontogramaPainter extends CustomPainter {
     canvas.drawPath(corona, contorno..strokeWidth = 1.2 * escala);
 
     if (ausente) {
-      // Una pieza ausente se tacha, no se oculta: el hueco en la arcada es en
-      // sí mismo un hallazgo, y la columna tiene que quedarse para que los
-      // números sigan alineados.
       final aspa = Paint()
         ..color = const Color(0xFF8D8D8D)
         ..strokeWidth = 2.6 * escala
@@ -413,8 +393,6 @@ class _OdontogramaPainter extends CustomPainter {
     );
   }
 
-  /// Diagrama de cinco caras: vestibular arriba, lingual abajo, mesial hacia
-  /// la línea media, distal hacia fuera y oclusal en el centro.
   void _pintarCaras(
     Canvas canvas,
     String fdi,
@@ -428,8 +406,6 @@ class _OdontogramaPainter extends CustomPainter {
       ..color = paleta.contorno.withValues(alpha: atenuar ? 0.25 : 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
-    // Cuadrantes 1, 4, 5 y 8 se dibujan a la izquierda: su mesial mira a la
-    // derecha, hacia la línea media.
     final mesialDerecha = '1458'.contains(fdi[0]);
     final caja = Rect.fromCircle(center: centro, radius: radio);
     const cuarto = 3.141592653589793 / 2;
@@ -452,8 +428,6 @@ class _OdontogramaPainter extends CustomPainter {
       radio * 0.45,
       Paint()..color = caras['oclusal'] ?? paleta.caraVacia,
     );
-    // Sobre un color, el centro necesita fondo opaco para no mezclarse con
-    // los sectores que tiene debajo.
     canvas.drawCircle(centro, radio * 0.45, borde);
   }
 

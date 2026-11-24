@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/widgets/glass.dart';
 
-/// Acuerdo de confidencialidad, igual que en la web. Se muestra en lugar de
-/// la app hasta que se acepta: nadie ve datos de pacientes sin haberlo hecho.
 class ConfidencialidadPage extends ConsumerStatefulWidget {
   const ConfidencialidadPage({super.key});
 

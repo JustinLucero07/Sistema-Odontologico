@@ -31,3 +31,20 @@ export interface OdontogramCreate {
   notes?: string | null;
   conditions: ToothCondition[];
 }
+
+export interface TimelineFinding {
+  fdi_number: string;
+  surface: string;
+  condition: string;
+}
+
+export interface OdontogramTimelineEntry {
+  id: string;
+  created_at: string;
+  type: string;
+  notes: string | null;
+  author_name: string | null;
+  conditions: TimelineFinding[];
+  added: TimelineFinding[];
+  removed: TimelineFinding[];
+}

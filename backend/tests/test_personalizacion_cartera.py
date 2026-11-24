@@ -1,5 +1,3 @@
-"""Asistente de configuración, marca, cartera, gastos fijos y proyección."""
-
 from datetime import date, timedelta
 
 

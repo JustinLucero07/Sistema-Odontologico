@@ -34,8 +34,6 @@
   font-size: 0.88rem;
 }
 
-// ---- Alerts ------------------------------------------------------------
-
 .alerts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -83,8 +81,6 @@
     mat-icon { color: var(--color-danger); }
   }
 }
-
-// ---- Forms & toolbar ---------------------------------------------------
 
 .form-card {
   padding: 18px 20px 14px;
@@ -135,8 +131,6 @@
     color: var(--color-danger);
   }
 }
-
-// ---- Tables ------------------------------------------------------------
 
 .items,
 .movements {
@@ -236,8 +230,6 @@
 .movements td.right {
   font-weight: 600;
 }
-
-// ---- Overlays ----------------------------------------------------------
 
 .overlay {
   position: fixed;

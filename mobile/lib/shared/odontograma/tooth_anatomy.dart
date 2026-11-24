@@ -1,14 +1,3 @@
-/// Siluetas dentales anatómicas.
-///
-/// **Generado desde `frontend/src/app/shared/odontogram/tooth-anatomy.ts`.**
-/// Los trazados se copian literalmente en lugar de redibujarse: si la web y la
-/// app dibujasen dientes distintos, el mismo paciente tendría dos odontogramas
-/// que no se parecen.
-///
-/// Caja canónica de 40 × 64, con la corona ABAJO (y ≈ 36–60) y las raíces
-/// arriba (y ≈ 2–37), es decir una pieza del maxilar superior. Las inferiores
-/// reutilizan el mismo trazado volteado en vertical, que es como los odonto-
-/// gramas impresos reflejan las dos arcadas alrededor de la línea media.
 library;
 
 class ToothAnatomy {
@@ -24,15 +13,11 @@ class ToothAnatomy {
   final List<String> roots;
   final String crown;
 
-  /// Accidentes anatómicos trazados: la unión amelocementaria y los surcos
-  /// entre cúspides. Líneas de pelo: se ven al mirar, no molestan al no mirar.
   final List<String> detail;
 
   /// Brillo por la pared mesial.
   final String gloss;
 
-  /// Sombra por la pared distal. Esto es lo que da volumen: se lee igual sobre
-  /// un diente blanco que sobre uno relleno, cosa que el brillo solo no hace.
   final String shade;
 
   /// Ancho de la celda: un molar de verdad es más ancho que un incisivo.
@@ -125,7 +110,6 @@ String tipoDeDiente(String fdi) {
 
   if (posicion <= 2) return 'incisor';
   if (posicion == 3) return 'canine';
-  // La dentición temporal no tiene premolares: las posiciones 4–5 son molares.
   if (temporal) return 'molar';
   return posicion <= 5 ? 'premolar' : 'molar';
 }
@@ -133,10 +117,6 @@ String tipoDeDiente(String fdi) {
 /// Escala del dibujo respecto a los anchos base.
 const double escalaGrafico = 1.15;
 
-/// Multiplicadores por posición FDI. Los dientes no son intercambiables dentro
-/// de su tipo: el lateral superior es más angosto que el central, el central
-/// INFERIOR es el diente más pequeño de la boca, y los terceros molares
-/// encogen.
 double _escalaAncho(String fdi, String arcada) {
   final posicion = int.parse(fdi[1]);
   if (posicion == 1) return arcada == 'upper' ? 1 : 0.8;

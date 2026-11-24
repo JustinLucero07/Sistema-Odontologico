@@ -61,7 +61,6 @@ export class ClinicalRecordsService {
     return this.http.put<Consent>(`${this.api}/consents/${consentId}/sign`, payload);
   }
 
-  /** Enlace para firmar a distancia; con sendEmail, además se envía al correo del paciente. */
   consentSignLink(consentId: string, sendEmail: boolean): Observable<ConsentSignLink> {
     return this.http.post<ConsentSignLink>(`${this.api}/consents/${consentId}/sign-link`, { send_email: sendEmail });
   }
@@ -113,7 +112,6 @@ export class ClinicalRecordsService {
     return this.http.post<PatientDocument>(`${this.api}/documents/${documentId}/restore`, {});
   }
 
-  /** Anula un consentimiento pendiente o registra que el paciente revocó uno firmado. */
   voidConsent(consentId: string, reason: string): Observable<Consent> {
     return this.http.post<Consent>(`${this.api}/consents/${consentId}/void`, { reason });
   }
@@ -159,7 +157,6 @@ export class ClinicalRecordsService {
     return this.http.put<ConsentTemplate>(`${this.api}/consents/templates/${id}`, payload);
   }
 
-  /** Corrige una evolución; el servidor guarda el valor anterior en la auditoría. */
   voidEvolution(evolutionId: string, reason: string): Observable<ClinicalEvolution> {
     return this.http.post<ClinicalEvolution>(`${this.api}/evolutions/${evolutionId}/void`, { reason });
   }

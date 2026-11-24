@@ -1,11 +1,3 @@
-"""Ortodoncia: ficha, lista de documentación y plan de controles con cuotas.
-
-Regla de oro: el dinero vive en el módulo de pagos. La ficha tiene un cargo
-(el valor del tratamiento) y cada abono a una cuota es un pago normal ligado a
-ese cargo, con `ortho_control_id` para saber a qué cuota fue. Nada de lo
-abonado se guarda en la ficha: se calcula en cada lectura, así un pago anulado
-reabre su cuota sin tocar nada más."""
-
 import uuid
 from collections import defaultdict
 from datetime import date, timedelta
@@ -58,9 +50,6 @@ def _add_months(d: date, months: int) -> date:
         except ValueError:
             continue
     return date(year, month, 28)
-
-
-# ---- Lectura ---------------------------------------------------------------
 
 
 async def _payments_by_charge(db: AsyncSession, charge_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[Payment]]:
@@ -256,16 +245,9 @@ async def list_cases(
     return CaseList(items=items, total=len(all_cases), active=active, inactive=len(all_cases) - active)
 
 
-# ---- Ficha -----------------------------------------------------------------
-
-
 async def _sync_charge(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, case: OrthoCase, patient: Patient
 ) -> None:
-    """Deja el cargo del tratamiento igual al valor acordado.
-
-    Subir o bajar el valor ajusta el cargo (queda en la auditoría); nunca por
-    debajo de lo ya abonado, porque eso dejaría pagos sin respaldo."""
     total = money(case.agreed_total or ZERO)
     if case.charge_id is None:
         if total <= ZERO:
@@ -345,8 +327,6 @@ async def update_case(
 ) -> CaseDetail:
     case = await _get_case(db, clinic_id, case_id)
     data = payload.model_dump(exclude_unset=True)
-    # Los campos de texto, fecha y profesional aceptan None para borrar el dato;
-    # los de estado no: un None ahí es «no lo cambié».
     for field, value in data.items():
         if value is None and field in ("status", "needs_review", "has_tad", "agreed_total", "special_attention",
                                        "doc_xrays", "doc_photos", "doc_models", "doc_folder", "doc_notes"):
@@ -394,9 +374,6 @@ async def delete_case(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUI
     )
     await db.delete(case)
     await db.flush()
-
-
-# ---- Controles y cuotas ----------------------------------------------------
 
 
 async def _get_control(db: AsyncSession, clinic_id: uuid.UUID, control_id: uuid.UUID) -> OrthoControl:

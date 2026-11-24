@@ -1,15 +1,3 @@
-"""Biblioteca de consentimientos informados odontológicos.
-
-Son una base de partida redactada para el contexto ecuatoriano (Ley Orgánica
-de Salud, Ley Orgánica de Protección de Datos Personales). Cada consulta debe
-revisarlas con su profesional responsable y ajustarlas a su práctica antes de
-usarlas: el sistema las copia como plantillas editables, no las impone.
-
-Variables que se completan al emitir el consentimiento para un paciente:
-{paciente} {cedula} {edad} {fecha} {ciudad} {clinica} {profesional}
-{registro} {pieza} {procedimiento}
-"""
-
 ENCABEZADO = (
     "Yo, {paciente}, con cédula {cedula}, de {edad}, en pleno uso de mis facultades, declaro que "
     "el/la profesional {profesional} (registro {registro}) de {clinica} me ha explicado de forma "

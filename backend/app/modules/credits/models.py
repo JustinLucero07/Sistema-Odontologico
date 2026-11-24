@@ -12,12 +12,6 @@ from app.shared.voiding import VoidableMixin
 
 
 class Credit(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
-    """Financiamiento de un tratamiento en cuotas.
-
-    Nada de lo que el paciente "debe" o "pagó" se guarda aquí: se calcula en
-    cada lectura a partir de las cuotas programadas y de los pagos ligados al
-    crédito. Así un pago anulado reabre su cuota solo, sin tocar nada más."""
-
     __tablename__ = "credits"
     __table_args__ = (
         CheckConstraint("principal > 0", name="ck_credit_principal_positive"),
@@ -31,8 +25,6 @@ class Credit(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
     charge_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("charges.id"), nullable=False, index=True
     )
-    # El interés se factura como un cargo aparte, para que el estado de cuenta
-    # del paciente muestre cuánto es tratamiento y cuánto financiamiento.
     interest_charge_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("charges.id"), nullable=True
     )
@@ -59,9 +51,6 @@ class Credit(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
 
 
 class CreditInstallment(UUIDPKMixin, TenantMixin, Base):
-    """Una cuota del calendario. Al refinanciar, las cuotas pendientes no se
-    borran: se marcan como sustituidas y quedan como historia del acuerdo."""
-
     __tablename__ = "credit_installments"
     __table_args__ = (CheckConstraint("amount > 0", name="ck_credit_installment_positive"),)
 

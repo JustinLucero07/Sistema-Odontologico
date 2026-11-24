@@ -10,8 +10,6 @@ from app.modules.documents.models import DOCUMENT_TYPE_CODES, Document
 from app.modules.patients.service import get_patient_or_404
 from app.shared.storage import get_storage
 
-# Generous enough for a scanned consent or a panoramic, small enough that a
-# mistaken upload can't fill the disk.
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 
@@ -117,8 +115,6 @@ async def update_document(
 async def archive_document(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, document_id: uuid.UUID, reason: str
 ) -> Document:
-    """Retira un documento de la lista sin destruirlo: el archivo sigue en el
-    almacenamiento y se puede recuperar."""
     document = await get_or_404(db, clinic_id, document_id)
     if document.archived_at is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El documento ya está archivado")

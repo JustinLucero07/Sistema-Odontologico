@@ -10,10 +10,6 @@ import { LegalService } from '../../core/services/legal.service';
 import { printConfidentialityAgreement } from '../print/privacy-print';
 import { LegalSection, confidentialityAgreement } from './legal-texts';
 
-/**
- * Acuerdo de confidencialidad que el personal acepta antes de trabajar con
- * datos de pacientes. No se puede cerrar sin decidir: aceptar, o salir.
- */
 @Component({
   selector: 'app-confidentiality-dialog',
   standalone: true,

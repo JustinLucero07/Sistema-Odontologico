@@ -3,8 +3,6 @@
   gap: 16px;
 }
 
-// ---- Periodo y vistas ------------------------------------------------------
-
 .period {
   display: flex;
   align-items: center;
@@ -79,8 +77,6 @@
     width: 170px;
   }
 }
-
-// ---- Resumen --------------------------------------------------------------
 
 .kpis {
   display: grid;
@@ -230,7 +226,6 @@
   justify-content: center;
 }
 
-// Barras finas con el extremo redondeado y 2 px de separación entre las dos.
 .bar {
   width: 14px;
   min-height: 2px;
@@ -315,8 +310,6 @@
     background: var(--color-accent);
   }
 }
-
-// ---- Tablas -----------------------------------------------------------------
 
 .scroll {
   overflow-x: auto;
@@ -429,7 +422,6 @@ tr.voided td {
   padding: 28px;
 }
 
-// ---- Gastos fijos y proyección --------------------------------------------
 .kpis.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .count.alerta { background: var(--color-danger); color: #fff; }
 .estado {

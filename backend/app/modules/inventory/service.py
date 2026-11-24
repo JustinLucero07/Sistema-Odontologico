@@ -17,9 +17,6 @@ ZERO = Decimal("0.000")
 EXPIRY_HORIZON_DAYS = 60
 
 
-# ---- Suppliers ----------------------------------------------------------
-
-
 async def list_suppliers(db: AsyncSession, clinic_id: uuid.UUID) -> list[Supplier]:
     result = await db.execute(
         select(Supplier).where(Supplier.clinic_id == clinic_id).order_by(Supplier.name)
@@ -57,9 +54,6 @@ async def update_supplier(
     return supplier
 
 
-# ---- Items --------------------------------------------------------------
-
-
 async def get_item_or_404(
     db: AsyncSession, clinic_id: uuid.UUID, item_id: uuid.UUID
 ) -> InventoryItem:
@@ -75,17 +69,10 @@ async def get_item_or_404(
 
 
 def _on_hand(item: InventoryItem) -> Decimal:
-    """Stock is the SUM of the ledger, computed here rather than stored.
-
-    Nothing caches this: the moment a total lives in a column, a correction or
-    a concurrent entry puts it out of step with the movements that produced
-    it, and there is no way to tell afterwards which one lied."""
     return quantity(sum((m.quantity * m.sign for m in item.movements), ZERO))
 
 
 def _lot_balances(item: InventoryItem) -> dict[tuple[str | None, date | None], Decimal]:
-    """Stock per lot, so an expiry date can be tied to a real remaining amount
-    instead of flagging a lot that was already used up."""
     balances: dict[tuple[str | None, date | None], Decimal] = {}
     for movement in item.movements:
         key = (movement.lot_number, movement.expires_on)
@@ -164,9 +151,6 @@ async def update_item(
     return await get_item_or_404(db, clinic_id, item_id)
 
 
-# ---- Movements ----------------------------------------------------------
-
-
 async def record_movement(
     db: AsyncSession,
     clinic_id: uuid.UUID,
@@ -180,9 +164,6 @@ async def record_movement(
 
     if sign < 0:
         on_hand = _on_hand(item)
-        # Refusing to go negative is the point of a ledger: a count below zero
-        # is not a small error, it means the records and the shelf disagree and
-        # someone has to look at the shelf.
         if amount > on_hand:
             raise HTTPException(
                 status_code=422,

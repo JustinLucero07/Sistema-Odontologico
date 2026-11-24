@@ -1,7 +1,3 @@
-"""Catálogos de la ficha técnica de comprobantes electrónicos del SRI
-(esquema offline). Son códigos del SRI, no nuestros: si el SRI publica una
-ficha nueva, se revisan aquí y en ningún otro sitio."""
-
 from decimal import Decimal
 
 # Tipo de comprobante (codDoc).
@@ -23,8 +19,6 @@ EMISION_NORMAL = "1"
 # Impuesto: 2 = IVA.
 IMPUESTO_IVA = "2"
 
-# IVA por código de porcentaje: (etiqueta, tarifa). Los servicios de salud
-# humana van con 0 %; lo estético, con la tarifa general.
 IVA: dict[str, tuple[str, Decimal]] = {
     "0": ("IVA 0 %", Decimal("0")),
     "4": ("IVA 15 %", Decimal("15")),
@@ -49,8 +43,6 @@ TIPOS_IDENTIFICACION = {
 }
 CONSUMIDOR_FINAL_ID = "9999999999999"
 CONSUMIDOR_FINAL_NOMBRE = "CONSUMIDOR FINAL"
-# Una factura a consumidor final no puede pasar de este monto: por encima, el
-# SRI exige identificar al comprador.
 CONSUMIDOR_FINAL_MAXIMO = Decimal("50.00")
 
 # Formas de pago del SRI.
@@ -96,7 +88,6 @@ ESTADOS = {
     NO_AUTORIZADA: "No autorizada",
     DESCARTADA: "Descartada",
 }
-# Los que siguen su curso solos (el proceso en segundo plano los retoma).
 EN_CURSO = {PENDIENTE, RECIBIDA}
 # Los que ocupan un cargo: un cargo no se puede facturar dos veces.
 VIGENTES = {PENDIENTE, RECIBIDA, AUTORIZADA}
@@ -107,5 +98,4 @@ SRI_URLS = {
     PRODUCCION: "https://cel.sri.gob.ec/comprobantes-electronicos-ws",
 }
 
-# Reintentos ante fallas de conexión: minutos de espera según el intento.
 ESPERAS_REINTENTO = [1, 2, 5, 10, 30, 60]

@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -15,11 +15,6 @@ import { PatientsService } from '../../core/services/patients.service';
 type Filtro = 'todos' | 'nuevo' | 'duplicado' | 'error';
 const MAX_VISTA = 300;
 
-/**
- * Importar pacientes desde Excel o CSV en tres pasos: elegir el archivo, revisar
- * la vista previa (columnas detectadas, repetidos y errores) y confirmar. Nada se
- * guarda hasta el último botón.
- */
 @Component({
   selector: 'app-patient-import-dialog',
   standalone: true,
@@ -183,7 +178,6 @@ const MAX_VISTA = 300;
 })
 export class PatientImportDialogComponent {
   private readonly api = inject(PatientsService);
-  private readonly ref = inject(MatDialogRef<PatientImportDialogComponent, boolean>);
 
   readonly archivo = signal<File | null>(null);
   readonly vista = signal<PatientImportPreview | null>(null);

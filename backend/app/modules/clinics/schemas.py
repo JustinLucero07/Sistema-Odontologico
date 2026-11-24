@@ -9,6 +9,9 @@ from pydantic import BaseModel, Field, field_validator
 from app.modules.privacy.constants import TERMS_VERSION
 
 
+
+SPECIALTY_FOCUS = {"general", "ortodoncia", "estetica", "pediatria"}
+
 class ClinicOut(BaseModel):
     id: uuid.UUID
     name: str
@@ -31,6 +34,7 @@ class ClinicOut(BaseModel):
     work_days: str
     hidden_modules: list[str]
     orthodontics_enabled: bool = False
+    specialty_focus: str = "general"
     setup_completed_at: datetime | None
     legal_rep_name: str | None
     legal_rep_id: str | None
@@ -56,8 +60,6 @@ class ClinicOut(BaseModel):
 
 
 PRACTICE_TYPES = {"independiente", "consultorio", "clinica"}
-# Módulos que se pueden ocultar del menú. Ocultar no quita permisos: la
-# función sigue existiendo y se puede volver a mostrar cuando se necesite.
 OPTIONAL_MODULES = {"inventory", "laboratory", "credits", "reports", "cash", "opportunities", "messages", "consents"}
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 HORA = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -78,6 +80,14 @@ class BrandingFields(BaseModel):
     work_days: str | None = None
     hidden_modules: list[str] | None = None
     orthodontics_enabled: bool | None = None
+    specialty_focus: str | None = None
+
+    @field_validator("specialty_focus")
+    @classmethod
+    def _foco(cls, v):
+        if v is not None and v not in SPECIALTY_FOCUS:
+            raise ValueError("Especialidad no válida")
+        return v
 
     @field_validator("practice_type")
     @classmethod
@@ -191,8 +201,6 @@ class ClinicUpdate(BrandingFields, LegalFields):
     @field_validator("timezone")
     @classmethod
     def validate_timezone(cls, value: str | None) -> str | None:
-        # Los reportes cuentan los días en esta zona: una mal escrita los
-        # desplazaría sin avisar, así que se rechaza al guardarla.
         if value is None:
             return value
         try:
@@ -247,10 +255,6 @@ class OperatoryOut(BaseModel):
 
 
 class ClinicSetup(BrandingFields):
-    """Asistente de bienvenida: todo de una vez, y marca la configuración como
-    terminada. Si la consulta es de una sola persona, el administrador queda
-    también como el profesional que atiende."""
-
     name: str = Field(min_length=2, max_length=200)
     legal_name: str | None = None
     tax_id: str | None = None
@@ -259,7 +263,6 @@ class ClinicSetup(BrandingFields):
     email: str | None = None
     practice_type: str
     i_am_dentist: bool = False
-    # Sin aceptar los Términos de uso y el contrato de encargo no se termina.
     accept_terms: bool = False
     license_number: str | None = Field(default=None, max_length=100)
     specialty: str | None = Field(default=None, max_length=120)
@@ -276,6 +279,7 @@ class Branding(BaseModel):
     secondary_color: str | None
     hidden_modules: list[str]
     orthodontics_enabled: bool = False
+    specialty_focus: str = "general"
     setup_completed: bool
     opens_at: str
     closes_at: str

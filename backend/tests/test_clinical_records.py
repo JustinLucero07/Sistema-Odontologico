@@ -22,9 +22,6 @@ async def _create_patient(client, token, first_name="Rosa") -> str:
     return created.json()["id"]
 
 
-# ---- Clinical evolutions -------------------------------------------------
-
-
 async def test_create_and_list_evolution(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
@@ -48,7 +45,6 @@ async def test_create_and_list_evolution(client, clinic_with_users):
 
 
 async def test_evolution_has_no_delete_endpoint(client, clinic_with_users):
-    """Clinical notes are never removed — only corrected, and that leaves a trail."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
     created = await client.post(
@@ -95,9 +91,6 @@ async def test_correcting_an_evolution_keeps_an_audit_trail(client, clinic_with_
     assert update_log.before["procedure"] == "Extracción de 38"
 
 
-# ---- Prescriptions -------------------------------------------------------
-
-
 async def test_create_prescription_with_items(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
@@ -133,12 +126,7 @@ async def test_prescription_requires_at_least_one_medication(client, clinic_with
     assert response.status_code == 422
 
 
-# ---- Consents ------------------------------------------------------------
-
-
 async def test_consent_snapshots_the_template_wording(client, clinic_with_users):
-    """Editing a template afterwards must not change what a patient already
-    agreed to."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
 
@@ -162,7 +150,6 @@ async def test_consent_snapshots_the_template_wording(client, clinic_with_users)
     assert consent.json()["body"] == "Texto original de la extracción."
     assert consent.json()["status"] == "pendiente"
 
-    # A new template with different wording does not rewrite the signed record.
     listing = await client.get(f"/api/v1/patients/{patient_id}/consents", headers=_auth(token))
     assert listing.json()[0]["body"] == "Texto original de la extracción."
 
@@ -205,13 +192,9 @@ async def test_consent_without_template_or_text_is_rejected(client, clinic_with_
     assert response.status_code == 400
 
 
-# ---- Documents -----------------------------------------------------------
-
-
 async def test_upload_and_download_document(client, clinic_with_users, tmp_path, monkeypatch):
     from app.core.config import get_settings
 
-    # Keep uploaded bytes inside the test's temp dir, not the dev storage folder.
     settings = get_settings()
     monkeypatch.setattr(settings, "STORAGE_LOCAL_PATH", str(tmp_path))
 

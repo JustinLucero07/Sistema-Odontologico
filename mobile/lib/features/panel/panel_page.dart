@@ -12,6 +12,8 @@ import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/carga.dart';
 import '../oportunidades/oportunidades_page.dart';
+import 'mando_control.dart';
+import 'especialidad_panel.dart';
 
 final resumenProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(panelRepoProvider).resumen(),
@@ -31,7 +33,11 @@ class PanelPage extends ConsumerWidget {
     final tinta = Theme.of(context).colorScheme.onSurface;
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(resumenProvider),
+      onRefresh: () async {
+        ref.invalidate(resumenProvider);
+        ref.invalidate(mandoProvider);
+        ref.invalidate(especialidadProvider);
+      },
       child: AnchoLegible(
         maximo: 900,
         child: ListView(
@@ -71,6 +77,8 @@ class PanelPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 22),
+            const Aparecer(child: EspecialidadPanel()),
+            const Aparecer(child: MandoControl()),
             resumen.when(
               loading: () => const EsqueletoLista(
                 filas: 3,
@@ -158,8 +166,6 @@ class _Contenido extends StatelessWidget {
           orden: 4,
           child: _Cifra(
             etiqueta: 'Presupuestos aceptados',
-            // Sin permiso de presupuestos el servidor manda null, no cero:
-            // "$0,00" diría que no hay nada aceptado, y eso no se sabe.
             valor: datos['budget_accepted_total'] == null
                 ? '—'
                 : dinero(
@@ -192,8 +198,6 @@ class _Contenido extends StatelessWidget {
   }
 }
 
-/// Bloque principal: cuántas citas hay hoy, en tinta oscura para que sea lo
-/// primero que se lee, con la distribución de la semana en una barra fina.
 class _Destacado extends StatelessWidget {
   const _Destacado({
     required this.citasHoy,

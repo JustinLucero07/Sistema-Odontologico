@@ -12,11 +12,6 @@ import 'shared/widgets/glass.dart';
 import 'shared/widgets/carga.dart';
 import 'shared/widgets/formulario.dart';
 
-/// Navegación inferior en lugar del menú lateral de la web.
-///
-/// Un cajón lateral esconde la navegación detrás de un gesto; en un móvil que
-/// se usa con una mano entre paciente y paciente, los cuatro destinos que de
-/// verdad se usan tienen que estar a un pulgar de distancia.
 class Shell extends ConsumerStatefulWidget {
   const Shell({super.key});
 
@@ -49,9 +44,6 @@ class _ShellState extends ConsumerState<Shell> {
     return AmbientBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        // El contenido pasa por debajo de la barra de navegación flotante: por
-        // eso se extiende detrás de ella. Las listas reservan ese espacio al
-        // final (MediaQuery.paddingOf(context).bottom) para no taparse.
         extendBody: true,
         appBar: AppBar(
           flexibleSpace: const GlassAppBarBackground(),

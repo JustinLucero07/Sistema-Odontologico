@@ -1,6 +1,3 @@
-"""El panel principal: "hoy" es el día de la clínica, y el dinero solo lo ve
-quien tiene permiso para verlo."""
-
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 

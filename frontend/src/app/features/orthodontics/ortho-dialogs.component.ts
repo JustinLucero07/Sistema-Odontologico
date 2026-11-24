@@ -54,10 +54,6 @@ const DIALOG_STYLES = `
     font-size: .84rem; color: var(--color-ink-soft); }
 `;
 
-// ---------------------------------------------------------------------------
-// Ficha: crear / editar
-// ---------------------------------------------------------------------------
-
 export interface OrthoCaseDialogData {
   patient?: { id: string; name: string } | null;
   caso?: OrthoCaseDetail | null;
@@ -278,10 +274,6 @@ export function openOrthoCaseDialog(dialog: MatDialog, data: OrthoCaseDialogData
   return firstValueFrom(ref.afterClosed());
 }
 
-// ---------------------------------------------------------------------------
-// Generar cuotas
-// ---------------------------------------------------------------------------
-
 @Component({
   selector: 'app-ortho-generate-dialog',
   standalone: true,
@@ -385,10 +377,6 @@ export class OrthoGenerateDialogComponent {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Abono a una cuota
-// ---------------------------------------------------------------------------
 
 export interface OrthoPaymentData {
   caso: OrthoCaseDetail;

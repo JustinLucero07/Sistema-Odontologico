@@ -16,8 +16,10 @@ import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 import '../agenda/cita_form.dart';
 import '../creditos/creditos_page.dart';
-
-// ------------------------------------------------------------------ Proveedores
+import 'antes_despues.dart';
+import '../configuracion/datos_pago.dart' show mostrarDatosPago;
+import 'comprobantes.dart';
+import '../../shared/abrir_pdf.dart';
 
 final historiaProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>?, String>((ref, id) async {
@@ -95,8 +97,6 @@ final cuentaProvider = FutureProvider.autoDispose.family<_Cuenta, String>((
   }
   return _Cuenta(cuenta, creditos);
 });
-
-// -------------------------------------------------------------- Datos paciente
 
 /// Alta o edición del paciente. Devuelve el id (nuevo o el mismo).
 Future<String?> editarPaciente(
@@ -207,8 +207,6 @@ Future<String?> editarPaciente(
   );
   return id;
 }
-
-// ------------------------------------------------------------ Historia clínica
 
 const _camposHistoria = <(String, String, String)>[
   ('Datos médicos', 'allergies', 'Alergias'),
@@ -466,8 +464,6 @@ class _Dato extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------- Tratamientos
-
 Color _colorItem(String? s) => switch (s) {
   'completado' => Tonos.verde,
   'en_progreso' => Tonos.azul,
@@ -661,27 +657,53 @@ class PestanaTratamientos extends ConsumerWidget {
                             onSelected: (op) async {
                               final api = ref.read(apiProvider);
                               if (op == 'editar') {
-                                editarPlan(context, ref, pacienteId, plan: plan);
+                                editarPlan(
+                                  context,
+                                  ref,
+                                  pacienteId,
+                                  plan: plan,
+                                );
                               } else if (op == 'presupuesto') {
-                                if (await intentar(context, () => api.post('/patients/$pacienteId/budgets', {'treatment_plan_id': plan['id']}), exito: 'Presupuesto generado')) {
-                                  ref.invalidate(presupuestosProvider(pacienteId));
+                                if (await intentar(
+                                  context,
+                                  () => api.post(
+                                    '/patients/$pacienteId/budgets',
+                                    {'treatment_plan_id': plan['id']},
+                                  ),
+                                  exito: 'Presupuesto generado',
+                                )) {
+                                  ref.invalidate(
+                                    presupuestosProvider(pacienteId),
+                                  );
                                 }
                               } else if (op == 'cancelar') {
                                 anularConMotivo(
                                   context,
                                   que: 'plan (lo ya realizado se conserva)',
                                   alAnular: (m) async {
-                                    await api.post('/treatment-plans/${plan['id']}/cancel', {'reason': m});
+                                    await api.post(
+                                      '/treatment-plans/${plan['id']}/cancel',
+                                      {'reason': m},
+                                    );
                                     ref.invalidate(planesProvider(pacienteId));
                                   },
                                 );
                               }
                             },
                             itemBuilder: (_) => [
-                              const PopupMenuItem(value: 'editar', child: Text('Editar plan')),
+                              const PopupMenuItem(
+                                value: 'editar',
+                                child: Text('Editar plan'),
+                              ),
                               if (plan['cancelled_at'] == null) ...[
-                                const PopupMenuItem(value: 'presupuesto', child: Text('Generar presupuesto')),
-                                const PopupMenuItem(value: 'cancelar', child: Text('Cancelar plan')),
+                                const PopupMenuItem(
+                                  value: 'presupuesto',
+                                  child: Text('Generar presupuesto'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'cancelar',
+                                  child: Text('Cancelar plan'),
+                                ),
                               ],
                             ],
                           ),
@@ -692,7 +714,10 @@ class PestanaTratamientos extends ConsumerWidget {
                           padding: const EdgeInsets.only(bottom: 6, right: 8),
                           child: Text(
                             'Cancelado: ${plan['cancel_reason']}',
-                            style: const TextStyle(fontSize: 12.5, color: Tonos.rojo),
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Tonos.rojo,
+                            ),
                           ),
                         ),
                       Padding(
@@ -758,7 +783,11 @@ class PestanaTratamientos extends ConsumerWidget {
                           icon: const Icon(Icons.add, size: 18),
                           label: const Text('Agregar tratamiento'),
                         ),
-                      _PresupuestosDelPlan(pacienteId: pacienteId, planId: '${plan['id']}', titulo: '${plan['title']}'),
+                      _PresupuestosDelPlan(
+                        pacienteId: pacienteId,
+                        planId: '${plan['id']}',
+                        titulo: '${plan['title']}',
+                      ),
                     ],
                   ),
                 ),
@@ -772,8 +801,6 @@ class PestanaTratamientos extends ConsumerWidget {
     );
   }
 }
-
-// ------------------------------------------------------------------- Clínico
 
 Future<void> registrarEvolucion(
   BuildContext context,
@@ -1027,7 +1054,9 @@ class PestanaClinica extends ConsumerWidget {
                   if (e['voided_at'] != null) 'Anulada: ${e['void_reason']}',
                 ].join('\n'),
                 tachado: e['voided_at'] != null,
-                derecha: e['voided_at'] != null ? null : const Icon(Icons.more_vert, size: 18),
+                derecha: e['voided_at'] != null
+                    ? null
+                    : const Icon(Icons.more_vert, size: 18),
                 alTocar: e['voided_at'] != null
                     ? null
                     : () => showModalBottomSheet<void>(
@@ -1040,24 +1069,41 @@ class PestanaClinica extends ConsumerWidget {
                               ListTile(
                                 leading: const Icon(Icons.edit_outlined),
                                 title: const Text('Corregir'),
-                                subtitle: const Text('El texto anterior queda en la auditoría.'),
+                                subtitle: const Text(
+                                  'El texto anterior queda en la auditoría.',
+                                ),
                                 onTap: () {
                                   Navigator.pop(hoja);
-                                  registrarEvolucion(context, ref, pacienteId, evolucion: e);
+                                  registrarEvolucion(
+                                    context,
+                                    ref,
+                                    pacienteId,
+                                    evolucion: e,
+                                  );
                                 },
                               ),
                               ListTile(
-                                leading: Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+                                leading: Icon(
+                                  Icons.block,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                                 title: const Text('Anular'),
-                                subtitle: const Text('Queda tachada con su motivo; no se borra.'),
+                                subtitle: const Text(
+                                  'Queda tachada con su motivo; no se borra.',
+                                ),
                                 onTap: () {
                                   Navigator.pop(hoja);
                                   anularConMotivo(
                                     context,
                                     que: 'evolución',
                                     alAnular: (m) async {
-                                      await api.post('/evolutions/${e['id']}/void', {'reason': m});
-                                      ref.invalidate(clinicoProvider(pacienteId));
+                                      await api.post(
+                                        '/evolutions/${e['id']}/void',
+                                        {'reason': m},
+                                      );
+                                      ref.invalidate(
+                                        clinicoProvider(pacienteId),
+                                      );
                                     },
                                   );
                                 },
@@ -1125,8 +1171,6 @@ class _Vacio extends StatelessWidget {
   );
 }
 
-// ------------------------------------------------------------------ Imágenes
-
 Future<void> subirImagen(
   BuildContext context,
   WidgetRef ref,
@@ -1135,8 +1179,6 @@ Future<void> subirImagen(
 ) async {
   final archivo = await ImagePicker().pickImage(
     source: origen,
-    // 2000 px de lado bastan para mirar una radiografía en pantalla y no
-    // mandan 6 MB por la red móvil.
     maxWidth: 2000,
     imageQuality: 88,
   );
@@ -1236,69 +1278,89 @@ class PestanaImagenes extends ConsumerWidget {
               ],
             );
           }
-          return GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.82,
-            ),
-            itemCount: activas.length,
-            itemBuilder: (context, i) {
-              final img = activas[i];
-              final url = '$base/images/${img['id']}/file';
-              final cabeceras = {
-                if (token != null) 'Authorization': 'Bearer $token',
-              };
-              return GlassCard(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => _VisorImagen(
-                      url: url,
-                      cabeceras: cabeceras,
-                      imagen: img,
-                      pacienteId: pacienteId,
-                    ),
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: SeccionAntesDespues(
+                    pacienteId: pacienteId,
+                    imagenes: activas,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Image.network(
-                        url,
-                        headers: cabeceras,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Center(
-                          child: Icon(Icons.broken_image_outlined, size: 36),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                sliver: SliverGrid.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.82,
+                  ),
+                  itemCount: activas.length,
+                  itemBuilder: (context, i) {
+                    final img = activas[i];
+                    final url = '$base/images/${img['id']}/file';
+                    final cabeceras = {
+                      if (token != null) 'Authorization': 'Bearer $token',
+                    };
+                    return GlassCard(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => _VisorImagen(
+                            url: url,
+                            cabeceras: cabeceras,
+                            imagen: img,
+                            pacienteId: pacienteId,
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            '${img['title']}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Image.network(
+                              url,
+                              headers: cabeceras,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Center(
+                                child: Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 36,
+                                ),
+                              ),
+                            ),
                           ),
-                          Text(
-                            '${etiquetaDe(tipos, img['image_type'])} · ${fechaCorta(img['taken_on'] ?? img['created_at'])}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11.5),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${img['title']}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '${etiquetaDe(tipos, img['image_type'])} · ${fechaCorta(img['taken_on'] ?? img['created_at'])}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 11.5),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
       ),
@@ -1425,8 +1487,6 @@ class _VisorImagen extends ConsumerWidget {
   }
 }
 
-// --------------------------------------------------------------------- Citas
-
 class PestanaCitas extends ConsumerWidget {
   const PestanaCitas({super.key, required this.pacienteId});
 
@@ -1517,8 +1577,6 @@ class PestanaCitas extends ConsumerWidget {
     );
   }
 }
-
-// --------------------------------------------------------------------- Cuenta
 
 Future<void> registrarCobro(
   BuildContext context,
@@ -1744,6 +1802,47 @@ void menuCuenta(
               nuevoCargo(context, ref, pacienteId);
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.qr_code_2),
+            title: const Text('Datos de pago / QR'),
+            subtitle: const Text(
+              'Mostrar el QR o enviar los datos por WhatsApp',
+            ),
+            onTap: () async {
+              Navigator.pop(hoja);
+              final saldo = cargos.fold<double>(
+                0,
+                (s, c) =>
+                    s + (c['voided_at'] == null ? numero(c['pending']) : 0),
+              );
+              Map<String, dynamic>? p;
+              try {
+                p = await ref.read(apiProvider).mapa('/patients/$pacienteId');
+              } catch (_) {}
+              if (!context.mounted) return;
+              await mostrarDatosPago(
+                context,
+                nombre: p == null
+                    ? null
+                    : '${p['first_name']} ${p['last_name']}',
+                telefono: p == null
+                    ? null
+                    : '${p['whatsapp'] ?? p['phone'] ?? ''}',
+                monto: saldo > 0 ? saldo : null,
+                concepto: 'saldo pendiente',
+              );
+            },
+          ),
+          ListTile(
+            key: const Key('estado-cuenta-pdf'),
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: const Text('Estado de cuenta (PDF)'),
+            subtitle: const Text('Con el QR y los datos para pagar al pie'),
+            onTap: () {
+              Navigator.pop(hoja);
+              abrirArchivo(context, ref, '/patients/$pacienteId/statement.pdf', 'estado-de-cuenta-$pacienteId.pdf');
+            },
+          ),
           if (ref.read(authProvider).usuario?.puede('invoices:write') ?? false)
             ListTile(
               leading: const Icon(Icons.request_quote_outlined),
@@ -1791,6 +1890,11 @@ class PestanaCuenta extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              ComprobantesPortal(
+                pacienteId: pacienteId,
+                puedeCobrar: puedeCobrar,
+                alCambiar: () => ref.invalidate(cuentaProvider(pacienteId)),
+              ),
               GlassPanel(
                 tint: saldo > 0 ? null : scheme.primary,
                 padding: const EdgeInsets.all(18),
@@ -1994,9 +2098,6 @@ class PestanaCuenta extends ConsumerWidget {
   }
 }
 
-
-// ------------------------------------------------------------- Presupuestos
-
 const _estadosPresupuesto = {
   'borrador': ('Borrador', Tonos.gris),
   'enviado': ('Enviado', Tonos.azul),
@@ -2012,7 +2113,11 @@ const _siguiente = {
 };
 
 class _PresupuestosDelPlan extends ConsumerWidget {
-  const _PresupuestosDelPlan({required this.pacienteId, required this.planId, required this.titulo});
+  const _PresupuestosDelPlan({
+    required this.pacienteId,
+    required this.planId,
+    required this.titulo,
+  });
 
   final String pacienteId;
   final String planId;
@@ -2020,9 +2125,10 @@ class _PresupuestosDelPlan extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lista = (ref.watch(presupuestosProvider(pacienteId)).valueOrNull ?? [])
-        .where((b) => b['treatment_plan_id'] == planId)
-        .toList();
+    final lista =
+        (ref.watch(presupuestosProvider(pacienteId)).valueOrNull ?? [])
+            .where((b) => b['treatment_plan_id'] == planId)
+            .toList();
     if (lista.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 4, right: 8),
@@ -2030,22 +2136,35 @@ class _PresupuestosDelPlan extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Divider(),
-          const Text('Presupuestos', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            'Presupuestos',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           for (final b in lista)
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               leading: const Icon(Icons.request_quote_outlined),
-              title: Text(dinero(numero(b['total'])), style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text([
-                fechaCorta(b['created_at']),
-                if (b['void_reason'] != null) 'Anulado: ${b['void_reason']}',
-              ].join(' · ')),
-              trailing: Pastilla(
-                (_estadosPresupuesto[b['status']] ?? ('${b['status']}', Tonos.gris)).$1,
-                color: (_estadosPresupuesto[b['status']] ?? ('', Tonos.gris)).$2,
+              title: Text(
+                dinero(numero(b['total'])),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              onTap: b['status'] == 'anulado' ? null : () => _acciones(context, ref, b),
+              subtitle: Text(
+                [
+                  fechaCorta(b['created_at']),
+                  if (b['void_reason'] != null) 'Anulado: ${b['void_reason']}',
+                ].join(' · '),
+              ),
+              trailing: Pastilla(
+                (_estadosPresupuesto[b['status']] ??
+                        ('${b['status']}', Tonos.gris))
+                    .$1,
+                color:
+                    (_estadosPresupuesto[b['status']] ?? ('', Tonos.gris)).$2,
+              ),
+              onTap: b['status'] == 'anulado'
+                  ? null
+                  : () => _acciones(context, ref, b),
             ),
         ],
       ),
@@ -2055,7 +2174,11 @@ class _PresupuestosDelPlan extends ConsumerWidget {
   void _acciones(BuildContext context, WidgetRef ref, Map<String, dynamic> b) {
     final api = ref.read(apiProvider);
     final sig = _siguiente[b['status']];
-    final editable = const {'borrador', 'enviado', 'visto'}.contains(b['status']);
+    final editable = const {
+      'borrador',
+      'enviado',
+      'visto',
+    }.contains(b['status']);
     Future<void> refrescar() async {
       ref.invalidate(presupuestosProvider(pacienteId));
       ref.invalidate(planesProvider(pacienteId));
@@ -2074,7 +2197,14 @@ class _PresupuestosDelPlan extends ConsumerWidget {
                 title: Text(sig.$2),
                 onTap: () async {
                   Navigator.pop(hoja);
-                  if (await intentar(context, () => api.put('/budgets/${b['id']}/status', {'status': sig.$1}))) await refrescar();
+                  if (await intentar(
+                    context,
+                    () => api.put('/budgets/${b['id']}/status', {
+                      'status': sig.$1,
+                    }),
+                  )) {
+                    await refrescar();
+                  }
                 },
               ),
             if (editable)
@@ -2083,9 +2213,14 @@ class _PresupuestosDelPlan extends ConsumerWidget {
                 title: const Text('Editar líneas, IVA y notas'),
                 onTap: () {
                   Navigator.pop(hoja);
-                  Navigator.of(context).push(MaterialPageRoute<void>(
-                    builder: (_) => EditorPresupuesto(presupuesto: b, alGuardar: refrescar),
-                  ));
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => EditorPresupuesto(
+                        presupuesto: b,
+                        alGuardar: refrescar,
+                      ),
+                    ),
+                  );
                 },
               ),
             if (editable)
@@ -2094,13 +2229,27 @@ class _PresupuestosDelPlan extends ConsumerWidget {
                 title: const Text('Rechazado por el paciente'),
                 onTap: () async {
                   Navigator.pop(hoja);
-                  if (await intentar(context, () => api.put('/budgets/${b['id']}/status', {'status': 'rechazado'}))) await refrescar();
+                  if (await intentar(
+                    context,
+                    () => api.put('/budgets/${b['id']}/status', {
+                      'status': 'rechazado',
+                    }),
+                  )) {
+                    await refrescar();
+                  }
                 },
               ),
             ListTile(
-              leading: Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+              leading: Icon(
+                Icons.block,
+                color: Theme.of(context).colorScheme.error,
+              ),
               title: const Text('Anular'),
-              subtitle: b['status'] == 'aceptado' ? const Text('Si ya generó un cargo, anúlelo primero en Cuenta.') : null,
+              subtitle: b['status'] == 'aceptado'
+                  ? const Text(
+                      'Si ya generó un cargo, anúlelo primero en Cuenta.',
+                    )
+                  : null,
               onTap: () {
                 Navigator.pop(hoja);
                 anularConMotivo(
@@ -2120,10 +2269,12 @@ class _PresupuestosDelPlan extends ConsumerWidget {
   }
 }
 
-/// Edición de un presupuesto: líneas (concepto, precio, descuento, cantidad),
-/// IVA y notas. Se guarda todo de una vez.
 class EditorPresupuesto extends ConsumerStatefulWidget {
-  const EditorPresupuesto({super.key, required this.presupuesto, required this.alGuardar});
+  const EditorPresupuesto({
+    super.key,
+    required this.presupuesto,
+    required this.alGuardar,
+  });
 
   final Map<String, dynamic> presupuesto;
   final Future<void> Function() alGuardar;
@@ -2142,7 +2293,9 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
   void initState() {
     super.initState();
     _lineas = [
-      for (final i in (widget.presupuesto['items'] as List? ?? []).cast<Map<String, dynamic>>())
+      for (final i
+          in (widget.presupuesto['items'] as List? ?? [])
+              .cast<Map<String, dynamic>>())
         {
           'description': i['description'],
           'price': numero(i['price']),
@@ -2156,7 +2309,14 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
   }
 
   double get _total =>
-      _lineas.fold<double>(0, (a, l) => a + ((l['price'] as num) - (l['discount'] as num)) * (l['quantity'] as num)) * (1 + _iva / 100);
+      _lineas.fold<double>(
+        0,
+        (a, l) =>
+            a +
+            ((l['price'] as num) - (l['discount'] as num)) *
+                (l['quantity'] as num),
+      ) *
+      (1 + _iva / 100);
 
   Future<void> _linea([int? i]) async {
     final l = i == null ? null : _lineas[i];
@@ -2165,10 +2325,34 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
       titulo: i == null ? 'Nueva línea' : 'Editar línea',
       icono: Icons.receipt_long_outlined,
       campos: [
-        Campo('description', 'Concepto', requerido: true, inicial: l?['description']),
-        Campo('price', 'Precio', tipo: TipoCampo.dinero, requerido: true, inicial: l?['price'], mitad: true),
-        Campo('discount', 'Descuento', tipo: TipoCampo.dinero, inicial: l?['discount'] ?? 0, mitad: true),
-        Campo('quantity', 'Cantidad', tipo: TipoCampo.entero, requerido: true, inicial: l?['quantity'] ?? 1),
+        Campo(
+          'description',
+          'Concepto',
+          requerido: true,
+          inicial: l?['description'],
+        ),
+        Campo(
+          'price',
+          'Precio',
+          tipo: TipoCampo.dinero,
+          requerido: true,
+          inicial: l?['price'],
+          mitad: true,
+        ),
+        Campo(
+          'discount',
+          'Descuento',
+          tipo: TipoCampo.dinero,
+          inicial: l?['discount'] ?? 0,
+          mitad: true,
+        ),
+        Campo(
+          'quantity',
+          'Cantidad',
+          tipo: TipoCampo.entero,
+          requerido: true,
+          inicial: l?['quantity'] ?? 1,
+        ),
       ],
       alGuardar: (v) async {
         final nueva = {
@@ -2202,7 +2386,11 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
     setState(() => _guardando = true);
     final ok = await intentar(
       context,
-      () => ref.read(apiProvider).put('/budgets/${widget.presupuesto['id']}', {'tax_rate': _iva, 'notes': _notas, 'items': _lineas}),
+      () => ref.read(apiProvider).put('/budgets/${widget.presupuesto['id']}', {
+        'tax_rate': _iva,
+        'notes': _notas,
+        'items': _lineas,
+      }),
       exito: 'Presupuesto actualizado',
     );
     if (mounted) setState(() => _guardando = false);
@@ -2217,9 +2405,16 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
     return PaginaModulo(
       titulo: 'Editar presupuesto',
       acciones: [
-        TextButton(onPressed: _guardando ? null : _guardar, child: Text(_guardando ? 'Guardando…' : 'Guardar')),
+        TextButton(
+          onPressed: _guardando ? null : _guardar,
+          child: Text(_guardando ? 'Guardando…' : 'Guardar'),
+        ),
       ],
-      accion: FloatingActionButton.extended(onPressed: () => _linea(), icon: const Icon(Icons.add), label: const Text('Línea')),
+      accion: FloatingActionButton.extended(
+        onPressed: () => _linea(),
+        icon: const Icon(Icons.add),
+        label: const Text('Línea'),
+      ),
       cuerpo: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -2227,7 +2422,8 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
             FilaTarjeta(
               icono: Icons.receipt_long_outlined,
               titulo: '${_lineas[i]['description']}',
-              subtitulo: '${dinero(_lineas[i]['price'] as num)} − ${dinero(_lineas[i]['discount'] as num)} × ${_lineas[i]['quantity']}',
+              subtitulo:
+                  '${dinero(_lineas[i]['price'] as num)} − ${dinero(_lineas[i]['discount'] as num)} × ${_lineas[i]['quantity']}',
               alTocar: () => _linea(i),
               derecha: IconButton(
                 tooltip: 'Quitar',
@@ -2243,7 +2439,11 @@ class _EditorPresupuestoState extends ConsumerState<EditorPresupuesto> {
             derecha: const Icon(Icons.chevron_right),
           ),
           const SizedBox(height: 8),
-          Text('Total ${dinero(_total)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          Text(
+            'Total ${dinero(_total)}',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
           finDeLista,
         ],
       ),

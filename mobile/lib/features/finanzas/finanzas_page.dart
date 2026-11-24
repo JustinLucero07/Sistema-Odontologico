@@ -9,6 +9,7 @@ import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
+import 'ventas.dart';
 
 final _resumenProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(apiProvider).mapa('/finance/summary'),
@@ -29,16 +30,13 @@ final _egresosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
   (ref) => ref.watch(apiProvider).lista('/finance/expenses'),
 );
 
-/// Finanzas: resultado del periodo (ventas, ingresos, egresos, utilidad),
-/// cobros y egresos con su alta, edición y anulación, gastos fijos del mes y
-/// la proyección de lo que entra y sale en los próximos días.
 class FinanzasPage extends ConsumerWidget {
   const FinanzasPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Builder(
         builder: (context) {
           final pestana = DefaultTabController.of(context);
@@ -51,19 +49,20 @@ class FinanzasPage extends ConsumerWidget {
                 tabAlignment: TabAlignment.start,
                 tabs: [
                   Tab(text: 'Resumen'),
+                  Tab(text: 'Ventas'),
                   Tab(text: 'Cobros'),
                   Tab(text: 'Egresos'),
                   Tab(text: 'Gastos fijos'),
                   Tab(text: 'Proyección'),
                 ],
               ),
-              accion: pestana.index == 3
+              accion: pestana.index == 4
                   ? FloatingActionButton.extended(
                       onPressed: () => editarGastoFijo(context, ref, null),
                       icon: const Icon(Icons.add),
                       label: const Text('Gasto fijo'),
                     )
-                  : pestana.index == 4
+                  : pestana.index == 5 || pestana.index == 1
                   ? null
                   : FloatingActionButton.extended(
                       onPressed: () => editarEgreso(context, ref, null),
@@ -73,6 +72,7 @@ class FinanzasPage extends ConsumerWidget {
               cuerpo: const TabBarView(
                 children: [
                   _Resumen(),
+                  VentasVista(),
                   _Cobros(),
                   _Egresos(),
                   _Fijos(),

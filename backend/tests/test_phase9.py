@@ -1,10 +1,3 @@
-"""Phase 9: inventory and laboratory.
-
-The inventory tests are about one idea: stock is the sum of a ledger, so it can
-never disagree with its own history and can never go negative. The laboratory
-tests are about a case only moving forward, with every step recorded.
-"""
-
 from decimal import Decimal
 
 
@@ -35,9 +28,6 @@ async def _move(client, token, item_id, reason, qty, **extra):
     )
 
 
-# ---- Inventory ----------------------------------------------------------
-
-
 async def test_stock_is_the_sum_of_its_movements(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     item = await _item(client, token)
@@ -51,8 +41,6 @@ async def test_stock_is_the_sum_of_its_movements(client, clinic_with_users):
 
 
 async def test_the_reason_fixes_the_direction(client, clinic_with_users):
-    """A negative quantity is not a way to sneak a withdrawal past an entry:
-    quantities are always positive and the reason decides the sign."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     item = await _item(client, token)
 
@@ -61,8 +49,6 @@ async def test_the_reason_fixes_the_direction(client, clinic_with_users):
 
 
 async def test_stock_cannot_go_negative(client, clinic_with_users):
-    """A count below zero means the records and the shelf disagree — that is a
-    problem to look at, not a number to store."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     item = await _item(client, token)
     await _move(client, token, item["id"], "compra", 2)
@@ -126,9 +112,6 @@ async def test_movements_have_no_delete_endpoint(client, clinic_with_users):
         f"/api/v1/inventory/movements/{movements[0]['id']}", headers=_auth(token)
     )
     assert deleted.status_code in (404, 405)
-
-
-# ---- Laboratory ---------------------------------------------------------
 
 
 async def _lab(client, token, turnaround=7) -> str:
@@ -220,8 +203,6 @@ async def test_every_step_is_kept_as_an_event(client, clinic_with_users):
 
 
 async def test_rejection_sends_the_case_back_out(client, clinic_with_users):
-    """A crown that came back wrong is no longer in the clinic, so the received
-    date has to be cleared — otherwise it looks like it is on the shelf."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     lab_id = await _lab(client, token)
     order = await _order(client, token, lab_id, await _patient(client, token))

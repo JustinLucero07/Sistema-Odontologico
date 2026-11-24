@@ -21,12 +21,8 @@ class Usuario {
   final List<String> roles;
   final List<String> permisos;
 
-  /// Falta aceptar la versión vigente del acuerdo de confidencialidad: hasta
-  /// entonces la app no muestra datos de pacientes.
   final bool confidencialidadPendiente;
 
-  /// Entró con una contraseña temporal puesta por el administrador: tiene que
-  /// elegir la suya antes de usar la app.
   final bool debeCambiarClave;
 
   String get nombreCompleto => '$nombre $apellido';
@@ -36,9 +32,6 @@ class Usuario {
     return '$a$b'.toUpperCase();
   }
 
-  /// Los permisos se releen del servidor en cada petición, así que esto solo
-  /// decide qué se dibuja. Ocultar un botón no es seguridad: la autorización
-  /// real la hace el backend.
   bool puede(String permiso) => esSuperadmin || permisos.contains(permiso);
 
   factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(

@@ -1,5 +1,3 @@
-"""Contraseñas: política, cambio propio y contraseña temporal."""
-
 import pytest
 
 from app.core.password_policy import problems

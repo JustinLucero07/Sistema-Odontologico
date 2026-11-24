@@ -64,6 +64,23 @@ class OdontogramOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class Hallazgo(BaseModel):
+    fdi_number: str
+    surface: str
+    condition: str
+
+
+class TimelineEntry(BaseModel):
+    id: uuid.UUID
+    created_at: datetime
+    type: str
+    notes: str | None
+    author_name: str | None
+    conditions: list[Hallazgo]
+    added: list[Hallazgo]
+    removed: list[Hallazgo]
+
+
 class OdontogramSummary(BaseModel):
     id: uuid.UUID
     created_at: datetime

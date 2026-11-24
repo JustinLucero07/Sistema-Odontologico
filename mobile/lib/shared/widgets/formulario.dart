@@ -24,8 +24,6 @@ enum TipoCampo {
 
 typedef Opcion = (String codigo, String etiqueta);
 
-/// Un campo del formulario. Se describe con datos y el formulario lo dibuja:
-/// así todas las altas y ediciones de la app se ven y se comportan igual.
 class Campo {
   const Campo(
     this.clave,
@@ -54,7 +52,6 @@ class Campo {
   final String? ayuda;
   final IconData? icono;
 
-  /// Para [TipoCampo.buscar]: devuelve las coincidencias de lo que se escribe.
   final Future<List<Opcion>> Function(String texto)? buscar;
 
   /// Ocupa media fila (dos campos lado a lado).
@@ -64,9 +61,6 @@ class Campo {
   final String? seccion;
 }
 
-/// Formulario en hoja emergente de vidrio. Valida, muestra el error del
-/// servidor dentro de la hoja (sin cerrarla ni perder lo escrito) y se cierra
-/// solo cuando [alGuardar] termina bien. Devuelve los valores guardados.
 Future<Map<String, dynamic>?> mostrarFormulario(
   BuildContext context, {
   required String titulo,
@@ -743,8 +737,6 @@ Future<void> anularConMotivo(
   );
 }
 
-/// Carga lo que necesita un formulario antes de abrirse; si falla (sin red,
-/// sin permiso) lo dice en vez de quedarse sin responder.
 Future<T?> cargarOAvisar<T>(BuildContext context, Future<T> futuro) async {
   try {
     return await futuro;

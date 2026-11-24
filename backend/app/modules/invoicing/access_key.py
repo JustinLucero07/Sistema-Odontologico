@@ -1,12 +1,8 @@
-"""Clave de acceso de 49 dígitos (que también es el número de autorización)."""
-
 import secrets
 from datetime import date
 
 
 def modulo11(digitos: str) -> str:
-    """Dígito verificador: se multiplica de derecha a izquierda por 2..7
-    (cíclico), y 11 menos el residuo; 11 → 0 y 10 → 1."""
     total = 0
     factor = 2
     for d in reversed(digitos):

@@ -1,13 +1,3 @@
-"""Ortodoncia e importación de pacientes.
-
-Lo que tiene que cumplirse siempre:
-- El valor del tratamiento es un cargo normal de la cuenta del paciente, y
-  cada abono a una cuota es un pago normal: cartera y caja lo ven solos.
-- Un abono anulado reabre su cuota.
-- No se puede bajar una cuota ni el tratamiento por debajo de lo abonado.
-- La importación muestra antes de guardar y no duplica pacientes.
-"""
-
 import io
 import zipfile
 from datetime import date, timedelta
@@ -93,7 +83,6 @@ async def test_ficha_cuotas_y_abonos(client):
     assert caso["controls"][0]["status"] == "vencida"
     assert caso["paid"] == "60.00"
 
-    # Valor del tratamiento: subirlo ajusta el cargo; bajarlo bajo lo abonado, no.
     r = await client.patch(f"/api/v1/orthodontics/cases/{caso['id']}", json={"agreed_total": "1000"}, headers=h)
     assert r.json()["balance"] == "940.00"
     r = await client.patch(f"/api/v1/orthodontics/cases/{caso['id']}", json={"agreed_total": "50"}, headers=h)

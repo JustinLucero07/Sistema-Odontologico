@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-/// Guarda los trazos de una firma y la exporta como PNG (data URL), que es
-/// lo que recibe el servidor.
 class ControladorFirma extends ChangeNotifier {
   final List<List<Offset>> _trazos = [];
   Size _tamano = Size.zero;
@@ -28,8 +26,6 @@ class ControladorFirma extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// PNG con fondo transparente al doble de resolución, para que se vea
-  /// nítida en el PDF.
   Future<String?> comoDataUrl() async {
     if (vacia || _tamano == Size.zero) return null;
     const escala = 2.0;

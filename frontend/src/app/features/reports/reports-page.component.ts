@@ -22,8 +22,6 @@ import {
 import { ReportsService } from '../../core/services/reports.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
-/** Named ranges cover what a clinic actually asks for; the custom dates stay
- *  available for everything else. */
 const PRESETS = [
   { key: 'month', label: 'Este mes' },
   { key: 'last_month', label: 'Mes pasado' },
@@ -72,8 +70,6 @@ export class ReportsPageComponent implements OnInit {
   }
 
   private iso(d: Date): string {
-    // Local date parts, not toISOString: that shifts to UTC and can move the
-    // range a day for anyone west of Greenwich.
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
@@ -167,8 +163,6 @@ export class ReportsPageComponent implements OnInit {
       link.href = url;
       link.download = `${kind}-${this.dateFrom}-${this.dateTo}.csv`;
       link.click();
-      // Released immediately: the download has already been handed to the
-      // browser, and a held blob URL keeps the whole file in memory.
       URL.revokeObjectURL(url);
     } catch {
       this.snackBar.open('No se pudo descargar el CSV', 'Cerrar', { duration: 5000 });
@@ -177,10 +171,6 @@ export class ReportsPageComponent implements OnInit {
     }
   }
 
-  // ---- Chart helpers ----------------------------------------------------
-
-  /** Bars are scaled against the largest value present, so the shortest bar is
-   *  still visible and the comparison is between the series' own members. */
   share(value: string | number, max: number): number {
     const n = typeof value === 'number' ? value : Number(value);
     return max > 0 ? (n / max) * 100 : 0;

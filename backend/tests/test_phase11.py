@@ -1,11 +1,3 @@
-"""Phase 11: messaging, the assistant, and the patient portal.
-
-This is the phase where it would be easiest to build something that looks like
-it works. These tests are about the opposite: that a simulated message is never
-called sent, that the assistant refuses to invent, and that a portal link is a
-credential that expires, can be revoked, and shows nothing clinical.
-"""
-
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -29,12 +21,7 @@ async def _patient(client, token, **extra) -> str:
     return created.json()["id"]
 
 
-# ---- Messaging honesty --------------------------------------------------
-
-
 async def test_a_message_with_no_provider_is_simulated_not_sent(client, clinic_with_users):
-    """The whole point of the module: a clinic that believes a reminder went
-    out stops calling the patient."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _patient(client, token, whatsapp="+34600111222")
 
@@ -85,11 +72,6 @@ async def test_templates_are_seeded_and_rendered(client, clinic_with_users):
 
 
 async def _appointment_with_due_reminder(client, token, db_session, patient_id):
-    """Creates an appointment and drags its reminder into the past.
-
-    Scheduling deliberately never produces an already-due reminder — one whose
-    moment has passed is dropped at creation. So testing the DISPATCHER means
-    backdating the row, rather than testing the scheduler a second time."""
     from sqlalchemy import select
 
     from app.modules.appointments.models import AppointmentReminder
@@ -147,8 +129,6 @@ async def test_dispatch_resolves_due_reminders_once(client, clinic_with_users, d
 async def test_cancelling_an_appointment_resolves_its_reminders(
     client, clinic_with_users, db_session
 ):
-    """The first line of defence lives in the appointments module: cancelling
-    marks the pending reminders cancelled, so the dispatcher never sees them."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _patient(client, token, whatsapp="+34600111222")
     appointment_id = await _appointment_with_due_reminder(client, token, db_session, patient_id)
@@ -168,11 +148,6 @@ async def test_cancelling_an_appointment_resolves_its_reminders(
 async def test_dispatcher_refuses_a_reminder_for_a_dead_appointment(
     client, clinic_with_users, db_session
 ):
-    """The dispatcher's own guard, checked on its own.
-
-    Here the appointment is cancelled directly in the database, leaving the
-    reminder pending — the state some other code path could one day produce.
-    The dispatcher must still refuse to message a patient who is not coming."""
     from sqlalchemy import select
 
     from app.modules.appointments.models import Appointment
@@ -194,9 +169,6 @@ async def test_dispatcher_refuses_a_reminder_for_a_dead_appointment(
     assert result["simulated"] == 0
 
 
-# ---- Assistant guardrails ----------------------------------------------
-
-
 def test_guardrails_block_prices_and_diagnoses():
     """These run on every completion before anyone sees it."""
     from app.shared.ai import GuardrailViolation, check_output
@@ -214,8 +186,6 @@ def test_guardrails_block_prices_and_diagnoses():
 
 
 async def test_assistant_is_off_without_a_key_and_says_so(client, clinic_with_users):
-    """No canned paragraph: a plausible sentence nobody generated is worse
-    than a clear 'not configured'."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _patient(client, token)
 
@@ -233,8 +203,6 @@ async def test_assistant_is_off_without_a_key_and_says_so(client, clinic_with_us
 
 
 async def test_the_context_contains_only_this_patients_record(client, clinic_with_users):
-    """The assistant's whole world, exposed so it can be checked before its
-    output is trusted."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     mine = await _patient(client, token)
     await client.post(
@@ -263,8 +231,6 @@ async def test_the_context_contains_only_this_patients_record(client, clinic_wit
 async def test_an_accepted_suggestion_does_not_become_a_clinical_record(
     client, clinic_with_users, db_session
 ):
-    """Accepting marks who took responsibility. It writes nothing into the
-    record: putting the text into an evolution is a separate, deliberate act."""
     from sqlalchemy import select
 
     from app.modules.ai_assist.models import AiSuggestion
@@ -313,9 +279,6 @@ async def _clinic_id(db_session):
     from app.modules.clinics.models import Clinic
 
     return (await db_session.execute(select(Clinic.id).limit(1))).scalar()
-
-
-# ---- Patient portal -----------------------------------------------------
 
 
 async def test_portal_link_is_shown_once_and_stored_hashed(

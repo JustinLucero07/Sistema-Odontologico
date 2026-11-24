@@ -1,9 +1,3 @@
-"""Cifrado de la firma electrónica guardada.
-
-La llave sale de CERT_ENCRYPTION_KEY si está configurada y, si no, se deriva
-de JWT_SECRET_KEY. OJO: si se cambia esa clave, las firmas guardadas dejan de
-poder leerse y cada consulta tendrá que volver a subir su .p12."""
-
 import base64
 from datetime import datetime, timezone
 
@@ -45,8 +39,6 @@ class FirmaInvalida(ValueError):
 
 
 def abrir_p12(contenido: bytes, clave: str) -> tuple[RSAPrivateKey, Certificate]:
-    """Abre el .p12 y devuelve la llave privada y SU certificado (el que la
-    acompaña, no los de la cadena de la entidad emisora)."""
     try:
         llave, certificado, _ = pkcs12.load_key_and_certificates(contenido, clave.encode())
     except ValueError as e:

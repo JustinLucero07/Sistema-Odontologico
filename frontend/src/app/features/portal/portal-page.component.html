@@ -30,7 +30,94 @@
           {{ balanceTone(v.balance) === 'owed' ? 'Pendiente de pago'
              : balanceTone(v.balance) === 'credit' ? 'Saldo a su favor' : 'Al día' }}
         </span>
+        <button type="button" class="btn-primario" (click)="abrirPago()">
+          <mat-icon>upload_file</mat-icon>Ya pagué: enviar comprobante
+        </button>
       </section>
+
+      @if (enviado()) {
+        <div class="aviso ok" role="status">
+          <mat-icon>check_circle</mat-icon>
+          <span>Recibimos su comprobante. La clínica lo revisará y su saldo se actualizará al aceptarlo.</span>
+        </div>
+      }
+
+      @if (v.comprobantes?.length) {
+        <section class="card">
+          <h2>Sus comprobantes</h2>
+          <ul class="comprobantes">
+            @for (c of v.comprobantes; track c.id) {
+              <li>
+                <div>
+                  <strong class="numeric">$ {{ money(c.amount) }}</strong>
+                  <span>{{ c.destino }} · {{ c.paid_on | date: 'dd/MM/yyyy' }}</span>
+                  @if (c.reject_reason) { <em>Motivo: {{ c.reject_reason }}</em> }
+                </div>
+                <span class="estado" [attr.data-estado]="c.status">{{ c.status_label }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (v.ortodoncia; as o) {
+        <section class="card orto">
+          <h2>Su ortodoncia <span class="codigo">{{ o.code }}</span></h2>
+          <div class="orto-resumen">
+            @if (o.progress !== null) {
+              <div class="anillo" [style.--p]="o.progress">
+                <span class="numeric">{{ (o.progress * 100).toFixed(0) }}%</span>
+              </div>
+            }
+            <div class="orto-datos">
+              @if (o.appliance) { <span><mat-icon>mood</mat-icon>{{ o.appliance }}</span> }
+              <span><mat-icon>event_repeat</mat-icon>Control {{ o.controls_attended }} de {{ o.controls_total }}</span>
+              @if (o.next_control_on) {
+                <span [class.atrasado]="o.next_control_overdue">
+                  <mat-icon>event</mat-icon>
+                  {{ o.next_control_overdue ? 'Control pendiente desde el' : 'Próximo control:' }} {{ o.next_control_on | date: 'd \'de\' MMMM' }}
+                </span>
+              }
+              <span><mat-icon>payments</mat-icon>Pagado $ {{ money(o.paid) }} de $ {{ money(o.agreed_total) }}</span>
+            </div>
+          </div>
+          @if (o.cuotas.length) {
+            <ul class="cuotas">
+              @for (c of o.cuotas; track c.id) {
+                <li [attr.data-estado]="c.status">
+                  <span class="n numeric">{{ c.number < 10 ? '0' + c.number : c.number }}</span>
+                  <span class="f">{{ c.planned_on ? (c.planned_on | date: 'dd/MM/yy') : '—' }}</span>
+                  <span class="m numeric">$ {{ money(c.amount) }}</span>
+                  <span class="e">{{ estadoCuota(c) }}</span>
+                  @if (+c.balance > 0) {
+                    <button type="button" class="pagar" (click)="abrirPago('cuota:' + c.id)">Pagar</button>
+                  } @else { <span class="pagar-vacio"></span> }
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      @if (v.payment_accounts?.length) {
+        <section class="card pagos">
+          <h2>Cómo pagar</h2>
+          <p class="portal-msg small">Escanee el código con la app de su banco o transfiera a la cuenta. Luego envíe el comprobante a la clínica.</p>
+          <div class="pagos-lista">
+            @for (a of v.payment_accounts; track a.label) {
+              <article class="pago">
+                <strong>{{ a.label }}</strong>
+                @if (a.qr_data) { <img [src]="a.qr_data" [alt]="'Código QR de ' + a.label" /> }
+                @if (a.account_number) { <span>{{ tipoCuenta(a.account_type) }} N.º <b class="numeric">{{ a.account_number }}</b></span> }
+                @if (a.holder_name) { <span>Titular: {{ a.holder_name }}</span> }
+                @if (a.holder_id) { <span>C.I./RUC: {{ a.holder_id }}</span> }
+                @if (a.email) { <span>{{ a.email }}</span> }
+                @if (a.note) { <em>{{ a.note }}</em> }
+              </article>
+            }
+          </div>
+        </section>
+      }
 
       <section class="card">
         <h2>Próximas citas</h2>
@@ -51,6 +138,40 @@
           </ul>
         }
       </section>
+
+      @if (v.odontograma?.length) {
+        <section class="card boca">
+          <h2>Su boca</h2>
+          <p class="portal-msg small">Gírela con el dedo. Los colores muestran lo que su odontólogo registró.</p>
+          <app-odontogram-3d [conditions]="v.odontograma!" />
+        </section>
+      }
+
+      @if (v.plan?.length) {
+        <section class="card">
+          <h2>Su plan de tratamiento</h2>
+          <ul class="plan">
+            @for (p of v.plan; track $index) {
+              <li [attr.data-estado]="p.status">
+                <span>{{ p.treatment }}@if (p.fdi_number) { <small> · pieza {{ p.fdi_number }}</small> }</span>
+                <span class="estado-plan">{{ p.status_label }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (v.comparaciones?.length) {
+        <section class="card">
+          <h2>Antes y después</h2>
+          @for (c of v.comparaciones; track c.id) {
+            <figure class="comparacion">
+              <app-before-after-slider [antes]="imagen(c.before_id)" [despues]="imagen(c.after_id)" />
+              <figcaption>{{ c.title }}@if (c.treatment) { · {{ c.treatment }} }</figcaption>
+            </figure>
+          }
+        </section>
+      }
 
       @if (v.charges.length > 0) {
         <section class="card">
@@ -97,6 +218,57 @@
         No comparta este enlace.
       </footer>
     </main>
+
+    @if (formAbierto()) {
+      <div class="velo" (click)="cerrarPago()">
+        <form class="hoja" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); enviar()" aria-labelledby="titulo-pago">
+          <header>
+            <h2 id="titulo-pago">Enviar comprobante</h2>
+            <button type="button" class="cerrar" (click)="cerrarPago()" aria-label="Cerrar"><mat-icon>close</mat-icon></button>
+          </header>
+          <p class="portal-msg small">Adjunte la captura o el PDF de su transferencia. La clínica lo revisará y registrará su pago.</p>
+
+          <label>¿Qué está pagando?
+            <select (change)="elegirDestino($any($event.target).value)">
+              @for (d of destinos(); track d.clave) {
+                <option [value]="d.clave" [selected]="d.clave === destino()">{{ d.etiqueta }}{{ d.pendiente ? ' — $ ' + d.pendiente.toFixed(2) : '' }}</option>
+              }
+            </select>
+          </label>
+          <div class="dos">
+            <label>Monto pagado ($)
+              <input inputmode="decimal" [value]="monto()" (input)="monto.set($any($event.target).value)" placeholder="0.00" required />
+            </label>
+            <label>Fecha del pago
+              <input type="date" [value]="fecha()" [max]="hoy" (input)="fecha.set($any($event.target).value)" />
+            </label>
+          </div>
+          <label>N.º de transacción o referencia (opcional)
+            <input [value]="referencia()" (input)="referencia.set($any($event.target).value)" maxlength="120" />
+          </label>
+
+          <label class="archivo" [class.lleno]="archivo()">
+            <input type="file" accept="image/*,application/pdf" (change)="elegirArchivo($event)" />
+            @if (vistaPrevia(); as src) {
+              <img [src]="src" alt="Vista previa del comprobante" />
+            } @else if (archivo()) {
+              <span><mat-icon>picture_as_pdf</mat-icon>{{ archivo()?.name }}</span>
+            } @else {
+              <span><mat-icon>add_a_photo</mat-icon>Tomar foto o elegir archivo</span>
+            }
+          </label>
+
+          <label>Nota para la clínica (opcional)
+            <textarea rows="2" [value]="nota()" (input)="nota.set($any($event.target).value)" maxlength="1000"></textarea>
+          </label>
+
+          @if (errorForm(); as e) { <p class="error-form" role="alert">{{ e }}</p> }
+          <button type="submit" class="btn-primario ancho" [disabled]="enviando()">
+            <mat-icon>send</mat-icon>{{ enviando() ? 'Enviando…' : 'Enviar comprobante' }}
+          </button>
+        </form>
+      </div>
+    }
     }
   }
 </div>

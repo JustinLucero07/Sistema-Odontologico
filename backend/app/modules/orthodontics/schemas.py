@@ -191,7 +191,6 @@ class CaseOut(BaseModel):
     paid: Decimal
     balance: Decimal
     controls_total: Decimal
-    # controls_total − agreed_total: positivo = las cuotas suman más de lo acordado.
     difference: Decimal
     controls_count: int
     controls_paid: int

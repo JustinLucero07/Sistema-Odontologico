@@ -41,8 +41,6 @@ export class ReportsService {
     return this.http.get<PatientReport>(`${this.base}/patients${this.query(from, to)}`);
   }
 
-  /** Fetched as a blob through the interceptor rather than linked directly:
-   *  a plain <a href> would leave without the bearer token. */
   downloadCsv(kind: ReportKind, from: string, to: string): Observable<Blob> {
     return this.http.get(`${this.base}/${kind}.csv${this.query(from, to)}`, {
       responseType: 'blob',

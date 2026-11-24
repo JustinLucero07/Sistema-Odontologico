@@ -17,11 +17,6 @@ MESSAGE_CHANNEL_CODES = {code for code, _ in MESSAGE_CHANNELS}
 
 
 class MessageTemplate(UUIDPKMixin, TenantMixin, Base):
-    """A reusable body with {placeholders} the clinic can edit.
-
-    Templates are per clinic because the tone of a reminder is part of how a
-    practice presents itself, and a shared default would be wrong for most."""
-
     __tablename__ = "message_templates"
     __table_args__ = (UniqueConstraint("clinic_id", "code", name="uq_template_code"),)
 
@@ -33,12 +28,6 @@ class MessageTemplate(UUIDPKMixin, TenantMixin, Base):
 
 
 class OutboundMessage(UUIDPKMixin, TenantMixin, Base):
-    """One message the clinic wanted to send.
-
-    `status` records what really happened. `simulado` means no provider was
-    configured and nothing left the server — it is kept separate from
-    `enviado` so nobody reads a demo as a delivery."""
-
     __tablename__ = "outbound_messages"
 
     patient_id: Mapped[uuid.UUID | None] = mapped_column(

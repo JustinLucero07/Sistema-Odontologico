@@ -33,9 +33,6 @@ ZERO = Decimal("0.00")
 _METHOD_LABELS = {code: label for code, label, _ in PAYMENT_METHODS}
 
 
-# ---- Reading ------------------------------------------------------------
-
-
 async def _charges_for(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> list[Charge]:
     result = await db.execute(
         select(Charge)
@@ -56,14 +53,10 @@ async def _payments_for(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid
 
 
 def _paid_on(charge: Charge) -> Decimal:
-    """Only payments that still stand count. A voided payment leaves its row
-    for the audit trail but must not keep a charge looking settled."""
     return money(sum((p.amount for p in charge.payments if p.voided_at is None), ZERO))
 
 
 def _installment_statuses(charge: Charge, paid: Decimal, today: date) -> list[InstallmentStatus]:
-    """Coverage is walked oldest-first: money received settles the earliest
-    instalment still open, which is how a clinic reads a payment plan."""
     remaining = paid
     rows: list[InstallmentStatus] = []
     for item in sorted(charge.installments, key=lambda i: i.number):
@@ -124,8 +117,6 @@ def _to_charge_out(charge: Charge, today: date) -> ChargeOut:
 async def get_statement(
     db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID
 ) -> AccountStatement:
-    """The balance is DERIVED on every read, never stored. A stored balance is
-    a second source of truth that drifts the first time a void is recorded."""
     await get_patient_or_404(db, clinic_id, patient_id)
     today = date.today()
 
@@ -179,9 +170,6 @@ async def get_charge_or_404(
     return charge
 
 
-# ---- Charges ------------------------------------------------------------
-
-
 async def create_charge(
     db: AsyncSession,
     clinic_id: uuid.UUID,
@@ -214,11 +202,6 @@ async def create_charge(
 async def charge_for_accepted_budget(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget
 ) -> Charge | None:
-    """Raised when a budget is accepted, capturing the agreed total.
-
-    Idempotent: a budget that already has a charge returns it untouched, so a
-    repeated acceptance cannot bill the patient twice. The database backs this
-    with a unique constraint rather than trusting this check alone."""
     existing = await db.execute(
         select(Charge).where(Charge.clinic_id == clinic_id, Charge.budget_id == budget.id)
     )
@@ -257,9 +240,6 @@ async def void_charge(
     if charge.voided_at is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El cargo ya está anulado")
 
-    # Voiding a charge that money was received against would leave those
-    # payments pointing at nothing. The payments have to be dealt with first,
-    # deliberately, one at a time.
     live = [p for p in charge.payments if p.voided_at is None]
     if live:
         raise HTTPException(
@@ -270,9 +250,6 @@ async def void_charge(
             ),
         )
 
-    # Un cargo que figura en una factura vigente no desaparece de la cuenta
-    # sin más: primero se anula la factura con una nota de crédito (o se
-    # descarta, si el SRI la rechazó).
     from app.modules.invoicing.service import charge_is_invoiced
 
     if await charge_is_invoiced(db, charge_id):
@@ -325,9 +302,6 @@ async def set_installment_plan(
     total = money(charge.amount)
     base = money(total / payload.count)
     amounts = [base] * payload.count
-    # The rounding remainder lands on the LAST instalment, so the schedule
-    # always sums to the charge exactly — a plan that adds up to a cent less
-    # than the debt leaves a balance nobody can pay off.
     amounts[-1] = money(total - base * (payload.count - 1))
 
     charge.installments.clear()
@@ -350,9 +324,6 @@ async def set_installment_plan(
         after={"installments": payload.count, "first_due_on": str(payload.first_due_on)},
     )
     return charge
-
-
-# ---- Payments -----------------------------------------------------------
 
 
 async def create_payment(
@@ -378,15 +349,11 @@ async def create_payment(
                 status_code=status.HTTP_409_CONFLICT, detail="El cargo está anulado"
             )
         if await _financed_by(db, charge.id):
-            # Pagado por fuera, el crédito no se enteraría y seguiría mostrando
-            # cuotas pendientes de algo ya cobrado.
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Este cargo está financiado con un crédito: registre el pago como cuota del crédito.",
             )
         pending = money(charge.amount - _paid_on(charge))
-        # Refusing the overpayment rather than absorbing it keeps the charge's
-        # own arithmetic honest; genuine extra money is taken on account.
         if amount > pending:
             raise HTTPException(
                 status_code=422,
@@ -429,8 +396,6 @@ async def create_payment(
 async def void_payment(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, payment_id: uuid.UUID, reason: str
 ) -> Payment:
-    """Money is never deleted. A mistaken payment is reversed in place, with a
-    reason, so the day's till still reconciles against what really happened."""
     result = await db.execute(
         select(Payment).where(Payment.id == payment_id, Payment.clinic_id == clinic_id)
     )
@@ -465,9 +430,6 @@ async def void_payment(
         after={"reason": payment.void_reason, "amount": str(payment.amount)},
     )
     return payment
-
-
-# ---- Cash sessions ------------------------------------------------------
 
 
 async def get_open_session(db: AsyncSession, clinic_id: uuid.UUID) -> CashSession | None:
@@ -590,8 +552,6 @@ async def daily_report(db: AsyncSession, clinic_id: uuid.UUID, day: date) -> Dai
 
 
 async def session_with_totals(db: AsyncSession, clinic_id: uuid.UUID) -> dict | None:
-    """La caja abierta con lo que lleva: efectivo cobrado, efectivo gastado y
-    lo que debería haber en el cajón en este momento."""
     session = await get_open_session(db, clinic_id)
     if session is None:
         return None

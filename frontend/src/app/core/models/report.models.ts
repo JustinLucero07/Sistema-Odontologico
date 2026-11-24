@@ -24,8 +24,6 @@ export interface FinancialReport {
   by_method: NamedAmount[];
   by_professional: NamedAmount[];
   daily: { day: string; amount: string }[];
-  /** As of today, not of the range: a debt belongs to now, not to the month
-   *  in which it was billed. */
   outstanding_total: string;
   aging: AgingBucket[];
   voided_total: string;
@@ -97,8 +95,6 @@ export const REPORT_TABS: { kind: ReportKind; label: string; icon: string }[] = 
   { kind: 'patients', label: 'Pacientes', icon: 'groups' },
 ];
 
-/** A rate that is unknown prints as a dash, never as 0 % — the two mean very
- *  different things to whoever reads the report. */
 export function formatRate(value: number | null): string {
   return value === null ? '—' : `${value} %`;
 }

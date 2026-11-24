@@ -3,24 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Dónde vive el backend de la clínica.
-///
-/// Cada clínica tiene su propio servidor (https://clinica.ejemplo.com), así
-/// que la dirección se configura en el login una sola vez y se recuerda. Para
-/// distribuir una app ya apuntada a una clínica concreta se puede fijar al
-/// compilar:
-///
-///     flutter build apk --dart-define=API_BASE=https://clinica.ejemplo.com
-///
-/// En desarrollo, sin nada configurado: `10.0.2.2` es cómo el emulador de
-/// Android ve el `localhost` de la computadora.
 class ApiConfig {
   static const _fijo = String.fromEnvironment('API_BASE');
   static const _clave = 'servidor_clinica';
   static String? _guardado;
 
-  /// Dirección por defecto en desarrollo. En una compilación de publicación
-  /// no hay ninguna: hay que configurarla.
   static String get _desarrollo {
     if (kReleaseMode) return '';
     if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000';
@@ -49,9 +36,6 @@ class ApiConfig {
     }
   }
 
-  /// Acepta «clinica.ejemplo.com», «https://clinica.ejemplo.com/» o una IP
-  /// con puerto, y la normaliza. Sin protocolo se asume HTTPS, salvo para
-  /// direcciones de red local, que suelen ser de pruebas.
   static String normalizar(String texto) {
     var t = texto.trim().replaceAll(RegExp(r'/+$'), '');
     t = t.replaceFirst(RegExp(r'/api/v1$'), '');

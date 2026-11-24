@@ -1,13 +1,3 @@
-"""Outbound messaging behind one interface.
-
-The rule this module exists to enforce: **a message is never recorded as sent
-unless something actually sent it.** A clinic that believes a reminder went out
-stops calling the patient, so a comfortable lie here costs a real appointment.
-
-With no credentials configured the default provider records the message as
-`simulado` — visibly not `enviado` — and the outbox says so on screen.
-"""
-
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -18,8 +8,6 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# What a message can be. `simulado` is deliberately distinct from `enviado`:
-# collapsing the two is exactly the lie this module refuses to tell.
 STATUS_PENDING = "pendiente"
 STATUS_SENT = "enviado"
 STATUS_FAILED = "fallido"
@@ -43,17 +31,10 @@ class MessagingProvider(ABC):
 
     @property
     def is_live(self) -> bool:
-        """Whether this provider can really reach a phone. The UI reads it to
-        tell the user what will actually happen when they press send."""
         return False
 
 
 class ConsoleProvider(MessagingProvider):
-    """The default. Writes the message to the log and reports `simulado`.
-
-    Nothing leaves the server, and the record says so, so a demo can never be
-    mistaken for a working integration."""
-
     name = "console"
 
     async def send(self, to: str, body: str) -> DeliveryResult:
@@ -62,12 +43,6 @@ class ConsoleProvider(MessagingProvider):
 
 
 class WhatsAppCloudProvider(MessagingProvider):
-    """Meta's WhatsApp Cloud API.
-
-    Only constructed when a token and a phone-number id are configured; see
-    `get_messaging`. A failure here is reported as `fallido` with the API's own
-    message, never swallowed into a success."""
-
     name = "whatsapp_cloud"
 
     def __init__(self, token: str, phone_number_id: str, api_version: str = "v21.0"):
@@ -101,9 +76,6 @@ class WhatsAppCloudProvider(MessagingProvider):
             )
 
         if response.status_code >= 400:
-            # Meta's own wording is far more useful than anything generic we
-            # could substitute ("número no está en WhatsApp", "plantilla no
-            # aprobada"), so it is kept verbatim.
             detail = response.text[:400]
             try:
                 detail = response.json()["error"]["message"]
@@ -122,10 +94,6 @@ class WhatsAppCloudProvider(MessagingProvider):
 
 
 def get_messaging() -> MessagingProvider:
-    """Live provider when it is fully configured, console otherwise.
-
-    A half-configured integration falls back rather than failing at send time:
-    a missing token is a deployment problem, not a reason to lose the message."""
     settings = get_settings()
     if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
         return WhatsAppCloudProvider(

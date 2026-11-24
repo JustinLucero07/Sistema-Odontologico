@@ -77,7 +77,7 @@
               (click)="select(item.appointment)"
             >
               <span class="appointment-time">{{ item.appointment.starts_at | date: 'HH:mm' }}</span>
-              <span class="appointment-patient">{{ item.appointment.patient_name }}</span>
+              <span class="appointment-patient">@if (suele(item.appointment)) {<mat-icon class="suele" aria-label="Suele faltar">warning</mat-icon>}{{ item.appointment.patient_name }}</span>
               @if (item.height > 40 && item.appointment.treatment_name) {
                 <span class="appointment-treatment">{{ item.appointment.treatment_name }}</span>
               }
@@ -112,6 +112,16 @@
         <div><dt>Duración</dt><dd>{{ appointment.duration_minutes }} min</dd></div>
         <div><dt>Profesional</dt><dd>{{ appointment.professional_name }}</dd></div>
         <div><dt>Tratamiento</dt><dd>{{ appointment.treatment_name || '—' }}</dd></div>
+        @if (riesgos()[appointment.patient_id]; as r) {
+          @if (r.nivel !== 'nuevo') {
+            <div class="full">
+              <dt>Asistencia</dt>
+              <dd [class.suele-texto]="r.nivel === 'alto'">
+                {{ r.texto }}@if (r.nivel === 'alto') { · se le recuerda 3 días antes y se le pide confirmar }
+              </dd>
+            </div>
+          }
+        }
         <div>
           <dt>Recordatorios</dt>
           <dd>
@@ -254,7 +264,7 @@
 
           @if (!editingAppointment()) {
           <div class="reminder-options full-width">
-            <span>Programar recordatorios (24 h y 2 h antes):</span>
+            <span>Programar recordatorios (24 h y 2 h antes; 3 días antes si suele faltar):</span>
             <label><input type="checkbox" formControlName="remind_whatsapp" /> WhatsApp</label>
             <label><input type="checkbox" formControlName="remind_email" /> Email</label>
           </div>

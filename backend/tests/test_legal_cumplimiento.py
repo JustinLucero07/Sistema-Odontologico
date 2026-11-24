@@ -1,5 +1,3 @@
-"""Legal y cumplimiento: términos, datos legales y tributarios, solicitudes LOPDP."""
-
 from datetime import date, timedelta
 
 

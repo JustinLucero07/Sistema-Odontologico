@@ -8,8 +8,6 @@ class Settings(BaseSettings):
 
     ENV: str = "development"
     APP_NAME: str = "Sistema Odontologico"
-    # Quien vende y aloja el sistema: aparece en los Términos de uso y en el
-    # contrato de encargo de tratamiento de datos que acepta cada consulta.
     PROVIDER_NAME: str = "el proveedor del sistema"
     PROVIDER_TAX_ID: str | None = None
     PROVIDER_EMAIL: str | None = None
@@ -21,8 +19,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    # Segundos en que un token recién renovado se sigue aceptando: dos pestañas
-    # o dos peticiones que renuevan a la vez no deben cerrar la sesión.
     REFRESH_REUSE_GRACE_SECONDS: int = 30
 
     CORS_ORIGINS: list[str] = ["http://localhost:4200"]
@@ -38,22 +34,15 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_COOKIE_NAME: str = "refresh_token"
     REFRESH_TOKEN_COOKIE_SECURE: bool = False
 
-    # WhatsApp Cloud API. Absent both of these, messaging falls back to the
-    # console provider and every message is recorded as `simulado`.
     WHATSAPP_TOKEN: str | None = None
     WHATSAPP_PHONE_NUMBER_ID: str | None = None
     WHATSAPP_API_VERSION: str = "v21.0"
 
-    # The assistant is OFF unless a key is present. There is no offline
-    # fallback that makes something up.
     ANTHROPIC_API_KEY: str | None = None
-    AI_MODEL: str = "claude-sonnet-5"
-    AI_MAX_TOKENS: int = 1200
+    AI_MODEL: str = "claude-opus-5-5"
+    AI_MAX_TOKENS: int = 4000
+    AI_EFFORT: str = "low"
 
-    # Facturación electrónica. La firma .p12 de cada consulta se guarda cifrada
-    # con CERT_ENCRYPTION_KEY (una clave Fernet); si falta, se deriva de
-    # JWT_SECRET_KEY. Cambiar cualquiera de las dos obliga a volver a subir las
-    # firmas.
     CERT_ENCRYPTION_KEY: str | None = None
     # Correo saliente para enviar las facturas a los pacientes (opcional).
     SMTP_HOST: str | None = None

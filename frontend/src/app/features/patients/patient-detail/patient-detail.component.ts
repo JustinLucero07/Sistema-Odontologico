@@ -36,6 +36,7 @@ import { PatientPrivacyCardComponent } from '../../../shared/legal/patient-priva
 import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { BrandingService } from '../../../core/branding/branding.service';
 import { OrthoTabComponent } from '../../orthodontics/ortho-tab.component';
+import { PatientBriefingComponent } from './patient-briefing.component';
 
 @Component({
   selector: 'app-patient-detail',
@@ -66,6 +67,7 @@ import { OrthoTabComponent } from '../../orthodontics/ortho-tab.component';
     ClinicalRecordsTabComponent,
     PatientPrivacyCardComponent,
     OrthoTabComponent,
+    PatientBriefingComponent,
   ],
   templateUrl: './patient-detail.component.html',
   styleUrl: './patient-detail.component.scss',
@@ -77,25 +79,21 @@ export class PatientDetailComponent implements OnInit {
   /** Pestaña de ortodoncia: solo si la consulta activó la especialidad. */
   readonly showOrtho = computed(() => this.branding.orthodontics() && this.auth.hasPermission('orthodontics:read'));
   readonly tabIndex = signal(0);
-  // ?tab=ortodoncia (desde la lista de ortodoncia) abre esa pestaña en cuanto
-  // se sabe que la consulta tiene ortodoncia (la marca puede llegar después).
-  private pedirOrto = inject(ActivatedRoute).snapshot.queryParamMap.get('tab') === 'ortodoncia';
-  private readonly abrirOrto = effect(
+  private pedirTab = inject(ActivatedRoute).snapshot.queryParamMap.get('tab');
+  private readonly abrirTab = effect(
     () => {
-      if (this.showOrtho() && this.patient() && untracked(() => this.pedirOrto)) {
-        this.pedirOrto = false;
-        setTimeout(() => this.tabIndex.set(1));
-      }
+      const pedido = untracked(() => this.pedirTab);
+      if (!pedido || !this.patient()) return;
+      const orto = this.showOrtho();
+      if (pedido === 'ortodoncia' && !orto) return;
+      this.pedirTab = null;
+      const indice = pedido === 'ortodoncia' ? 1 : pedido === 'pagos' ? (orto ? 10 : 9) : null;
+      if (indice !== null) setTimeout(() => this.tabIndex.set(indice));
     },
     { allowSignalWrites: true },
   );
-  /** null until the account loads, or when the user cannot see money at all —
-   *  the chip then stays absent rather than showing a misleading zero. */
   readonly balance = signal<number | null>(null);
 
-  /** wa.me solo abre la conversación en WhatsApp: no envía nada por sí mismo,
-   *  así que no necesita ninguna integración ni credenciales. Pide el número
-   *  en formato internacional sin '+' ni espacios. */
   whatsappLink(number: string): string {
     return `https://wa.me/${number.replace(/[^\d]/g, '')}`;
   }

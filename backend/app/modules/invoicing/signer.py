@@ -1,15 +1,3 @@
-"""Firma XAdES-BES envuelta (enveloped), la que exige el SRI.
-
-Estructura: tres referencias en SignedInfo —las propiedades firmadas, el
-certificado (KeyInfo) y el comprobante (#comprobante, con la transformación
-enveloped)—, RSA-SHA1 y SHA1 como pide la ficha técnica.
-
-Los espacios de nombres se declaran a propósito así: `ds` en la firma y
-`etsi` recién en QualifyingProperties. Cada parte que se resume (SignedInfo,
-KeyInfo, SignedProperties) usa TODOS los espacios que tiene en alcance, así
-que la canonicalización inclusiva da el mismo resultado se calcule como se
-calcule; es la causa más común del rechazo «firma inválida»."""
-
 import base64
 import hashlib
 import secrets
@@ -58,8 +46,6 @@ def _sub(padre, etiqueta, texto=None, **atributos):
 
 
 def firmar(raiz: etree._Element, llave: RSAPrivateKey, certificado: Certificate, ahora: datetime | None = None) -> bytes:
-    """Firma el comprobante (que debe tener id="comprobante") y devuelve el
-    XML completo listo para enviar."""
     n = secrets.randbelow(900000) + 100000
     id_firma = f"Signature{n}"
     id_info = f"Signature-SignedInfo{n}"
@@ -70,8 +56,6 @@ def firmar(raiz: etree._Element, llave: RSAPrivateKey, certificado: Certificate,
     id_valor = f"SignatureValue{n}"
     id_objeto = f"{id_firma}-Object{n}"
 
-    # 1. Resumen del comprobante, antes de que contenga la firma (es lo mismo
-    #    que aplicar la transformación enveloped).
     resumen_doc = _sha1_b64(_c14n(raiz))
     der = certificado.public_bytes(serialization.Encoding.DER)
 
@@ -119,7 +103,6 @@ def firmar(raiz: etree._Element, llave: RSAPrivateKey, certificado: Certificate,
     _sub(formato, _etsi("Description"), "contenido comprobante")
     _sub(formato, _etsi("MimeType"), "text/xml")
 
-    # 2. Resúmenes de las partes que ya están en su lugar dentro del documento.
     valor_props.text = _sha1_b64(_c14n(props))
     valor_cert.text = _sha1_b64(_c14n(key_info))
 

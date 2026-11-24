@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { BeforeAfterSectionComponent } from '../../shared/imaging/before-after';
 import { Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,6 +40,7 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
     MatSelectModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    BeforeAfterSectionComponent,
   ],
   templateUrl: './imaging-tab.component.html',
   styleUrl: './imaging-tab.component.scss',
@@ -63,15 +65,12 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
   readonly uploading = signal(false);
   readonly showArchived = signal(false);
 
-  /** Object URLs are revoked on destroy; a blob URL that is never released
-   *  keeps a whole radiograph alive in memory for the tab's lifetime. */
   private readonly objectUrls = new Map<string, string>();
   readonly previews = signal<Record<string, string>>({});
 
   readonly viewing = signal<ClinicalImage | null>(null);
   readonly viewerUrl = signal<string | null>(null);
   readonly zoom = signal(1);
-
 
   selectedFile: File | null = null;
   readonly icons = IMAGE_TYPE_ICONS;
@@ -110,8 +109,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
         this.service.list(this.patientId, this.showArchived()),
       );
       this.images.set(images);
-      // Thumbnails load one by one rather than in one burst, so a patient with
-      // forty studies does not open forty parallel requests.
       for (const image of images) void this.loadPreview(image);
     } finally {
       this.loading.set(false);
@@ -131,8 +128,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
       this.objectUrls.set(image.id, url);
       this.previews.set({ ...this.previews(), [image.id]: url });
     } catch {
-      // A study whose bytes are unreadable still lists its metadata; the card
-      // shows a placeholder instead of vanishing.
     }
   }
 
@@ -194,8 +189,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
     this.viewerUrl.set(null);
   }
 
-  /** A radiograph is diagnosed by zooming into it, so the viewer needs real
-   *  magnification rather than a lightbox that only fits the screen. */
   adjustZoom(delta: number): void {
     this.zoom.set(Math.min(Math.max(this.zoom() + delta, 0.5), 6));
   }
@@ -293,8 +286,6 @@ export class ImagingTabComponent implements OnInit, OnDestroy {
     if (!bytes) return '';
     const mb = bytes / (1024 * 1024);
     if (mb >= 1) return `${mb.toFixed(1)} MB`;
-    // Rounding to whole kilobytes prints "0 KB" for a small file, which reads
-    // as a broken upload rather than a small one.
     const kb = bytes / 1024;
     return kb >= 1 ? `${kb.toFixed(kb < 10 ? 1 : 0)} KB` : `${bytes} B`;
   }

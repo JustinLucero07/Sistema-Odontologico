@@ -35,8 +35,6 @@
   width: 190px;
 }
 
-// ---- Calendar grid -----------------------------------------------------
-
 .calendar {
   display: grid;
   grid-template-columns: 58px repeat(7, minmax(0, 1fr));
@@ -215,8 +213,6 @@
   height: 9px;
   border-radius: 50%;
 }
-
-// ---- Overlays ----------------------------------------------------------
 
 .overlay {
   position: fixed;
@@ -415,8 +411,6 @@
   margin: 4px 0 16px;
 }
 
-// ---- Huecos libres ---------------------------------------------------------
-
 .free-slots {
   display: grid;
   gap: 10px;
@@ -466,3 +460,6 @@
     transform: scale(0.96);
   }
 }
+
+.suele { font-size: 13px; width: 13px; height: 13px; margin-right: 3px; vertical-align: -2px; color: #b45309; }
+.suele-texto { color: var(--color-danger); font-weight: 600; }

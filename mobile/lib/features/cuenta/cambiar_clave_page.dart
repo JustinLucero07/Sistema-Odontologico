@@ -4,9 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/widgets/glass.dart';
 
-/// Reglas de la contraseña. Son las mismas que aplica el servidor
-/// (backend/app/core/password_policy.py); aquí solo se muestran mientras se
-/// escribe, y quien decide de verdad es el servidor.
 List<(String, bool)> reglasClave(
   String clave, {
   String nombre = '',
@@ -49,11 +46,6 @@ int fortalezaClave(String clave) {
   return puntos.clamp(1, 4);
 }
 
-/// Cambio de contraseña, igual que en la web.
-///
-/// Con [obligatorio] se muestra en lugar de la app: quien entra con una
-/// contraseña temporal puesta por el administrador no ve nada más hasta
-/// elegir la suya.
 class CambiarClavePage extends ConsumerStatefulWidget {
   const CambiarClavePage({super.key, this.obligatorio = false});
 

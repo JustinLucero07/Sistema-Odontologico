@@ -1,15 +1,6 @@
-"""Aislamiento entre clínicas (multi-inquilino).
-
-La clínica A crea datos en todos los módulos. Luego el administrador de la
-clínica B recorre TODAS las rutas de la API que llevan un identificador y
-prueba leer, editar, anular y borrar los datos de A. Ninguna debe responder con
-éxito, ningún listado de B debe mostrar datos de A, y al final los datos de A
-deben estar exactamente igual que antes.
-"""
 import re
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import select
 
 from app.core.security import hash_password
 from app.main import app
@@ -115,8 +106,6 @@ def _id_para(param, path, ids):
     return {"periodontogram_id": ids["odontogram_id"], "suggestion_id": ids["evolution_id"]}.get(param, ids.get(param))
 
 
-# Cuerpos válidos para las escrituras: así el rechazo prueba el aislamiento y no
-# una simple validación del formulario.
 CUERPOS = [
     (r"/void$|/archive$|/cancel$|/revoke$|/discard$|/credit-note$", {"reason": "intento desde otra clínica"}),
     (r"/patients/\{patient_id\}$", {"first_name": "Hackeado", "last_name": "B"}),
@@ -160,7 +149,6 @@ def _cuerpo(path):
 
 
 async def _foto(client, h, rutas, ids):
-    """Estado de todos los recursos de A leídos por A (para comparar después)."""
     foto = {}
     for path in rutas:
         url = path
@@ -183,8 +171,6 @@ async def test_una_clinica_no_puede_ver_ni_tocar_datos_de_otra(client, clinic_wi
         def __init__(self, path, methods): self.path, self.methods = path, methods
     rutas = [_R(path, {m.upper() for m in ops}) for path, ops in app.openapi()["paths"].items()
              if "{" in path and not path.startswith("/api/v1/portal/view")]
-    # Rutas de lectura con identificador que no cambian al leerlas (el registro
-    # de accesos a la ficha sí cambia: queda fuera de la comparación).
     lecturas = sorted({r.path for r in rutas if "GET" in r.methods and "access-log" not in r.path and "privacy" not in r.path
                        and "/ai/" not in r.path and not r.path.endswith(".csv") and "download" not in r.path and "/file" not in r.path})
     antes = await _foto(client, ha, lecturas, ids)
@@ -251,6 +237,7 @@ async def test_svg_o_html_disfrazados_de_imagen_no_entran(client, clinic_with_us
 
 PUBLICAS = {("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/refresh"), ("POST", "/api/v1/auth/logout"),
             ("GET", "/api/v1/health"), ("GET", "/api/v1/portal/view/{token}"),
+            ("GET", "/api/v1/portal/view/{token}/images/{image_id}"), ("POST", "/api/v1/portal/view/{token}/receipts"),
             # Firma a distancia de consentimientos: el enlace es la credencial.
             ("GET", "/api/v1/public/consents/{token}"), ("POST", "/api/v1/public/consents/{token}/sign")}
 

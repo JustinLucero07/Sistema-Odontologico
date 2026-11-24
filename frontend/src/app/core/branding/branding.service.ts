@@ -15,6 +15,7 @@ export interface Branding {
   secondary_color: string | null;
   hidden_modules: string[];
   orthodontics_enabled?: boolean;
+  specialty_focus?: 'general' | 'ortodoncia' | 'estetica' | 'pediatria';
   setup_completed: boolean;
   opens_at: string;
   closes_at: string;
@@ -40,11 +41,6 @@ export const BRAND_PALETTE: { name: string; hex: string }[] = [
 const CACHE_KEY = 'odonto.branding';
 const DEFAULT_PRIMARY = '#0D7F76';
 
-/**
- * La identidad de cada consulta: nombre, logo y color. El color no se
- * aplica a un componente suelto: reescribe las variables del tema, así que
- * botones, menú, gráficos y documentos cambian a la vez, en claro y oscuro.
- */
 @Injectable({ providedIn: 'root' })
 export class BrandingService {
   private readonly http = inject(HttpClient);
@@ -55,6 +51,7 @@ export class BrandingService {
   readonly hidden = computed(() => new Set(this.branding()?.hidden_modules ?? []));
   /** La consulta atiende ortodoncia: se muestra el módulo. */
   readonly orthodontics = computed(() => !!this.branding()?.orthodontics_enabled);
+  readonly specialty = computed(() => this.branding()?.specialty_focus ?? 'general');
   readonly practiceType = computed<PracticeType>(() => this.branding()?.practice_type ?? 'clinica');
 
   constructor() {

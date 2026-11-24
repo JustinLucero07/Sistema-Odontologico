@@ -29,8 +29,6 @@ void _abrirPaciente(BuildContext context, Map<String, dynamic> x) =>
       ),
     );
 
-/// Cartera: de un vistazo, quién debe, quién está al día, qué cargos siguen
-/// abiertos y qué tratamientos están en curso, de TODOS los pacientes.
 class CarteraPage extends ConsumerWidget {
   const CarteraPage({super.key});
 

@@ -1,5 +1,3 @@
-"""Reenvíos de la app sin conexión: la misma Idempotency-Key no duplica."""
-
 import uuid
 
 import pytest

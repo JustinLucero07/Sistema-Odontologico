@@ -9,7 +9,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
-    // Firma a distancia de consentimientos: pública, el enlace es la credencial.
     path: 'firmar/:token',
     loadComponent: () =>
       import('./features/consent-sign/consent-sign-page.component').then((m) => m.ConsentSignPageComponent),
@@ -61,8 +60,6 @@ export const routes: Routes = [
             (m) => m.PatientDetailComponent,
           ),
       },
-      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
-      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
       { path: 'odontogram', redirectTo: 'patients' },
       {
         path: 'settings/users',
@@ -85,11 +82,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/agenda/agenda.component').then((m) => m.AgendaComponent),
       },
-      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
-      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
       { path: 'treatment-plans', redirectTo: 'patients' },
-      // Solo era un buscador que llevaba a la ficha, donde esto ya vive como
-      // pestaña. La ruta se mantiene para que un marcador antiguo no dé error.
       { path: 'budgets', redirectTo: 'patients' },
       {
         path: 'opportunities',
@@ -178,6 +171,13 @@ export const routes: Routes = [
         data: { permission: 'payments:read' },
         loadComponent: () =>
           import('./features/portfolio/portfolio-page.component').then((m) => m.PortfolioPageComponent),
+      },
+      {
+        path: 'settings/payment-accounts',
+        canActivate: [permissionGuard],
+        data: { permission: 'settings:manage' },
+        loadComponent: () =>
+          import('./features/settings/payment-accounts/payment-accounts.component').then((m) => m.PaymentAccountsComponent),
       },
       {
         path: 'settings/mail',

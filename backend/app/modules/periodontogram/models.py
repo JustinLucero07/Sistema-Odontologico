@@ -19,13 +19,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class Periodontogram(UUIDPKMixin, TenantMixin, Base):
-    """A full periodontal exam at a point in time.
-
-    Append-only, exactly like the odontogram: comparing today's pocket depths
-    against those from six months ago is the entire clinical point of the
-    chart, and that comparison is only trustworthy if no past exam was ever
-    edited in place."""
-
     __tablename__ = "periodontograms"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(
@@ -56,9 +49,6 @@ class Periodontogram(UUIDPKMixin, TenantMixin, Base):
 
 
 class PeriodontalTooth(UUIDPKMixin, TenantMixin, Base):
-    """Tooth-level findings that have no per-site meaning: a tooth is mobile as
-    a whole, and furcation involvement belongs to the root trunk."""
-
     __tablename__ = "periodontal_teeth"
     __table_args__ = (UniqueConstraint("periodontogram_id", "fdi_number", name="uq_periodontal_tooth"),)
 
@@ -76,12 +66,6 @@ class PeriodontalTooth(UUIDPKMixin, TenantMixin, Base):
 
 
 class PeriodontalMeasurement(UUIDPKMixin, TenantMixin, Base):
-    """One of the six sites of one tooth.
-
-    Clinical attachment level is NOT stored: it is probing depth + recession by
-    definition, and a stored copy is a second source of truth that can drift
-    out of step with the two numbers it is derived from."""
-
     __tablename__ = "periodontal_measurements"
     __table_args__ = (
         UniqueConstraint(

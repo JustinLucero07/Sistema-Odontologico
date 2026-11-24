@@ -1,10 +1,3 @@
-"""Phase 7: periodontal charting and clinical imaging.
-
-The tests here are about the two guarantees the phase exists to make — that a
-periodontal exam can never be silently corrupted by a duplicated site, and that
-an image is withdrawn rather than destroyed.
-"""
-
 import io
 
 
@@ -42,9 +35,6 @@ def _sites(fdi: str, depths: list[int], bleeding: list[bool] | None = None) -> l
     ]
 
 
-# ---- Periodontogram ------------------------------------------------------
-
-
 async def test_create_periodontogram_and_compute_indices(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
@@ -75,8 +65,6 @@ async def test_create_periodontogram_and_compute_indices(client, clinic_with_use
 
 
 async def test_attachment_level_is_derived_not_stored(client, clinic_with_users):
-    """CAL = probing depth + recession. It is computed on the way out so it can
-    never disagree with the two numbers it comes from."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
 
@@ -137,8 +125,6 @@ async def test_out_of_range_probing_depth_is_rejected(client, clinic_with_users)
 
 
 async def test_periodontogram_versions_are_append_only(client, clinic_with_users):
-    """A second exam chains to the first instead of replacing it — comparing
-    pocket depths over time is the whole point of the chart."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
 
@@ -166,9 +152,6 @@ async def test_periodontogram_versions_are_append_only(client, clinic_with_users
         headers=_auth(token),
     )
     assert original.json()["indices"]["mean_probing_depth"] == 5.0
-
-
-# ---- Clinical imaging ----------------------------------------------------
 
 
 def _png_bytes() -> bytes:
@@ -253,8 +236,6 @@ async def test_future_study_date_is_refused(client, clinic_with_users):
 
 
 async def test_archiving_hides_the_image_without_destroying_it(client, clinic_with_users):
-    """An image acted on clinically stays in the record even once withdrawn —
-    proving which image was seen at the time is what the archive is for."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
 
@@ -317,9 +298,6 @@ async def test_images_have_no_delete_endpoint(client, clinic_with_users):
 
     image_id = uploaded.json()["id"]
     deleted = await client.delete(f"/api/v1/images/{image_id}", headers=_auth(token))
-    # 404 rather than 405: the path does not exist at all, because no handler
-    # was ever written for it. Either way the point is that the call fails and
-    # the study survives — archiving is the only way out.
     assert deleted.status_code in (404, 405)
 
     survivors = await client.get(

@@ -36,8 +36,6 @@
   font-size: 0.86rem;
 }
 
-// ---- Totals ------------------------------------------------------------
-
 .totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -54,8 +52,6 @@
   backdrop-filter: var(--glass-card-blur);
   -webkit-backdrop-filter: var(--glass-card-blur);
   border: 1px solid var(--glass-card-border);
-  // The tone marks the edge only; the label and the hint always say what the
-  // number means, so the colour never carries it alone.
   border-left: 3px solid var(--color-border-strong);
 
   &[data-tone='owed'] {
@@ -98,8 +94,6 @@
   color: var(--color-ink-faint);
 }
 
-// ---- Forms -------------------------------------------------------------
-
 .form-card {
   padding: 18px 20px 14px;
   border-radius: var(--radius-md);
@@ -129,8 +123,6 @@
   gap: 8px;
   margin-top: 4px;
 }
-
-// ---- Blocks ------------------------------------------------------------
 
 .block {
   display: grid;
@@ -320,8 +312,6 @@
   display: flex;
 }
 
-// ---- Payments table ----------------------------------------------------
-
 .payments {
   width: 100%;
   border-collapse: collapse;
@@ -342,8 +332,6 @@
   }
 
   tr.is-void td {
-    // Struck through, not hidden: the money moved and then un-moved, and both
-    // facts belong on the statement.
     text-decoration: line-through;
     color: var(--color-ink-faint);
   }
@@ -356,8 +344,6 @@
     color: var(--color-ink-faint);
   }
 }
-
-// ---- Overlays ----------------------------------------------------------
 
 .overlay {
   position: fixed;
@@ -406,8 +392,6 @@
     transition: none;
   }
 }
-
-// ---- Facturas electrónicas del paciente --------------------------------
 
 .invoices {
   display: grid;

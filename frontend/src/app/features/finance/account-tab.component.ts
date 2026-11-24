@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { openPaymentInfo } from '../../shared/payment-info/payment-info-dialog.component';
 import { Component, HostListener, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,14 +36,16 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { LegalService } from '../../core/services/legal.service';
 import { PatientsService } from '../../core/services/patients.service';
 import { printReceipt } from '../../shared/print/receipt-print';
-import { printStatement } from '../../shared/print/statement-print';
+import { PortalReceiptsComponent } from '../../shared/payment-info/portal-receipts.component';
+import { environment } from '../../../environments/environment';
+import { HttpClient } from '@angular/common/http';
 
 type Pending = { kind: 'payment'; item: Payment } | { kind: 'charge'; item: Charge };
 
 @Component({
   selector: 'app-account-tab',
   standalone: true,
-  imports: [SkeletonComponent, 
+  imports: [SkeletonComponent, PortalReceiptsComponent, 
     DatePipe,
     FormsModule,
     ReactiveFormsModule,
@@ -134,6 +137,10 @@ export class AccountTabComponent implements OnInit {
     await this.reload();
   }
 
+  async refrescar(): Promise<void> {
+    await this.reload();
+  }
+
   private async reload(): Promise<void> {
     this.loading.set(true);
     try {
@@ -147,8 +154,6 @@ export class AccountTabComponent implements OnInit {
     }
   }
 
-  /** The form accepts a comma as the decimal mark, which is what a Spanish
-   *  keyboard produces; the API only speaks dots. */
   private normalize(raw: string): string {
     return raw.replace(',', '.');
   }
@@ -307,35 +312,23 @@ export class AccountTabComponent implements OnInit {
   }
 
   private readonly legal = inject(LegalService);
+  private readonly http = inject(HttpClient);
   private readonly patients = inject(PatientsService);
 
-  /** Estado de cuenta imprimible: cuánto se cargó, cuánto abonó y cuánto queda. */
   async printStatement(): Promise<void> {
-    const acc = this.account();
-    if (!acc) return;
-    const [clinic, p] = await Promise.all([
-      firstValueFrom(this.legal.getController()),
-      firstValueFrom(this.patients.getPatient(this.patientId)),
-    ]);
-    const ok = printStatement(
-      {
-        patient_name: `${p.first_name} ${p.last_name}`,
-        patient_id_number: p.national_id ?? null,
-        total_charged: String(acc.total_charged),
-        total_paid: String(acc.total_paid),
-        balance: String(acc.balance),
-        charges: acc.charges.map((c) => ({
-          description: c.description, issued_on: c.issued_on, amount: String(c.amount), paid: String(c.paid),
-          pending: String(c.pending), status: c.status, voided: !!c.voided_at,
-        })),
-        payments: acc.payments.map((x) => ({
-          received_on: x.received_on, amount: String(x.amount), method_label: this.methodLabel(x.method),
-          reference: x.reference ?? null, voided: !!x.voided_at,
-        })),
-      },
-      clinic,
-    );
-    if (!ok) this.snackBar.open('El navegador bloqueó la ventana de impresión.', 'Cerrar', { duration: 4000 });
+    const ventana = window.open('', '_blank');
+    try {
+      const blob = await firstValueFrom(
+        this.http.get(`${environment.apiUrl}/patients/${this.patientId}/statement.pdf`, { responseType: 'blob' }),
+      );
+      const url = URL.createObjectURL(blob);
+      if (ventana) ventana.location.href = url;
+      else window.location.assign(url);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      ventana?.close();
+      this.snackBar.open('No se pudo generar el estado de cuenta.', 'Cerrar', { duration: 4000 });
+    }
   }
 
   /** Comprobante de un pago, con el saldo que queda hoy. */
@@ -372,11 +365,31 @@ export class AccountTabComponent implements OnInit {
     return this.account()?.charges.find((c) => c.id === chargeId)?.description ?? '—';
   }
 
-  /** The API's messages are specific (which cap was exceeded, by how much);
-   *  showing ours instead would throw away the useful part. */
   private report(error: unknown, fallback: string): void {
     const detail = (error as { error?: { detail?: unknown } })?.error?.detail;
     const message = typeof detail === 'string' ? detail : fallback;
     this.snackBar.open(message, 'Cerrar', { duration: 7000 });
+  }
+
+  async showPaymentInfo(): Promise<void> {
+    let nombre: string | undefined;
+    let telefono: string | null = null;
+    try {
+      const p = await firstValueFrom(this.patients.getPatient(this.patientId));
+      nombre = `${p.first_name} ${p.last_name}`;
+      telefono = p.whatsapp || p.phone;
+    } catch {
+      // Sin datos del paciente igual se muestran los datos de pago.
+    }
+    let cuenta = this.account();
+    if (!cuenta) {
+      try {
+        cuenta = await firstValueFrom(this.finance.getAccount(this.patientId));
+      } catch {
+        cuenta = null;
+      }
+    }
+    const saldo = Number(cuenta?.balance ?? 0);
+    openPaymentInfo(this.dialog, { patientName: nombre, phone: telefono, amount: saldo > 0 ? saldo : null, concept: 'saldo pendiente' });
   }
 }

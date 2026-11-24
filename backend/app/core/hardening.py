@@ -1,16 +1,3 @@
-"""Production guards and response hardening.
-
-Two jobs:
-
-  1. **Refuse to start a production server that is unsafe.** Every item below
-     is a mistake somebody makes exactly once, in the dark, at a customer's
-     site. A crash on boot with a clear message costs an hour; a system that
-     starts happily with the default signing key costs the whole database.
-
-  2. **Set the security headers a browser respects.** They are cheap, and each
-     one closes a class of attack that the application code cannot.
-"""
-
 import logging
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -24,13 +11,10 @@ INSECURE_JWT_SECRETS = {"change-me-in-production", "secret", "changeme", ""}
 
 
 class UnsafeProductionConfig(RuntimeError):
-    """Raised at startup. Deliberately fatal: a warning in a log nobody reads
-    is not a safety mechanism."""
+    pass
 
 
 def check_production_config(settings: Settings) -> list[str]:
-    """Returns the problems found. Empty means the configuration is safe to
-    serve real patients from."""
     problems: list[str] = []
 
     if settings.JWT_SECRET_KEY in INSECURE_JWT_SECRETS:
@@ -75,8 +59,6 @@ def check_production_config(settings: Settings) -> list[str]:
 
 def enforce_production_config(settings: Settings) -> None:
     if settings.ENV != "production":
-        # Outside production the same checks run, but only to inform: a
-        # developer should see what would block a release, not be stopped.
         for problem in check_production_config(settings):
             logger.info("[config] pendiente para producción: %s", problem)
         return
@@ -90,11 +72,6 @@ def enforce_production_config(settings: Settings) -> None:
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Headers on every response.
-
-    The CSP is deliberately strict and applies to API responses, which never
-    need to load anything. The SPA is served by nginx, which sets its own."""
-
     def __init__(self, app, *, https_only: bool = False):
         super().__init__(app)
         self.https_only = https_only
@@ -103,13 +80,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         headers = response.headers
 
-        # A browser must not second-guess our content types: sniffing is how a
-        # stored file gets executed as a script.
         headers.setdefault("X-Content-Type-Options", "nosniff")
         # Nothing here is ever legitimately framed.
         headers.setdefault("X-Frame-Options", "DENY")
-        # A portal token lives in the URL, so referrers must not leak it to
-        # whatever the patient clicks next.
         headers.setdefault("Referrer-Policy", "no-referrer")
         headers.setdefault(
             "Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()"

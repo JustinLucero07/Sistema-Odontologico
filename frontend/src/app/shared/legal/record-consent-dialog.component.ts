@@ -21,7 +21,6 @@ export interface RecordConsentResult {
   signed_by_name: string | null;
 }
 
-/** Pide cómo se obtuvo la decisión del paciente y, si es menor, quién firma. */
 @Component({
   selector: 'app-record-consent-dialog',
   standalone: true,

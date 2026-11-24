@@ -1,12 +1,8 @@
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/api/api.dart';
 import '../../core/api/repositorios.dart';
@@ -18,10 +14,7 @@ import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
-
-/// Facturación electrónica (SRI): las mismas funciones que la web — emitir,
-/// ver el estado ante el SRI, reintentar, descartar, notas de crédito, PDF,
-/// envío al paciente y la configuración de la firma.
+import '../../shared/abrir_pdf.dart';
 
 const estadosFactura = {
   'pendiente': ('Pendiente de envío', Tonos.ambar),
@@ -60,8 +53,6 @@ void _refrescar(WidgetRef ref, [String? pacienteId]) {
 List<Opcion> _opciones(Map<String, dynamic> catalogos, String clave) => [
   for (final o in (catalogos[clave] as List? ?? [])) ('${(o as Map)['code']}', '${o['label']}'),
 ];
-
-// ------------------------------------------------------------------ Página
 
 class FacturacionPage extends ConsumerWidget {
   const FacturacionPage({super.key});
@@ -256,19 +247,18 @@ class FilaFactura extends ConsumerWidget {
   }
 }
 
-// ------------------------------------------------------------------ Emitir
-
 /// Abre el editor de una factura nueva; devuelve la creada (o null).
-Future<void> emitirFactura(BuildContext context, WidgetRef ref, {String? pacienteId, String? pacienteNombre}) async {
+Future<bool> emitirFactura(BuildContext context, WidgetRef ref, {String? pacienteId, String? pacienteNombre, List<String>? cargos}) async {
   final creada = await Navigator.of(context).push<Map<String, dynamic>>(
     MaterialPageRoute(
       fullscreenDialog: true,
-      builder: (_) => EditorFactura(pacienteId: pacienteId, pacienteNombre: pacienteNombre),
+      builder: (_) => EditorFactura(pacienteId: pacienteId, pacienteNombre: pacienteNombre, cargosElegidos: cargos),
     ),
   );
-  if (creada == null || !context.mounted) return;
+  if (creada == null || !context.mounted) return false;
   _refrescar(ref, pacienteId);
   await verFactura(context, ref, '${creada['id']}', pacienteId: pacienteId);
+  return true;
 }
 
 class _LineaManual {
@@ -285,8 +275,9 @@ class _LineaManual {
 }
 
 class EditorFactura extends ConsumerStatefulWidget {
-  const EditorFactura({super.key, this.pacienteId, this.pacienteNombre});
+  const EditorFactura({super.key, this.pacienteId, this.pacienteNombre, this.cargosElegidos});
 
+  final List<String>? cargosElegidos;
   final String? pacienteId;
   final String? pacienteNombre;
 
@@ -341,7 +332,7 @@ class _EditorFacturaState extends ConsumerState<EditorFactura> {
     setState(() {
       _cargos = lista;
       for (final c in lista) {
-        _elegidos['${c['id']}'] = true;
+        _elegidos['${c['id']}'] = widget.cargosElegidos == null || widget.cargosElegidos!.contains('${c['id']}');
         _ivaCargo['${c['id']}'] = '0';
       }
       if (lista.isEmpty && _manuales.isEmpty) _manuales.add(_LineaManual());
@@ -661,8 +652,6 @@ class _EditorFacturaState extends ConsumerState<EditorFactura> {
   );
 }
 
-// ------------------------------------------------------------------ Detalle
-
 Future<void> verFactura(BuildContext context, WidgetRef ref, String id, {String? pacienteId}) async {
   await Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (_) => DetalleFactura(id: id, pacienteId: pacienteId)),
@@ -684,17 +673,7 @@ class DetalleFactura extends ConsumerWidget {
   }
 
   Future<void> _pdf(BuildContext context, WidgetRef ref, Map<String, dynamic> f) async {
-    if (kIsWeb) {
-      avisar(context, 'Abra el PDF desde la versión web.');
-      return;
-    }
-    final bytes = await cargarOAvisar(context, ref.read(apiProvider).bytes('/invoices/$id/pdf'));
-    if (bytes == null) return;
-    final dir = await getTemporaryDirectory();
-    final archivo = File('${dir.path}/${f['doc_type'] == '01' ? 'factura' : 'nota-credito'}-${f['number']}.pdf');
-    await archivo.writeAsBytes(bytes, flush: true);
-    final r = await OpenFilex.open(archivo.path, type: 'application/pdf');
-    if (r.type != ResultType.done && context.mounted) avisar(context, 'No hay una aplicación para abrir PDF.');
+    await abrirArchivo(context, ref, '/invoices/$id/pdf', '${f['doc_type'] == '01' ? 'factura' : 'nota-credito'}-${f['number']}.pdf');
   }
 
   @override
@@ -892,8 +871,6 @@ class DetalleFactura extends ConsumerWidget {
     ),
   );
 }
-
-// ------------------------------------------------------------------ Configuración
 
 class _Configuracion extends ConsumerStatefulWidget {
   const _Configuracion();

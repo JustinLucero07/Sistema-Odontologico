@@ -1,7 +1,5 @@
 .page {
   display: grid;
-  // minmax(0, …) deja que la columna se encoja: si no, las nueve pestañas
-  // imponen su ancho y la página se sale por la derecha.
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   width: 100%;
@@ -65,8 +63,6 @@
 }
 
 .tab-content {
-  // Cada tarjeta respira: antes la ficha y la protección de datos quedaban
-  // pegadas y se leían como un solo bloque.
   display: grid;
   gap: 16px;
   padding-top: 16px;
@@ -168,8 +164,6 @@
   color: var(--color-ink-faint);
 }
 
-// The balance chip in the patient header. The word ("Debe" / "A favor") always
-// states the direction, so the colour only reinforces it.
 mat-chip.chip-owed {
   --mdc-chip-elevated-container-color: var(--color-accent-soft);
   --mdc-chip-label-text-color: var(--color-accent);
@@ -208,8 +202,6 @@ mat-chip.chip-credit {
   margin-left: auto;
   flex-wrap: wrap;
 }
-
-// ---- Ficha ---------------------------------------------------------------
 
 .card-head {
   display: flex;

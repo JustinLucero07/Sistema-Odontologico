@@ -15,12 +15,6 @@ function contactLine(c: LegalController): string {
   return parts.length ? parts.join(' · ') : 'los datos de contacto de la clínica';
 }
 
-/**
- * Aviso de privacidad para pacientes, conforme a la Ley Orgánica de Protección
- * de Datos Personales del Ecuador (LOPDP). Los datos de salud son categoría
- * especial: el texto dice para qué se usan, quién los recibe, cuánto se
- * guardan y cómo ejercer cada derecho.
- */
 export function privacyNotice(c: LegalController): LegalSection[] {
   const name = controllerName(c);
   const rightsContact = c.dpo_email
@@ -107,7 +101,6 @@ export function privacyNotice(c: LegalController): LegalSection[] {
   return sections;
 }
 
-/** Acuerdo de confidencialidad que acepta todo el personal con acceso al sistema. */
 export function confidentialityAgreement(c: LegalController): LegalSection[] {
   const name = controllerName(c);
   return [

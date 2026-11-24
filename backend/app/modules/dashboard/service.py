@@ -30,11 +30,6 @@ async def build_summary(
     days: int = 7,
     can=lambda _permission: True,
 ) -> dict:
-    """Aggregates the dashboard reads from. Every figure is computed from real
-    rows — nothing here is estimated or filled in when data is missing.
-
-    "Hoy" es el día de la clínica, no el de UTC: en Ecuador, a las 20:00 UTC ya
-    es mañana, y el panel enseñaría la agenda del día siguiente."""
     tz = await _clinic_tz(db, clinic_id)
     now = datetime.now(timezone.utc)
     today = now.astimezone(tz).date()
@@ -74,8 +69,6 @@ async def build_summary(
         )
     ).all()
 
-    # Agrupado por el día local de la clínica. Days with no appointments still
-    # appear, otherwise the chart would silently skip them.
     local_day = func.date(func.timezone(tz_name, Appointment.starts_at))
     day_rows = (
         await db.execute(
@@ -194,8 +187,6 @@ async def _today_agenda(db: AsyncSession, clinic_id: uuid.UUID, day_start: datet
 
 
 async def _income(db: AsyncSession, clinic_id: uuid.UUID, today: date) -> tuple[Decimal, Decimal]:
-    """Lo cobrado este mes, y lo cobrado el mes pasado hasta el mismo día: comparar
-    un mes a medias contra uno entero haría parecer que siempre se va a peor."""
     from app.modules.payments.models import Payment
 
     month_start = today.replace(day=1)
@@ -289,8 +280,6 @@ async def _attention(
 
 
 async def _budget_totals_by_status(db: AsyncSession, clinic_id: uuid.UUID) -> dict[str, float]:
-    """Budget totals are the sum of their line items; doing it in SQL keeps the
-    dashboard from loading every budget just to add numbers up."""
     rows = (
         await db.execute(
             select(

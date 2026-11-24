@@ -36,6 +36,7 @@
   <!-- Vistas -->
   <div class="views" role="tablist">
     <button role="tab" [class.on]="view() === 'resumen'" (click)="view.set('resumen')"><mat-icon>insights</mat-icon>Resumen</button>
+    <button role="tab" [class.on]="view() === 'ventas'" (click)="view.set('ventas')"><mat-icon>sell</mat-icon>Ventas</button>
     <button role="tab" [class.on]="view() === 'cobros'" (click)="view.set('cobros')">
       <mat-icon>payments</mat-icon>Cobros <span class="count">{{ livePayments().length }}</span>
     </button>
@@ -133,6 +134,9 @@
       </section>
     }
 
+    @if (view() === 'ventas') {
+      <app-ventas-tab [desde]="from()" [hasta]="to()" />
+    }
     @if (view() === 'cobros') {
       <section class="glass-card table-card">
         <header class="card-head">
@@ -220,7 +224,6 @@
         </div>
       </section>
     }
-
 
     @if (view() === 'fijos') {
       <section class="kpis tres">

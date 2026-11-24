@@ -1,11 +1,5 @@
 import { Component, Input } from '@angular/core';
 
-/**
- * The product's brand mark: a molar drawn from its anatomy — a broad crown
- * with two cusps and two diverging roots — rather than the generic medical
- * briefcase. Inherits `currentColor` so it works on glass, on the sidebar and
- * on the accent gradient without a second copy.
- */
 @Component({
   selector: 'app-tooth-mark',
   standalone: true,

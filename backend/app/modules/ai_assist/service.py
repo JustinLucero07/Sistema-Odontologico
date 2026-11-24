@@ -4,7 +4,6 @@ from datetime import date, datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.audit import record_audit
 from app.core.config import get_settings
@@ -14,7 +13,6 @@ from app.modules.appointments.models import Appointment
 from app.modules.clinical_evolution.models import ClinicalEvolution
 from app.modules.diagnoses.models import Diagnosis
 from app.modules.medical_history.models import MedicalHistory
-from app.modules.patients.models import Patient
 from app.modules.patients.service import get_patient_or_404
 from app.shared.ai import (
     BASE_SYSTEM_PROMPT,
@@ -59,11 +57,6 @@ def ai_status() -> AiStatus:
 
 
 async def build_context(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> str:
-    """Assembles the ONLY facts the assistant is allowed to work from.
-
-    Built server-side from this patient's own rows. Nothing the caller sends
-    becomes a fact — a clinician's instruction says what to write, never what
-    is true."""
     patient = await get_patient_or_404(db, clinic_id, patient_id)
     lines: list[str] = []
 
@@ -180,8 +173,6 @@ async def create_suggestion(
     try:
         check_output(output)
     except GuardrailViolation as exc:
-        # The draft is thrown away, not shown with a warning: a violation that
-        # still reaches the screen was never really caught.
         await record_audit(
             db, clinic_id=clinic_id, user_id=actor_id, action="blocked", entity_type="ai_suggestion",
             entity_id=str(patient_id), after={"kind": exc.kind, "excerpt": exc.excerpt},
@@ -232,11 +223,6 @@ async def decide(
     accept: bool,
     reason: str | None = None,
 ) -> AiSuggestion:
-    """Records a person's decision about a draft.
-
-    Accepting does NOT write anything into the clinical record. It marks who
-    took responsibility for the text; putting it into an evolution or a message
-    is a separate, deliberate act by that same person."""
     suggestion = await get_or_404(db, clinic_id, suggestion_id)
     if suggestion.status != "borrador":
         raise HTTPException(status_code=409, detail="La sugerencia ya fue resuelta")

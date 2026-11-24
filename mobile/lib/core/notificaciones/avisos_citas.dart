@@ -9,15 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-/// Avisos de citas en el propio teléfono.
-///
-/// Se programan en el dispositivo con los datos de la agenda: aparecen
-/// aunque la app esté cerrada o sin internet, y se rehacen cada vez que la
-/// agenda se actualiza (al abrir la app, al volver a ella, tras sincronizar).
-///
-/// - Un aviso antes de cada cita (30 minutos por defecto).
-/// - Un resumen cada mañana: cuántas citas hay y a qué hora es la primera.
-/// - Un aviso cuando aparece una cita nueva que agendó otra persona.
 class AjustesAvisos {
   const AjustesAvisos({
     this.activos = true,
@@ -87,8 +78,6 @@ class AvisosCitas {
     importance: Importance.defaultImportance,
   );
 
-  /// Programar a futuro solo existe en Android e iOS; en el escritorio se
-  /// muestran únicamente los avisos inmediatos.
   bool get _programable => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   Future<void> iniciar() async {
@@ -179,7 +168,6 @@ class AvisosCitas {
       final inicio = DateTime.parse('${c['starts_at']}').toLocal();
       porDia.putIfAbsent(DateFormat('yyyy-MM-dd').format(inicio), () => []).add(inicio);
       final cuando = inicio.subtract(Duration(minutes: ajustes.minutosAntes));
-      // Android limita las alarmas por app: 60 avisos de cita sobran para una semana.
       if (cuando.isBefore(ahora) || n >= 60) continue;
       final tratamiento = c['treatment_name'] != null ? ' · ${c['treatment_name']}' : '';
       await _programarUno(
@@ -214,8 +202,6 @@ class AvisosCitas {
         id: id,
         scheduledDate: tz.TZDateTime.from(cuando.toUtc(), tz.UTC),
         notificationDetails: NotificationDetails(android: canal, iOS: const DarwinNotificationDetails()),
-        // Inexacta: puede llegar con un par de minutos de margen, pero no
-        // necesita el permiso de alarmas exactas.
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         title: titulo,
         body: cuerpo,

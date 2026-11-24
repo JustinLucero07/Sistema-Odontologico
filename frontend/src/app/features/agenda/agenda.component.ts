@@ -31,8 +31,6 @@ import { ClinicService } from '../../core/services/clinic.service';
 import { TreatmentsService } from '../../core/services/treatments.service';
 import { PatientPickerComponent } from '../../shared/patient-picker/patient-picker.component';
 
-/** Visible working day. Appointments outside it still load, they just sit at
- * the edge of the grid rather than being hidden. */
 const START_HOUR = 7;
 const END_HOUR = 21;
 // 72 px por hora: una cita de 30 min mide 36 px, suficiente para leerse.
@@ -95,6 +93,7 @@ export class AgendaComponent implements OnInit {
   readonly treatments = signal<Treatment[]>([]);
   readonly professionalFilter = signal<string | null>(null);
   readonly appointments = signal<Appointment[]>([]);
+  readonly riesgos = signal<Record<string, { nivel: string; texto: string }>>({});
   readonly loading = signal(false);
 
   readonly selected = signal<Appointment | null>(null);
@@ -105,13 +104,10 @@ export class AgendaComponent implements OnInit {
   /** Cita que se reprograma; null cuando el formulario agenda una nueva. */
   readonly editingAppointment = signal<Appointment | null>(null);
 
-  // ---- Huecos libres ------------------------------------------------------
   private readonly http = inject(HttpClient);
   readonly freeSlots = signal<{ starts_at: string; ends_at: string }[] | null>(null);
   readonly searchingSlots = signal(false);
 
-  /** Los próximos horarios en que el profesional elegido tiene sitio para una
-   *  cita de la duración indicada, a partir de la fecha del formulario. */
   async findFreeSlots(): Promise<void> {
     const v = this.form.getRawValue();
     if (!v.professional_id) {
@@ -216,9 +212,6 @@ export class AgendaComponent implements OnInit {
     this.treatments.set(treatments);
     await this.reload();
 
-    // `?nueva=1` abre el formulario directamente, y `&paciente=<id>` lo trae
-    // ya elegido: así «Agendar cita» desde la ficha o desde la barra superior
-    // no obliga a buscar otra vez a quien se acaba de tener delante.
     const params = this.route.snapshot.queryParamMap;
     if (params.get('nueva')) {
       const patientId = params.get('paciente');
@@ -239,7 +232,8 @@ export class AgendaComponent implements OnInit {
           // Paciente inexistente o sin permiso: se abre el formulario vacío.
         }
       }
-      this.newAppointment(patient);
+      const inicio = params.get('inicio');
+      this.newAppointment(patient, inicio ? new Date(inicio) : null, params.get('profesional'));
       // Se limpia la URL para que recargar la página no vuelva a abrirlo.
       this.router.navigate([], { queryParams: {}, replaceUrl: true });
     }
@@ -259,10 +253,18 @@ export class AgendaComponent implements OnInit {
     }
   }
 
-  /** Abre el formulario en el próximo hueco razonable: la siguiente media hora
-   *  de hoy, o mañana a las 9:00 si la jornada ya terminó. Antes la única vía
-   *  era tocar un hueco del calendario, y nada en la pantalla lo decía. */
-  newAppointment(patient: PatientListItem | null = null): void {
+  newAppointment(patient: PatientListItem | null = null, inicio: Date | null = null, profesional: string | null = null): void {
+    if (inicio && !isNaN(inicio.getTime())) {
+      this.anchorDate.set(startOfDay(inicio));
+      void this.reload();
+      this.openSlot(inicio, inicio.getHours());
+      this.form.patchValue({
+        time: `${String(inicio.getHours()).padStart(2, '0')}:${String(inicio.getMinutes()).padStart(2, '0')}`,
+        ...(profesional ? { professional_id: profesional } : {}),
+      });
+      if (patient) this.formPatient.set(patient);
+      return;
+    }
     const now = new Date();
     const next = new Date(now);
     next.setSeconds(0, 0);
@@ -287,9 +289,33 @@ export class AgendaComponent implements OnInit {
       this.appointments.set(
         await firstValueFrom(this.appointmentsService.list(from, to, this.professionalFilter())),
       );
+      void this.cargarRiesgos();
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async cargarRiesgos(): Promise<void> {
+    const ids = [...new Set(
+      this.appointments()
+        .filter((a) => a.status === 'programada' || a.status === 'confirmada')
+        .map((a) => a.patient_id),
+    )].filter((id) => !(id in this.riesgos()));
+    if (!ids.length) return;
+    try {
+      const r = await firstValueFrom(
+        this.http.get<{ patient_id: string; nivel: string; texto: string }[]>(
+          `${environment.apiUrl}/insights/no-show-risk`, { params: { patient_ids: ids.join(',') } },
+        ),
+      );
+      this.riesgos.update((m) => ({ ...m, ...Object.fromEntries(r.map((x) => [x.patient_id, x])) }));
+    } catch {
+      return;
+    }
+  }
+
+  suele(a: Appointment): boolean {
+    return this.riesgos()[a.patient_id]?.nivel === 'alto' && (a.status === 'programada' || a.status === 'confirmada');
   }
 
   async setView(view: 'day' | 'week'): Promise<void> {
@@ -314,8 +340,6 @@ export class AgendaComponent implements OnInit {
     this.anchorDate.set(startOfDay(new Date()));
     await this.reload();
   }
-
-  // ---- Booking ----------------------------------------------------------
 
   openSlot(date: Date, hour: number): void {
     if (!this.canEdit()) return;

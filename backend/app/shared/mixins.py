@@ -24,9 +24,6 @@ class SoftDeleteMixin:
 
 
 class TenantMixin:
-    """Every clinic-scoped table carries clinic_id. Filtering by it is mandatory
-    in every repository query — see TenantContext in app.core.deps."""
-
     @declared_attr
     def clinic_id(cls) -> Mapped[uuid.UUID]:
         return mapped_column(UUID(as_uuid=True), ForeignKey("clinics.id"), nullable=False, index=True)

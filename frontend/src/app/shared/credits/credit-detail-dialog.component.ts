@@ -288,8 +288,6 @@ export class CreditDetailDialogComponent implements OnInit {
     );
   }
 
-  /** Recordatorio por WhatsApp, redactado con la cuota que toca. Solo si el
-   *  paciente no retiró su autorización de mensajes. */
   whatsappLink(c: CreditDetail): string | null {
     if (!c.patient_phone || !c.communications_allowed || !c.next_amount || !c.next_due_on) return null;
     const first = c.patient_name.split(' ')[0];

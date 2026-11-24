@@ -12,8 +12,6 @@ from app.modules.budgets.schemas import BudgetCreate, BudgetItemCreate
 from app.modules.patients.service import get_patient_or_404
 from app.modules.treatment_plans.service import get_plan_or_404
 
-# A budget only moves forward through this order; e.g. an "aceptado" budget
-# can't silently flip back to "borrador".
 _STATUS_ORDER = ["borrador", "enviado", "visto", "aceptado"]
 
 
@@ -99,10 +97,6 @@ async def update_status(
     if new_status in ("aceptado", "rechazado"):
         budget.responded_at = datetime.now(timezone.utc)
 
-    # Accepting a budget is the moment the money becomes owed, so the charge
-    # is raised here rather than left for someone to remember. The import is
-    # local to keep the budgets module from depending on finance at import
-    # time — the dependency runs one way, at the one point it is needed.
     if new_status == "aceptado" and before_status != "aceptado":
         from app.modules.payments.service import charge_for_accepted_budget
 
@@ -116,8 +110,6 @@ async def update_status(
 
 
 async def update_budget(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget_id: uuid.UUID, payload) -> Budget:
-    """Corrige precios, descuentos, ítems o notas mientras el paciente no lo
-    haya aceptado. Uno aceptado ya generó su cargo: ese no se toca."""
     from app.modules.budgets.constants import EDITABLE_STATUSES
 
     budget = await get_budget_or_404(db, clinic_id, budget_id)
@@ -147,8 +139,6 @@ async def update_budget(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.U
 
 
 async def void_budget(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, budget_id: uuid.UUID, reason: str) -> Budget:
-    """Anula un presupuesto con su motivo. Si ya fue aceptado, primero hay que
-    anular el cargo que generó (en Pagos), para que la cuenta no quede mal."""
     from sqlalchemy import select
 
     from app.modules.payments.models import Charge

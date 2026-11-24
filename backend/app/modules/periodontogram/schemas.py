@@ -61,8 +61,6 @@ class MeasurementOut(MeasurementIn):
     @computed_field
     @property
     def attachment_level(self) -> int | None:
-        """Clinical attachment level, derived rather than stored: it is only
-        meaningful when both of its terms were actually measured."""
         if self.probing_depth is None or self.recession is None:
             return None
         return self.probing_depth + self.recession
@@ -109,9 +107,6 @@ class PeriodontogramCreate(BaseModel):
 
 
 class PeriodontalIndices(BaseModel):
-    """The three numbers a periodontist actually reports, computed from the
-    exam rather than typed in — so they can never disagree with it."""
-
     sites_recorded: int
     bleeding_sites: int
     plaque_sites: int
@@ -138,8 +133,6 @@ class PeriodontogramOut(BaseModel):
     @computed_field
     @property
     def indices(self) -> PeriodontalIndices:
-        """Derived on the way out, from this exam's own sites. Storing these
-        would let a stored index outlive a corrected measurement."""
         recorded = [m for m in self.measurements if m.probing_depth is not None]
         total = len(self.measurements)
         depths = [m.probing_depth for m in recorded if m.probing_depth is not None]
@@ -149,8 +142,6 @@ class PeriodontogramOut(BaseModel):
             sites_recorded=len(recorded),
             bleeding_sites=bleeding,
             plaque_sites=plaque,
-            # Percentages are over every charted site, not only the probed
-            # ones: a site left unprobed still counts as charted.
             bleeding_index=round(bleeding / total * 100, 1) if total else 0.0,
             plaque_index=round(plaque / total * 100, 1) if total else 0.0,
             mean_probing_depth=round(sum(depths) / len(depths), 2) if depths else None,

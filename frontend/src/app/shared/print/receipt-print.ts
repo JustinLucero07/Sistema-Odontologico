@@ -17,8 +17,6 @@ export interface ReceiptData {
   balance_after: string | null;
 }
 
-/** Recibo de pago para el paciente: constancia interna de lo que pagó. No es
- *  una factura; lo dice el propio documento para que nadie lo confunda. */
 export function printReceipt(data: ReceiptData, clinic: ClinicIdentity | null): boolean {
   return openPrintWindow(
     `Recibo · ${data.patient_name}`,

@@ -165,16 +165,26 @@
     @if (section() === 'portal') {
       <p class="rule">
         <mat-icon>shield</mat-icon>
-        El enlace deja ver al paciente <strong>solo</strong> sus citas y su saldo. Nunca su
-        historia clínica, diagnósticos ni documentos: un enlace puede acabar en el buzón
-        equivocado. Caduca solo y se puede revocar.
+        El enlace deja ver al paciente sus citas, su saldo, sus cuotas y los datos para pagar, y
+        le permite enviar el comprobante de su transferencia. Nunca su historia clínica,
+        diagnósticos ni documentos. Caduca solo y se puede revocar.
       </p>
 
       @if (canWrite) {
-        <button mat-flat-button [disabled]="busy()" (click)="createLink()">
-          <mat-icon>add_link</mat-icon>
-          Generar enlace
-        </button>
+        <div class="crear-enlace">
+          <label class="clinico">
+            <input type="checkbox" [checked]="incluirClinica()" (change)="incluirClinica.set($any($event.target).checked)" />
+            <span>
+              <strong>Incluir información clínica</strong>
+              Su boca en 3D, su plan de tratamiento y sus fotos de antes y después. Márquelo solo si
+              va a enviar el enlace directamente al paciente.
+            </span>
+          </label>
+          <button mat-flat-button [disabled]="busy()" (click)="createLink()">
+            <mat-icon>add_link</mat-icon>
+            Generar enlace
+          </button>
+        </div>
       }
 
       @if (freshLink(); as url) {
@@ -216,6 +226,7 @@
                   <span class="status" [attr.data-status]="link.is_active ? 'activo' : 'inactivo'">
                     {{ link.revoked_at ? 'Revocado' : link.is_active ? 'Activo' : 'Caducado' }}
                   </span>
+                  @if (link.include_clinical) { <span class="status clinico-tag">Con info clínica</span> }
                 </td>
                 <td class="right">
                   @if (link.is_active && canWrite) {

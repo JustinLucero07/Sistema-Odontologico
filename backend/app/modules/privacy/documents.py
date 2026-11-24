@@ -1,10 +1,3 @@
-"""Textos legales que la consulta acepta frente al proveedor del sistema.
-
-Se generan en el servidor para que la web y el celular muestren exactamente el
-mismo texto y la misma versión. Son una base razonable para Ecuador (LOPDP);
-el proveedor debe revisarlos con su asesor legal antes de vender.
-"""
-
 from app.core.config import get_settings
 from app.modules.clinics.models import Clinic
 from app.modules.privacy.constants import TERMS_VERSION

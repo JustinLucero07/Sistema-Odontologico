@@ -28,9 +28,6 @@
   </div>
 </div>
 
-<!-- One column per tooth: the anatomical figure on the outside, then the
-     five-surface wheel, then the FDI number against the midline — the order
-     printed charts use, so both arches mirror around the centre band. -->
 <ng-template #toothCell let-tooth="tooth">
   <div
     class="tooth-cell"
@@ -63,7 +60,6 @@
         <line x1="8" y1="14" x2="32" y2="56" class="absent-mark" />
         <line x1="32" y1="14" x2="8" y2="56" class="absent-mark" />
       }
-      <!-- Símbolos clínicos: el color solo no basta para leer el hallazgo. -->
       @if (tooth.wholeCodes.has('extraccion_indicada')) {
         <line x1="8" y1="14" x2="32" y2="56" class="mark-extract" />
         <line x1="32" y1="14" x2="8" y2="56" class="mark-extract" />

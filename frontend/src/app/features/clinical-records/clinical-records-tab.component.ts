@@ -64,8 +64,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
-  // Los formularios de alta viven en ventanas emergentes: la lista no salta
-  // y la tarea en curso queda clara.
   @ViewChild('evolucionesDialog') private evolucionesDialog!: TemplateRef<unknown>;
   @ViewChild('recetasDialog') private recetasDialog!: TemplateRef<unknown>;
   @ViewChild('consentimientosDialog') private consentimientosDialog!: TemplateRef<unknown>;
@@ -102,7 +100,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
   readonly canWriteConsents = computed(() => this.auth.hasPermission('consents:write'));
   readonly canWriteDocuments = computed(() => this.auth.hasPermission('documents:write'));
 
-  /** Evolución que se corrige; null cuando el formulario registra una nueva. */
   readonly editingEvolution = signal<ClinicalEvolution | null>(null);
 
   readonly evolutionForm = this.fb.nonNullable.group({
@@ -135,7 +132,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     document_type: ['otro', Validators.required],
     description: [''],
   });
-
 
   async ngOnChanges(): Promise<void> {
     if (this.patientId) await this.reload();
@@ -174,8 +170,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
       firstValueFrom(this.service.listConsentTemplates()),
       firstValueFrom(this.clinicService.listProfessionals()),
     ]);
-    // A role may hold only some of these permissions; the sections it cannot
-    // read simply stay empty rather than breaking the whole tab.
     if (results[0].status === 'fulfilled') this.evolutions.set(results[0].value);
     if (results[1].status === 'fulfilled') this.prescriptions.set(results[1].value);
     if (results[2].status === 'fulfilled') this.consents.set(results[2].value);
@@ -347,7 +341,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     }
   }
 
-  /** Firma presencial en pantalla (paciente o representante, y profesional). */
   async startSigning(consent: Consent): Promise<void> {
     const patient = await firstValueFrom(this.patientsService.getPatient(this.patientId));
     const signed = await openConsentSign(this.dialog, {
@@ -361,7 +354,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     }
   }
 
-  /** Firma a distancia: enlace para que el paciente firme desde su teléfono. */
   async sendForSignature(consent: Consent): Promise<void> {
     const patient = await firstValueFrom(this.patientsService.getPatient(this.patientId));
     await openConsentLink(this.dialog, {
@@ -533,7 +525,6 @@ export class ClinicalRecordsTabComponent implements OnChanges {
     }
   }
 
-  /** La receta como documento propio, con prescriptor y registro profesional. */
   async printPrescription(prescription: Prescription): Promise<void> {
     try {
       const [clinic, patient, professionals] = await Promise.all([

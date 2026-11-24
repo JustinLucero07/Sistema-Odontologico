@@ -28,8 +28,6 @@ async def test_endpoint_without_token_is_401(client, clinic_with_users):
 
 
 async def test_revoking_role_permission_takes_effect_on_next_request(client, clinic_with_users, db_session):
-    """Permissions are re-read from the database on every request, not trusted
-    from the access token — see app.core.deps.get_current_user."""
     token = await _login(client, "dentist@clinicatest.io", "Dentist123!")
 
     ok = await client.get("/api/v1/professionals", headers={"Authorization": f"Bearer {token}"})

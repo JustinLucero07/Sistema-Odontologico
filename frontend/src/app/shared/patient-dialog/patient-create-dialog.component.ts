@@ -14,16 +14,6 @@ import { PatientsService } from '../../core/services/patients.service';
 import { CONSENT_METHOD_LABELS, ConsentMethod, LegalService } from '../../core/services/legal.service';
 import { printPrivacyNotice } from '../print/privacy-print';
 
-/**
- * Alta de paciente en un diálogo.
- *
- * Antes era un formulario que se desplegaba encima de la lista y empujaba la
- * tabla hacia abajo. En un diálogo el contexto no se mueve, el foco va directo
- * al primer campo, y Escape cancela sin perder la búsqueda que había.
- *
- * Solo nombre y apellido son obligatorios: en recepción, con el paciente
- * delante, lo urgente es poder agendarlo; el resto se completa en la ficha.
- */
 @Component({
   selector: 'app-patient-create-dialog',
   standalone: true,
@@ -273,8 +263,6 @@ export class PatientCreateDialogComponent {
   async save(): Promise<void> {
     const missingRepresentative = this.isMinor() && !this.form.controls.representative.value.trim();
     if (this.form.invalid || missingRepresentative) {
-      // Marcar todo como tocado para que los mensajes aparezcan en los campos,
-      // en lugar de un botón gris que no explica por qué no hace nada.
       this.form.markAllAsTouched();
       return;
     }
@@ -296,7 +284,6 @@ export class PatientCreateDialogComponent {
           email: trim(v.email),
         }),
       );
-      // La constancia de que se informó al paciente se guarda junto con el alta.
       const signedBy = this.isMinor() ? v.representative.trim() : null;
       try {
         await firstValueFrom(
@@ -317,8 +304,6 @@ export class PatientCreateDialogComponent {
           );
         }
       } catch {
-        // El paciente ya existe: la constancia puede registrarse desde su ficha,
-        // que la muestra como pendiente. No se pierde el alta por esto.
       }
       this.ref.close(created);
     } catch (e) {
@@ -332,7 +317,6 @@ export class PatientCreateDialogComponent {
   }
 }
 
-/** Abre el diálogo. Devuelve el paciente creado, o undefined si se canceló. */
 export function openPatientCreateDialog(dialog: MatDialog): Promise<Patient | undefined> {
   return firstValueFrom(
     dialog

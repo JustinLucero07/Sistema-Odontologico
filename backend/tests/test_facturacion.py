@@ -1,5 +1,3 @@
-"""Facturación electrónica (SRI, esquema offline) con un SRI simulado."""
-
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -41,9 +39,6 @@ def _verificar_firma(xml: bytes, cert) -> None:
     XMLVerifier().verify(xml, x509_cert=cert.public_bytes(serialization.Encoding.PEM), expect_config=cfg)
 
 
-# ------------------------------------------------------------------ Piezas sueltas
-
-
 def test_modulo11_y_clave_de_acceso():
     # 11 - (suma % 11): 11 → 0 y 10 → 1.
     assert modulo11("0") == "0"
@@ -71,9 +66,6 @@ def test_cedula_y_ruc():
     assert ruc_valido("1790012345001")  # sociedad: lo confirma el SRI
 
 
-# ------------------------------------------------------------------ Configuración
-
-
 async def test_configuracion_dice_lo_que_falta_y_valida_la_firma(client, clinic_with_users):
     h = await _login(client)
     r = await client.get("/api/v1/invoicing/settings", headers=h)
@@ -97,7 +89,6 @@ async def test_configuracion_dice_lo_que_falta_y_valida_la_firma(client, clinic_
     assert r.json()["missing"] == []
     assert r.json()["has_certificate"] and "CONSULTORIO DE PRUEBA" in r.json()["certificate_subject"]
 
-    # El número inicial se puede fijar (p. ej. si ya facturaba con otro sistema).
     r = await client.put("/api/v1/invoicing/settings", headers=h, json={"next_invoice_number": 120})
     assert r.json()["next_invoice_number"] == 120
 
@@ -107,9 +98,6 @@ async def test_sin_configurar_no_deja_facturar(client, clinic_with_users):
     r = await client.post("/api/v1/invoices", headers=h, json={"items": [{"description": "Consulta", "unit_price": "20"}]})
     assert r.status_code == 409
     assert "firma" in r.json()["detail"]
-
-
-# ------------------------------------------------------------------ Emisión
 
 
 async def test_factura_autorizada_firmada_y_valida(client, clinic_with_users, monkeypatch):
@@ -153,7 +141,6 @@ async def test_factura_autorizada_firmada_y_valida(client, clinic_with_users, mo
     xml_aut = await client.get(f"/api/v1/invoices/{f['id']}/xml", headers=h)
     assert xml_aut.status_code == 200 and b"<estado>AUTORIZADO</estado>" in xml_aut.content
 
-    # El cargo ya no aparece para facturar y no se puede anular sin nota de crédito.
     libres = (await client.get(f"/api/v1/patients/{pid}/invoiceable-charges", headers=h)).json()
     assert cargo not in [c["id"] for c in libres]
     r = await client.post(f"/api/v1/finance/charges/{cargo}/void", headers=h, json={"reason": "error"})

@@ -27,16 +27,10 @@ class ClinicalImageOut(BaseModel):
 
 
 class ImageArchiveRequest(BaseModel):
-    """Archiving demands a reason. Without one the record says an image was
-    withdrawn but not why, which is exactly the question asked later."""
-
     reason: str
 
 
 class ImageUpdate(BaseModel):
-    """Datos descriptivos de la imagen. El archivo en sí no se cambia: si la
-    imagen está mal, se archiva y se sube la correcta."""
-
     title: str = Field(min_length=1, max_length=200)
     image_type: str
     description: str | None = None

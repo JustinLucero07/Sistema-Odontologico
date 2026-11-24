@@ -5,9 +5,6 @@ import '../auth/auth_controller.dart';
 import '../models/cita.dart';
 import '../models/paciente.dart';
 
-/// Error con el mensaje que el servidor realmente dio. Las pantallas lo
-/// enseñan tal cual: el backend distingue «no hay existencias suficientes:
-/// quedan 2» de un fallo genérico, y esa diferencia es la respuesta.
 class ErrorApi implements Exception {
   ErrorApi(this.mensaje);
   final String mensaje;
@@ -20,7 +17,6 @@ Never _lanzar(Response<dynamic> r, String porDefecto) {
   throw ErrorApi(detail is String ? detail : porDefecto);
 }
 
-/// 2xx: incluye el 202 de un cambio guardado sin conexión (se sube después).
 bool _exito(Response<dynamic> r) => (r.statusCode ?? 0) >= 200 && (r.statusCode ?? 0) < 300;
 
 class AgendaRepo {

@@ -40,8 +40,6 @@ async def get_context(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("medical_history:read")),
 ):
-    """Exactly what the assistant would be given. Exposed so a clinician can
-    see the assistant's whole world before trusting a word of its output."""
     return {"context": await service.build_context(db, current_user.clinic_id, patient_id)}
 
 
@@ -51,7 +49,6 @@ async def get_suggestions(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("medical_history:read")),
 ):
-    # Un paciente de otra clínica responde 404, igual que en el resto de la API.
     await get_patient_or_404(db, current_user.clinic_id, patient_id)
     return await service.list_suggestions(db, current_user.clinic_id, patient_id)
 

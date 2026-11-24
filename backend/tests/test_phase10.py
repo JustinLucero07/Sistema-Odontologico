@@ -1,11 +1,3 @@
-"""Phase 10: reports.
-
-A report's job is to be believed, so these tests are mostly about denominators
-and about what a report refuses to claim: no rate when there is nothing to
-divide, no future appointment counted as a no-show, no pending budget counted
-as a rejection, and a voided payment reopening the debt it had settled.
-"""
-
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -31,9 +23,6 @@ async def _patient(client, token, first_name="Iván") -> str:
 def _range(days_back: int = 30) -> str:
     today = date.today()
     return f"date_from={today - timedelta(days=days_back)}&date_to={today}"
-
-
-# ---- Financial ----------------------------------------------------------
 
 
 async def test_collected_counts_only_live_payments(client, clinic_with_users):
@@ -127,9 +116,6 @@ async def test_financial_csv_is_readable_by_a_spreadsheet(client, clinic_with_us
     assert "75,50" in body                     # decimal comma, like the locale
 
 
-# ---- Appointments -------------------------------------------------------
-
-
 async def _professional(client, token) -> str:
     response = await client.post(
         "/api/v1/professionals",
@@ -188,8 +174,6 @@ async def test_future_appointments_do_not_count_as_no_shows(client, clinic_with_
 
 
 async def test_no_rate_when_there_is_nothing_to_divide(client, clinic_with_users):
-    """A clinic with no concluded appointments has an UNKNOWN no-show rate,
-    not a perfect one."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     report = (
         await client.get(f"/api/v1/reports/appointments?{_range()}", headers=_auth(token))
@@ -199,12 +183,7 @@ async def test_no_rate_when_there_is_nothing_to_divide(client, clinic_with_users
     assert report["cancellation_rate"] is None
 
 
-# ---- Clinical -----------------------------------------------------------
-
-
 async def test_conversion_rate_ignores_budgets_still_open(client, clinic_with_users):
-    """Counting a proposal nobody has answered as a rejection would punish a
-    clinic for having work in flight."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _patient(client, token)
     treatment = (
@@ -253,9 +232,6 @@ async def test_conversion_rate_ignores_budgets_still_open(client, clinic_with_us
     assert budgets["conversion_rate"] == 66.7
 
 
-# ---- Patients -----------------------------------------------------------
-
-
 async def test_dormant_patients_are_those_without_a_recent_visit(client, clinic_with_users):
     from datetime import datetime, timezone
 
@@ -279,9 +255,6 @@ async def test_dormant_patients_are_those_without_a_recent_visit(client, clinic_
     assert report["seen_last_12m"] == 1
     assert report["dormant"] == report["total_active"] - 1
     assert report["new_patients"] == 2
-
-
-# ---- Range guards -------------------------------------------------------
 
 
 async def test_backwards_range_is_refused(client, clinic_with_users):

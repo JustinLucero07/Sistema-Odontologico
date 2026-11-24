@@ -58,7 +58,6 @@ export class LaboratoryPageComponent implements OnInit {
   readonly showOrderForm = signal(false);
   readonly showLabForm = signal(false);
   readonly showLabs = signal(false);
-  /** Laboratorio o trabajo que se edita; null cuando el panel crea uno nuevo. */
   readonly editingLab = signal<Laboratory | null>(null);
   readonly editingOrder = signal<LabOrder | null>(null);
   readonly advancing = signal<LabOrder | null>(null);
@@ -101,7 +100,6 @@ export class LaboratoryPageComponent implements OnInit {
   @HostListener('document:keydown.escape')
   closePanels(): void {
     this.showOrderForm.set(false);
-    // El formulario de laboratorio se abre desde la lista: Esc vuelve a ella.
     if (this.showLabForm()) {
       this.showLabForm.set(false);
       return;
@@ -296,8 +294,6 @@ export class LaboratoryPageComponent implements OnInit {
     }
   }
 
-  /** Only the steps the case can actually take next. Offering the whole list
-   *  and letting the server refuse would be a worse way to say the same thing. */
   availableStatuses(order: LabOrder): { code: string; label: string }[] {
     return nextStatuses(order.status).map((code) => ({
       code,

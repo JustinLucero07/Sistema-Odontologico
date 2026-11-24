@@ -19,10 +19,6 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 settings = get_settings()
 
 
-# Una app móvil no tiene almacén de cookies y guarda el token en el llavero
-# del sistema. Lo pide con esta cabecera; un navegador nunca la envía, así que
-# su token sigue viviendo solo en una cookie httpOnly fuera del alcance de
-# JavaScript — que es la razón de que esté ahí.
 TOKEN_IN_BODY_HEADER = "x-token-delivery"
 
 
@@ -65,8 +61,6 @@ async def refresh(
     payload: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    # La cookie manda cuando existe: un navegador no debe poder sortearla
-    # mandando un token en el cuerpo.
     raw_token = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
     if not raw_token and payload is not None:
         raw_token = payload.refresh_token
@@ -129,8 +123,6 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """El propio usuario cambia su contraseña. Cierra todas sus demás sesiones
-    y deja abierta solo esta, con un token nuevo."""
     ip_address = request.client.host if request.client else None
     user = await service.change_own_password(db, current_user.user, payload.current_password, payload.new_password)
     raw_refresh_token = await service.issue_refresh_token(db, user, request.headers.get("user-agent"), ip_address)

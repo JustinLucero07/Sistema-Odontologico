@@ -17,14 +17,10 @@ from app.modules.reports.schemas import (
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
-# A range longer than this is almost always a mistyped year, and it makes the
-# in-Python grouping slow enough to notice.
 MAX_RANGE_DAYS = 400
 
 
 def _range(date_from: date | None, date_to: date | None) -> tuple[date, date]:
-    """Defaults to the last 30 days, and refuses a backwards or absurd range
-    rather than returning an empty report that looks like bad business."""
     to = date_to or date.today()
     frm = date_from or (to - timedelta(days=29))
     if frm > to:

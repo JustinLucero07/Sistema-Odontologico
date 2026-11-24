@@ -22,16 +22,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class Charge(UUIDPKMixin, TenantMixin, Base):
-    """What a patient owes, as one line.
-
-    A charge raised from an accepted budget is a SNAPSHOT of the amount agreed
-    at that moment — the same rule consents follow for their wording. If the
-    budget were consulted live instead, editing it afterwards would silently
-    rewrite history that a patient already signed up to.
-
-    Charges are never deleted. A mistaken charge is voided with a reason, so
-    the statement still shows that it existed and why it went away."""
-
     __tablename__ = "charges"
     __table_args__ = (
         # One charge per budget: accepting a budget twice must not bill twice.
@@ -67,17 +57,9 @@ class Charge(UUIDPKMixin, TenantMixin, Base):
 
 
 class Payment(UUIDPKMixin, TenantMixin, Base):
-    """Money actually received.
-
-    `charge_id` is optional: a patient may pay on account before any treatment
-    is billed, and forcing that money onto an invented charge would misstate
-    what was agreed. An unallocated payment still counts toward the balance."""
-
     __tablename__ = "payments"
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_payment_amount_positive"),
-        # Measured: the financial report's clinic + date-range filter went from
-        # 11.2 ms to 0.52 ms at 150k rows.
         Index("ix_payments_clinic_received", "clinic_id", "received_on"),
     )
 
@@ -87,14 +69,10 @@ class Payment(UUIDPKMixin, TenantMixin, Base):
     charge_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("charges.id"), nullable=True, index=True
     )
-    # Pago de una cuota de crédito. Una cuota con interés se registra como dos
-    # pagos (interés y capital) que comparten split_group_id: se anulan juntos.
     credit_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("credits.id"), nullable=True, index=True
     )
     split_group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    # Abono a una cuota del plan de ortodoncia (el pago sigue ligado al cargo
-    # del tratamiento; esto solo dice a qué cuota se aplicó).
     ortho_control_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("ortho_controls.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -122,13 +100,6 @@ class Payment(UUIDPKMixin, TenantMixin, Base):
 
 
 class Installment(UUIDPKMixin, TenantMixin, Base):
-    """One scheduled instalment of a charge.
-
-    Instalments are a SCHEDULE, not a ledger: nothing is ever "applied" to a
-    row here. Coverage is derived by walking the schedule oldest-first against
-    the charge's total paid, so a payment and its instalments can never drift
-    apart the way two stored balances do."""
-
     __tablename__ = "installments"
     __table_args__ = (
         UniqueConstraint("charge_id", "number", name="uq_installment_number"),
@@ -146,12 +117,6 @@ class Installment(UUIDPKMixin, TenantMixin, Base):
 
 
 class CashSession(UUIDPKMixin, TenantMixin, Base):
-    """A till, from opening float to counted close.
-
-    The difference between what the system expected and what was physically
-    counted is STORED at closing, because it is a finding about that day, not
-    a number to be recomputed later from rows that may since have been voided."""
-
     __tablename__ = "cash_sessions"
 
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

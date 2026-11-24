@@ -1,6 +1,3 @@
-"""Consentimientos completos: biblioteca, datos del paciente en el texto,
-firma dibujada, firma a distancia por enlace, correo y PDF."""
-
 import base64
 import hashlib
 

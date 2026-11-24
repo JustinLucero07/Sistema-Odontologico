@@ -21,7 +21,6 @@ interface PermissionGroup {
   permissions: Permission[];
 }
 
-/** Nombres legibles de cada módulo; lo que no esté aquí se muestra tal cual. */
 const MODULE_LABELS: Record<string, string> = {
   appointments: 'Agenda',
   audit: 'Auditoría',
@@ -81,7 +80,6 @@ export class RolesComponent implements OnInit {
   /** Rol cuyo nombre se edita; null cuando el diálogo crea uno nuevo. */
   readonly editingRole = signal<Role | null>(null);
 
-  /** Hay cambios sin guardar: los permisos marcados difieren de los del rol. */
   readonly dirty = computed(() => {
     const role = this.selectedRole();
     if (!role) return false;

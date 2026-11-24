@@ -49,8 +49,6 @@ class EstadoVacio extends StatelessWidget {
   }
 }
 
-/// Un error con su mensaje real y un botón de reintento. El mensaje del
-/// servidor es mucho más útil que «algo salió mal».
 class EstadoError extends StatelessWidget {
   const EstadoError({super.key, required this.mensaje, this.onReintentar});
 

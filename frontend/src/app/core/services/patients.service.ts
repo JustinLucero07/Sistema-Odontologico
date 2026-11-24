@@ -18,7 +18,6 @@ export class PatientsService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/patients`;
 
-  /** Una página de la lista con el total de pacientes (cabecera X-Total-Count). */
   listPatientsPage(search?: string): Observable<{ items: PatientListItem[]; total: number }> {
     let params = new HttpParams();
     if (search) params = params.set('search', search);

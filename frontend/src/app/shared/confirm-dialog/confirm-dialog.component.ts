@@ -46,7 +46,6 @@ export class ConfirmDialogComponent {
   readonly data = inject<ConfirmOptions>(MAT_DIALOG_DATA);
 }
 
-/** Resuelve true solo si se pulsó confirmar; cerrar con Esc o fuera cuenta como no. */
 export async function confirmAction(dialog: MatDialog, options: ConfirmOptions): Promise<boolean> {
   const ref = dialog.open(ConfirmDialogComponent, {
     data: options,

@@ -6,9 +6,6 @@ import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
-/** Attaches the in-memory access token to every API request and, on a 401,
- * tries exactly one silent refresh (via the httpOnly refresh cookie) before
- * giving up and sending the user back to /login. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);

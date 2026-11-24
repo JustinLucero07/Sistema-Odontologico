@@ -23,9 +23,6 @@ async def get_patients(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:read")),
 ):
-    # Paginado: una clínica con miles de pacientes no descarga la lista entera
-    # en cada apertura (en el celular, con datos móviles, eso pesa). El total
-    # va en X-Total-Count; la búsqueda encuentra a cualquiera.
     pacientes, total = await service.list_patients(db, current_user.clinic_id, search, limit, offset)
     response.headers["X-Total-Count"] = str(total)
     return pacientes
@@ -55,8 +52,6 @@ async def post_import_preview(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:write")),
 ):
-    """Lee un Excel (.xlsx) o CSV y devuelve qué se va a crear, sin guardar nada.
-    `mapping` (JSON {encabezado: campo}) permite corregir columnas mal detectadas."""
     datos = await file.read(importer.MAX_BYTES + 1)
     try:
         encabezados, cuerpo = importer.leer_archivo(file.filename or "", datos)

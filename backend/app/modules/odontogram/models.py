@@ -10,11 +10,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class Odontogram(UUIDPKMixin, TenantMixin, Base):
-    """A snapshot of the patient's whole dental chart at a point in time.
-    Never mutated after creation — a new edit always inserts a new row and
-    links back via previous_odontogram_id, which is what makes comparing two
-    dates and printing historical states possible without reconstruction."""
-
     __tablename__ = "odontograms"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)
@@ -36,10 +31,6 @@ class Odontogram(UUIDPKMixin, TenantMixin, Base):
 
 
 class ToothCondition(UUIDPKMixin, TenantMixin, Base):
-    """One recorded condition on one surface of one tooth within a snapshot.
-    A tooth/surface with no row is implicitly 'sano' — only deviations from
-    healthy are stored."""
-
     __tablename__ = "tooth_conditions"
 
     odontogram_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("odontograms.id"), nullable=False, index=True)

@@ -10,12 +10,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class DataConsent(UUIDPKMixin, TenantMixin, Base):
-    """Constancia de lo que se informó al paciente y de lo que autorizó.
-
-    Solo se añaden filas: retirar una autorización es una fila nueva con
-    granted=False, nunca una edición. Así queda la historia completa de qué se
-    autorizó, cuándo, cómo y ante quién, que es lo que habría que demostrar."""
-
     __tablename__ = "data_consents"
     __table_args__ = (
         Index("ix_data_consents_patient_kind", "patient_id", "kind", text("recorded_at DESC")),
@@ -38,9 +32,6 @@ class DataConsent(UUIDPKMixin, TenantMixin, Base):
 
 
 class DataRightsRequest(UUIDPKMixin, TenantMixin, Base):
-    """Solicitud de un titular para ejercer sus derechos (acceso, rectificación,
-    eliminación…). Hay que poder demostrar que se respondió y cuándo."""
-
     __tablename__ = "data_rights_requests"
 
     patient_id: Mapped[uuid.UUID | None] = mapped_column(

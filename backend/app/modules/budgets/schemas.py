@@ -38,7 +38,6 @@ class BudgetCreate(BaseModel):
     treatment_plan_id: uuid.UUID
     tax_rate: float = Field(ge=0, le=100, default=0)
     notes: str | None = None
-    # When omitted, the budget is auto-generated from all of the plan's items.
     items: list[BudgetItemCreate] | None = None
 
 

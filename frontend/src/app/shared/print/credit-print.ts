@@ -4,13 +4,6 @@ import { ClinicIdentity, clinicBlock, esc, longDate, openPrintWindow } from './p
 const money = (v: string | number) =>
   '$ ' + new Intl.NumberFormat('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v));
 
-/**
- * Acuerdo de pago en cuotas, para firmar. Recoge lo que el paciente acepta:
- * el monto financiado, la tasa (mensual y su equivalente anual), el costo
- * total del financiamiento, el calendario completo y las firmas, incluida la
- * del garante si lo hay. Mostrar el costo total del crédito es lo que la
- * normativa de protección al consumidor exige que el cliente conozca.
- */
 export function printCreditAgreement(
   credit: CreditDetail,
   clinic: ClinicIdentity | null,

@@ -1,11 +1,3 @@
-"""Editar y dar de baja lo que antes solo se podía crear.
-
-Dos reglas atraviesan todo el archivo: lo administrativo (catálogos, personas,
-proveedores) se edita y se desactiva; lo clínico (diagnósticos, recetas) nunca
-se borra, se anula con un motivo y sigue a la vista.
-"""
-
-
 async def _login(client, email, password):
     response = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
     return response
@@ -32,9 +24,6 @@ async def _patient(client, token) -> str:
         "/api/v1/patients", json={"first_name": "Lucía", "last_name": "Arce"}, headers=_auth(token)
     )
     return created.json()["id"]
-
-
-# ---- Especialidades y profesionales -------------------------------------
 
 
 async def test_specialty_is_renamed_and_only_deleted_when_unused(client, clinic_with_users):
@@ -74,9 +63,6 @@ async def test_professional_is_edited_and_deactivated(client, clinic_with_users)
     body = updated.json()
     assert body["license_number"] == "MSP-123"
     assert body["is_active"] is False
-
-
-# ---- Usuarios y roles ---------------------------------------------------
 
 
 async def test_password_reset_logs_the_user_out_everywhere(client, clinic_with_users):
@@ -147,9 +133,6 @@ async def test_role_in_use_cannot_be_deleted(client, clinic_with_users):
     assert (await client.delete(f"/api/v1/roles/{role['id']}", headers=admin)).status_code == 204
 
 
-# ---- Inventario y laboratorio -------------------------------------------
-
-
 async def test_supplier_is_edited_and_deactivated(client, clinic_with_users):
     h = _auth(await _token(client))
     supplier = (await client.post("/api/v1/inventory/suppliers", json={"name": "Dental Sur"}, headers=h)).json()
@@ -202,9 +185,6 @@ async def test_lab_order_details_are_editable_until_closed(client, clinic_with_u
     assert closed.status_code == 409
 
 
-# ---- Planes y consentimientos -------------------------------------------
-
-
 async def test_plan_title_is_editable(client, clinic_with_users):
     h = _auth(await _token(client))
     patient_id = await _patient(client, h["Authorization"].split()[1])
@@ -244,9 +224,6 @@ async def test_retiring_a_consent_template_keeps_issued_consents_intact(client, 
 
     issued = (await client.get(f"/api/v1/patients/{patient_id}/consents", headers=h)).json()
     assert next(c for c in issued if c["id"] == consent["id"])["body"] == "Texto original"
-
-
-# ---- Registros clínicos: se anulan, no se borran --------------------------
 
 
 async def test_diagnosis_is_voided_with_reason_and_stays_visible(client, clinic_with_users):
@@ -315,9 +292,6 @@ async def test_voiding_needs_write_permission(client, clinic_with_users):
     assert denied.status_code == 403
 
 
-# ---- Sedes y consultorios -----------------------------------------------
-
-
 async def test_branch_with_rooms_is_not_deleted_and_rooms_are_editable(client, clinic_with_users):
     h = _auth(await _token(client))
     branch = (await client.post("/api/v1/clinics/branches", json={"name": "Matriz"}, headers=h)).json()
@@ -336,9 +310,6 @@ async def test_branch_with_rooms_is_not_deleted_and_rooms_are_editable(client, c
 
     assert (await client.delete(f"/api/v1/clinics/operatories/{room['id']}", headers=h)).status_code == 204
     assert (await client.delete(f"/api/v1/clinics/branches/{branch['id']}", headers=h)).status_code == 204
-
-
-# ---- Radiografías, documentos y consentimientos ---------------------------
 
 
 def _png() -> bytes:

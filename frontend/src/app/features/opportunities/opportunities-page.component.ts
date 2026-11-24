@@ -11,6 +11,8 @@ import { environment } from '../../../environments/environment';
 import { formatMoney } from '../../core/models/finance.models';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { whatsappUrl } from '../../shared/whatsapp';
+import { AuthService } from '../../core/auth/auth.service';
+import { LlamarHoyComponent } from './llamar-hoy.component';
 
 interface Contact {
   patient_id: string;
@@ -38,16 +40,10 @@ interface Row {
   message: string;
 }
 
-/**
- * Centro de oportunidades: a quién conviene escribir hoy y por qué. Son reglas
- * claras sobre los datos de la clínica (sin estimaciones): citas de mañana sin
- * confirmar, cumpleaños, tratamientos aprobados sin cita, pacientes que no
- * vienen hace meses y saldos pendientes. Cada fila trae el mensaje listo.
- */
 @Component({
   selector: 'app-opportunities-page',
   standalone: true,
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatTooltipModule, RouterLink, SkeletonComponent],
+  imports: [DatePipe, LlamarHoyComponent, MatButtonModule, MatIconModule, MatTooltipModule, RouterLink, SkeletonComponent],
   template: `
     <div class="page">
       <header class="page-header">
@@ -63,6 +59,7 @@ interface Row {
         <app-skeleton variant="list" [rows]="5" />
       } @else {
       @if (data(); as d) {
+        @if (puedeAgenda) { <app-llamar-hoy /> }
         <section class="tiles">
           @for (g of groups; track g.key) {
             <button type="button" class="glass-card tile" [class.on]="active() === g.key" (click)="active.set(g.key)"
@@ -183,6 +180,7 @@ interface Row {
 })
 export class OpportunitiesPageComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  readonly puedeAgenda = inject(AuthService).hasPermission('appointments:read');
 
   readonly data = signal<Opportunities | null>(null);
   readonly loading = signal(true);

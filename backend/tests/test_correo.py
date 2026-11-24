@@ -1,6 +1,3 @@
-"""Correo saliente de cada consulta, contra un servidor SMTP real (aiosmtpd)
-que corre durante la prueba."""
-
 from datetime import datetime, timedelta, timezone
 from email import message_from_bytes, policy
 

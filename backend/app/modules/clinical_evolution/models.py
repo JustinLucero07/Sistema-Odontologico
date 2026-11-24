@@ -10,12 +10,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class ClinicalEvolution(UUIDPKMixin, TenantMixin, Base):
-    """What was actually done in a visit.
-
-    Append-only by design: an evolution note is the clinical record of a
-    moment, so it is never deleted, and edits leave an audit trail rather than
-    quietly replacing what the professional originally wrote."""
-
     __tablename__ = "clinical_evolutions"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)

@@ -16,11 +16,6 @@ class AccessTokenResponse(BaseModel):
 
 
 class RefreshRequest(BaseModel):
-    """Cuerpo alternativo para clientes sin cookies.
-
-    Un navegador no lo envía nunca: su token vive en una cookie httpOnly que
-    JavaScript no puede leer, y así debe seguir."""
-
     refresh_token: str | None = None
 
 
@@ -33,8 +28,6 @@ class MeResponse(BaseModel):
     is_superadmin: bool
     roles: list[str]
     permissions: list[str]
-    # True mientras no haya aceptado la versión vigente del acuerdo de
-    # confidencialidad: la web no le deja trabajar hasta entonces.
     confidentiality_required: bool = False
     # La contraseña actual es temporal (la puso un administrador).
     must_change_password: bool = False

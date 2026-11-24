@@ -8,7 +8,6 @@
       </button>
     </div>
 
-
     @if (diagnoses().length === 0) {
       <p class="empty-hint">Sin diagnósticos registrados.</p>
     } @else {
@@ -56,7 +55,6 @@
         Nuevo plan
       </button>
     </div>
-
 
     @if (plans().length === 0) {
       <p class="empty-hint">Este paciente aún no tiene un plan de tratamiento.</p>
@@ -137,7 +135,6 @@
             </tbody>
           </table>
         }
-
 
         @if (plan.cancelled_at) {
           <p class="void-reason">Cancelado el {{ plan.cancelled_at | date: 'd MMM y' }}: {{ plan.cancel_reason }}</p>

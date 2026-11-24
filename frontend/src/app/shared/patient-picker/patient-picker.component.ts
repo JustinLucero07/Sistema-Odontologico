@@ -9,8 +9,6 @@ import { Subject, debounceTime, distinctUntilChanged, firstValueFrom } from 'rxj
 import { PatientListItem } from '../../core/models/patient.models';
 import { PatientsService } from '../../core/services/patients.service';
 
-/** Search-and-pick a patient. Used by every "direct access" page that needs a
- * patient in context before it can show anything (odontogram, plans, budgets). */
 @Component({
   selector: 'app-patient-picker',
   standalone: true,

@@ -21,10 +21,6 @@ DOCUMENT_TYPE_CODES = {code for code, _ in DOCUMENT_TYPES}
 
 
 class Document(UUIDPKMixin, TenantMixin, Base):
-    """A file attached to a patient. The bytes live wherever the configured
-    StorageProvider puts them; this row only keeps the key plus what a person
-    needs to find the file again."""
-
     __tablename__ = "documents"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)

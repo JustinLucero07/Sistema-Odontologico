@@ -5,16 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 
-/// Superficies de la app: porcelana y papel.
-///
-/// El fondo es un blanco cálido y las tarjetas blanco puro con un canto fino.
-/// La jerarquía sale del contraste de temperatura y de una sombra amplia y
-/// muy tenue, no de colores ni brillos: es lo que hace que se vea tranquila y
-/// cara a la vez. Los nombres (Glass*) se conservan porque los usa toda la
-/// app; el vidrio real queda solo donde pasa contenido por detrás (barras).
-
-/// Fondo de todas las pantallas. Un único lavado muy tenue del color de la
-/// consulta arriba, para que la marca se sienta sin teñir el contenido.
 class AmbientBackground extends StatelessWidget {
   const AmbientBackground({super.key, required this.child});
 
@@ -83,8 +73,6 @@ class GlassTokens {
   }
 }
 
-/// Superficie base. [blur] la vuelve translúcida con desenfoque real del
-/// fondo; solo se usa donde pasa contenido por detrás (barras flotantes).
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
@@ -154,9 +142,6 @@ class GlassPanel extends StatelessWidget {
   }
 }
 
-/// Sustituto directo de [Card]. Acepta los mismos parámetros que las
-/// pantallas ya usaban (child, margin, clipBehavior) y, si se toca, se hunde
-/// un poco al presionar, como un botón físico.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -176,8 +161,6 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Siempre hay un Material transparente: los InkWell de dentro (que antes
-    // encontraban el del Card) lo necesitan para dibujar la respuesta al toque.
     final Widget content = Material(
       type: MaterialType.transparency,
       child: onTap == null ? child : InkWell(onTap: onTap, child: child),
@@ -188,8 +171,6 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// Se encoge un 2 % mientras el dedo está apoyado: respuesta inmediata al
-/// tocar, antes de soltar. No intercepta el toque; solo lo observa.
 class Presionable extends StatefulWidget {
   const Presionable({super.key, required this.child, this.escala = 0.98});
 
@@ -223,13 +204,6 @@ class _PresionableState extends State<Presionable> {
   }
 }
 
-/// Barra de navegación flotante en Liquid Glass.
-///
-/// La cápsula es vidrio de verdad: desenfoca y satura lo que pasa por detrás,
-/// tiene un canto de luz que cambia de intensidad alrededor del borde y un
-/// brillo arriba. El destino elegido se marca con una gota de vidrio más
-/// clara que viaja de uno a otro con un leve rebote y se estira mientras se
-/// mueve, como un líquido.
 class GlassNavBar extends StatefulWidget {
   const GlassNavBar({
     super.key,
@@ -311,8 +285,6 @@ class _GlassNavBarState extends State<GlassNavBar> with SingleTickerProviderStat
         child: ClipRRect(
           borderRadius: BorderRadius.circular(radio),
           child: BackdropFilter(
-            // Desenfoque más saturación: el color de lo que pasa por detrás
-            // se intensifica en lugar de lavarse a gris.
             filter: ImageFilter.compose(
               outer: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
               inner: const ColorFilter.matrix(_saturar),
@@ -382,9 +354,6 @@ const List<double> _saturar = [
   0, 0, 0, 1, 0,
 ];
 
-/// El cuerpo y el canto del vidrio: relleno translúcido más claro arriba,
-/// borde de luz que brilla en la esquina superior izquierda y en la inferior
-/// derecha (como un vidrio curvo iluminado desde arriba) y un brillo fino.
 class _VidrioPintor extends CustomPainter {
   _VidrioPintor({required this.dark, required this.radio});
 
@@ -471,8 +440,6 @@ class _Gota extends StatelessWidget {
   }
 }
 
-/// Versión vertical de la barra para tablets: la misma cápsula de vidrio,
-/// a la izquierda, con la gota que viaja de un destino a otro.
 class GlassNavRail extends StatelessWidget {
   const GlassNavRail({
     super.key,
@@ -627,7 +594,6 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-/// Barra superior translúcida: el contenido se ve pasar por detrás, desenfocado.
 class GlassAppBarBackground extends StatelessWidget {
   const GlassAppBarBackground({super.key});
 

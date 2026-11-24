@@ -8,9 +8,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-/// Correo saliente de la consulta: el buzón desde el que salen facturas,
-/// recordatorios de citas y consentimientos para firmar. Igual que en la web.
-
 final _correoProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(apiProvider).mapa('/mail/settings'),
 );

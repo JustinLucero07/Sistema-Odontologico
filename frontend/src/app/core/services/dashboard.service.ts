@@ -24,7 +24,6 @@ export interface BirthdayEntry {
   whatsapp: string | null;
 }
 
-/** Cada cifra es null cuando el usuario no puede ver ese módulo: no es "cero". */
 export interface DashboardAttention {
   stock_alerts: number | null;
   lab_overdue: number | null;

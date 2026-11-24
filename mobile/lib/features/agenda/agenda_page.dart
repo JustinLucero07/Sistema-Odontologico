@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/api/api.dart';
 import '../../core/api/repositorios.dart';
+import '../../shared/widgets/ui.dart';
 import '../../core/models/cita.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/estado_vacio.dart';
@@ -19,6 +21,17 @@ final diaAgendaProvider = StateProvider<DateTime>((ref) => DateTime.now());
 final citasDelDiaProvider = FutureProvider.autoDispose<List<Cita>>((ref) {
   final dia = ref.watch(diaAgendaProvider);
   return ref.watch(agendaRepoProvider).citasDelDia(dia);
+});
+
+final riesgosDelDiaProvider = FutureProvider.autoDispose<Map<String, Map<String, dynamic>>>((ref) async {
+  final citas = await ref.watch(citasDelDiaProvider.future);
+  final ids = {
+    for (final c in citas)
+      if (c.estado == 'programada' || c.estado == 'confirmada') c.pacienteId,
+  };
+  if (ids.isEmpty) return {};
+  final r = await ref.read(apiProvider).get('/insights/no-show-risk', query: {'patient_ids': ids.join(',')}) as List;
+  return {for (final x in r.cast<Map<String, dynamic>>()) '${x['patient_id']}': x};
 });
 
 class AgendaPage extends ConsumerWidget {
@@ -136,8 +149,6 @@ class _BarraDia extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    // Solo la primera letra sube: `toUpperCase` por palabra
-                    // daría «Domingo 27 De Septiembre».
                     _capitalizar(formato.format(dia)),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
@@ -184,6 +195,8 @@ class _TarjetaCita extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final color = StatusColors.of(context, cita.estado);
     final cancelada = cita.estado == 'cancelada' || cita.estado == 'no_asistio';
+    final r = ref.watch(riesgosDelDiaProvider).valueOrNull?[cita.pacienteId];
+    final riesgo = r != null && r['nivel'] == 'alto' && (cita.estado == 'programada' || cita.estado == 'confirmada') ? r : null;
 
     return GlassCard(
       clipBehavior: Clip.antiAlias,
@@ -243,8 +256,6 @@ class _TarjetaCita extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // La franja de color es un refuerzo; el estado siempre va
-              // escrito al lado, porque el color solo nunca debe llevarlo.
               Container(width: 4, color: color),
               Expanded(
                 child: Padding(
@@ -308,6 +319,22 @@ class _TarjetaCita extends ConsumerWidget {
                               : null,
                         ),
                       ),
+                      if (riesgo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded, size: 15, color: Tonos.ambar),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Suele faltar · ${riesgo['texto']}',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Tonos.ambar),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 2),
                       Text(
                         [

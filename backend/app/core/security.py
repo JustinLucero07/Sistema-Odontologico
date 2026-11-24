@@ -38,8 +38,6 @@ def decode_token(token: str) -> dict:
 
 
 def generate_refresh_token() -> tuple[str, str]:
-    """Returns (raw_token, token_hash). Only the hash is persisted — the raw value
-    is handed to the client once and can never be recovered from the database."""
     raw_token = secrets.token_urlsafe(64)
     token_hash = hash_refresh_token(raw_token)
     return raw_token, token_hash

@@ -28,11 +28,7 @@ class Clinic(UUIDPKMixin, TimestampMixin, Base):
     currency: Mapped[str] = mapped_column(String(10), default="USD")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # ---- Personalización (asistente de configuración inicial) ----
-    # independiente | consultorio | clinica: decide qué se muestra por defecto.
     practice_type: Mapped[str] = mapped_column(String(20), default="clinica", server_default="clinica")
-    # El logo se guarda como data URL (PNG/JPEG/WebP, máx. ~400 KB): así sale
-    # igual en la web, la app y los documentos impresos sin servir archivos.
     logo_data: Mapped[str | None] = mapped_column(Text)
     slogan: Mapped[str | None] = mapped_column(String(200))
     # Texto al pie de recibos, estados de cuenta y certificados.
@@ -42,21 +38,16 @@ class Clinic(UUIDPKMixin, TimestampMixin, Base):
     closes_at: Mapped[str] = mapped_column(String(5), default="19:00", server_default="19:00")
     # Días laborables: 1=lunes … 7=domingo.
     work_days: Mapped[str] = mapped_column(String(7), default="123456", server_default="123456")
-    # Módulos que la consulta prefiere no ver en el menú (no quita permisos).
     hidden_modules: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
-    # Especialidad de ortodoncia: muestra el módulo (fichas ORT, plan de
-    # controles con cuotas, lista de documentación).
+    monthly_goal: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     orthodontics_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    specialty_focus: Mapped[str] = mapped_column(String(20), default="general", server_default="general")
     setup_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # ---- Legal y cumplimiento ----
-    # Representante legal (firma contratos; en una persona natural es ella misma).
     legal_rep_name: Mapped[str | None] = mapped_column(String(200))
     legal_rep_id: Mapped[str | None] = mapped_column(String(20))
-    # Delegado de protección de datos (LOPDP): a quién escriben los pacientes.
     dpo_name: Mapped[str | None] = mapped_column(String(200))
     dpo_email: Mapped[str | None] = mapped_column(String(200))
-    # Permiso de funcionamiento del establecimiento de salud (ACESS) y su vigencia.
     health_permit_number: Mapped[str | None] = mapped_column(String(60))
     health_permit_expires_on: Mapped[date | None] = mapped_column(Date)
     # Datos tributarios (SRI) que salen en comprobantes.
@@ -66,13 +57,11 @@ class Clinic(UUIDPKMixin, TimestampMixin, Base):
     sri_establishment: Mapped[str] = mapped_column(String(3), default="001", server_default="001")
     sri_emission_point: Mapped[str] = mapped_column(String(3), default="001", server_default="001")
     vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0, server_default="0")
-    # Años que se conserva la historia clínica (se informa en el aviso de privacidad).
     record_retention_years: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
     # Cláusulas propias que la consulta añade a su aviso de privacidad.
     privacy_extra: Mapped[str | None] = mapped_column(Text)
     # Cierre de sesión por inactividad, en minutos (web y celular).
     session_timeout_minutes: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
-    # Aceptación de los Términos de uso y del contrato de encargo de tratamiento.
     terms_version: Mapped[str | None] = mapped_column(String(20))
     terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     terms_accepted_by: Mapped[str | None] = mapped_column(String(200))

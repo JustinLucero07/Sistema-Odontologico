@@ -15,8 +15,6 @@ async def get_summary(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """Available to any signed-in user: it only exposes counts for their own
-    clinic, and the UI hides the cards a role has no business seeing."""
     def can(permission: str) -> bool:
         return current_user.is_superadmin or permission in current_user.permissions
 

@@ -8,9 +8,6 @@ import { AccessTokenResponse, CurrentUser, LoginRequest } from '../models/auth.m
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  // Access token lives in memory only (never localStorage) — the refresh
-  // token is an httpOnly cookie the browser sends automatically, so a XSS
-  // payload that reads JS-accessible storage can't steal a long-lived credential.
   private accessToken: string | null = null;
 
   private readonly currentUserSignal = signal<CurrentUser | null>(null);
@@ -36,10 +33,6 @@ export class AuthService {
       .pipe(tap((response) => (this.accessToken = response.access_token)));
   }
 
-  /** Renovación en curso, compartida. Cuando el pase de acceso vence, el panel
-   *  lanza varias peticiones a la vez y todas reciben 401: si cada una renovaba
-   *  por su cuenta, la primera invalidaba el token de las demás y la sesión se
-   *  cerraba. Ahora todas esperan la misma renovación. */
   private refreshInFlight: Observable<AccessTokenResponse> | null = null;
 
   refresh(): Observable<AccessTokenResponse> {
@@ -53,8 +46,6 @@ export class AuthService {
     return this.refreshInFlight;
   }
 
-  /** Cambia la contraseña propia. El servidor cierra las demás sesiones y
-   *  devuelve un pase nuevo para esta. */
   changePassword(current: string, next: string): Observable<AccessTokenResponse> {
     return this.http
       .post<AccessTokenResponse>(

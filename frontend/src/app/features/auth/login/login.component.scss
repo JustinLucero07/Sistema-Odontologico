@@ -12,9 +12,6 @@
     linear-gradient(160deg, #0f4c48 0%, #0a3330 55%, #07231f 100%);
 }
 
-// Luces de fondo que derivan muy despacio: dan vida al vidrio sin distraer.
-// Un ciclo de 26 s está lejos del rango que molesta al sistema vestibular, y
-// se detiene con "reducir movimiento".
 .login-page::before,
 .login-page::after {
   content: '';
@@ -74,8 +71,6 @@
   gap: 56px;
 }
 
-// ---- Brand side --------------------------------------------------------
-
 .login-pitch {
   color: #fff;
   max-width: 460px;
@@ -103,8 +98,6 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-// Over a translucent, moving backdrop flat grey dissolves — these keep a
-// little extra weight and tracking so they stay legible.
 .pitch-sub {
   margin: 0 0 30px;
   font-size: 0.98rem;
@@ -159,10 +152,6 @@
   }
 }
 
-// ---- Form side ---------------------------------------------------------
-
-// A single glass panel floating over the gradient — one material layer, never
-// glass stacked on glass.
 .login-card {
   position: relative;
   padding: 36px 34px 26px;
@@ -233,8 +222,6 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-// Material's outlined fields need explicit light-on-glass treatment; the app's
-// default ink colours are meant for a light page, not for this panel.
 .login-form {
   display: flex;
   flex-direction: column;
@@ -249,7 +236,6 @@
   --mdc-outlined-text-field-focus-outline-color: #5ee0ce;
   --mdc-outlined-text-field-caret-color: #5ee0ce;
   --mat-form-field-focus-select-arrow-color: #5ee0ce;
-  // Errores legibles sobre el vidrio oscuro (el rojo por defecto es para fondo claro).
   --mdc-outlined-text-field-error-outline-color: #ff8a80;
   --mdc-outlined-text-field-error-hover-outline-color: #ffaba4;
   --mdc-outlined-text-field-error-focus-outline-color: #ff8a80;
@@ -271,8 +257,6 @@
     color: rgba(255, 255, 255, 0.55);
   }
 
-  // Vidrio oscuro para los campos: la regla global de campos claros es para
-  // páginas claras; aquí dejaría el texto blanco sobre un gris lavado.
   ::ng-deep .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-text-field-wrapper {
     background: rgba(255, 255, 255, 0.07);
     border-radius: 16px;
@@ -362,8 +346,6 @@
     transform: scale(0.97);
   }
 
-  // Desactivado conserva su color, más tenue: un gris sobre el vidrio verde
-  // parecía un botón roto, no uno esperando datos.
   &[disabled] {
     --mdc-filled-button-disabled-container-color: transparent;
     --mdc-filled-button-disabled-label-text-color: rgba(4, 35, 31, 0.7);
@@ -399,7 +381,6 @@
   }
 }
 
-// Below the split, the pitch would push the form off-screen — the form leads.
 @media (max-width: 900px) {
   .login-split {
     grid-template-columns: minmax(0, 1fr);

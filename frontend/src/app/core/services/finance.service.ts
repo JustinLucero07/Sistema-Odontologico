@@ -53,8 +53,6 @@ export class FinanceService {
     return this.http.post<Payment>(`${environment.apiUrl}/patients/${patientId}/payments`, body);
   }
 
-  /** There is no delete for money. A mistake is reversed in place, with a
-   *  reason, so the day's till still reconciles against what happened. */
   voidPayment(paymentId: string, reason: string): Observable<Payment> {
     return this.http.post<Payment>(`${environment.apiUrl}/finance/payments/${paymentId}/void`, {
       reason,

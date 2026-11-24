@@ -1,3 +1,4 @@
+import { MandoControlComponent } from './mando-control.component';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -15,6 +16,7 @@ import {
 import { AgendaEntry, DashboardService, DashboardSummary } from '../../core/services/dashboard.service';
 import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
 import { openPatientCreateDialog } from '../../shared/patient-dialog/patient-create-dialog.component';
+import { EspecialidadComponent } from './especialidad.component';
 
 interface DonutSegment {
   status: AppointmentStatus;
@@ -36,7 +38,6 @@ interface AreaPoint {
   isToday: boolean;
 }
 
-/** "1 cita" / "3 citas": los "(s)" se leen como un formulario, no como una frase. */
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
@@ -44,8 +45,6 @@ function plural(count: number, one: string, many: string): string {
 const DONUT_RADIUS = 62;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
-// Chart geometry lives in one place so the path, the grid and the hover layer
-// can never drift apart.
 const CHART = { w: 620, h: 210, left: 34, right: 14, top: 16, bottom: 30 };
 const PLOT_W = CHART.w - CHART.left - CHART.right;
 const PLOT_H = CHART.h - CHART.top - CHART.bottom;
@@ -53,7 +52,7 @@ const PLOT_H = CHART.h - CHART.top - CHART.bottom;
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RouterLink, ToothMarkComponent],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RouterLink, ToothMarkComponent, MandoControlComponent, EspecialidadComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -74,7 +73,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Status hovered in the donut or its legend — drives the centre readout. */
   readonly hoverStatus = signal<AppointmentStatus | null>(null);
 
-  /** "Buenos días" etc. — a greeting that is wrong at 3am reads as careless. */
   readonly greeting = computed(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Buenos días';
@@ -86,19 +84,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }),
   );
 
-  /** Reloj del panel: avanza cada minuto para que "ahora" y "la próxima cita"
-   *  sigan siendo ciertos si la pantalla se queda abierta toda la mañana. */
   readonly now = signal(Date.now());
   private clock: ReturnType<typeof setInterval> | null = null;
 
   readonly statusLabels = APPOINTMENT_STATUS_LABELS;
   readonly statusColors = APPOINTMENT_STATUS_COLORS;
 
-  // ---- Agenda de hoy -----------------------------------------------------
-
   readonly agenda = computed<AgendaEntry[]>(() => this.summary()?.today_agenda ?? []);
 
-  /** La siguiente cita que todavía no empezó (o está en curso) y no se cerró. */
   readonly nextAppointment = computed<AgendaEntry | null>(() => {
     const now = this.now();
     return (
@@ -158,8 +151,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `${parts[0]?.charAt(0) ?? ''}${parts[1]?.charAt(0) ?? ''}`.toUpperCase();
   }
 
-  // ---- Dinero ------------------------------------------------------------
-
   readonly canSeeMoney = computed(() => this.summary()?.income_month != null);
 
   /** Mes en curso frente al mismo tramo del mes pasado. */
@@ -171,8 +162,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const change = ((current - previous) / previous) * 100;
     return { percent: Math.abs(Math.round(change)), up: change >= 0 };
   });
-
-  // ---- Requiere atención -------------------------------------------------
 
   readonly attention = computed(() => {
     const a = this.summary()?.attention;
@@ -224,8 +213,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `https://wa.me/${number.replace(/[^\d]/g, '')}?text=${text}`;
   }
 
-  // ---- Donut -------------------------------------------------------------
-
   readonly donutTotal = computed(() =>
     (this.summary()?.appointments_by_status ?? []).reduce((sum, d) => sum + d.count, 0),
   );
@@ -263,11 +250,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       : { value: String(this.donutTotal()), caption: 'citas en 7 días', color: '' };
   });
 
-  // ---- Area chart --------------------------------------------------------
-
   readonly areaMax = computed(() => {
     const data = this.summary()?.appointments_per_day ?? [];
-    // Round the ceiling up so gridlines land on whole appointments, never 3.5.
     return Math.max(...data.map((d) => d.count), 1);
   });
 
@@ -291,8 +275,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   });
 
-  /** Catmull-Rom converted to cubic béziers, with control points clamped to
-   *  the plot so a spike can never bow the curve below zero appointments. */
   readonly linePath = computed(() => {
     const pts = this.points();
     if (pts.length < 2) return '';
@@ -363,10 +345,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return (point.x / CHART.w) * 100;
   }
 
-  // ---- Stats -------------------------------------------------------------
-
-  /** Week-over-week change in appointments — null when there is no previous
-   * week to compare against, so the card shows nothing rather than a fake 0%. */
   readonly weeklyTrend = computed<{ percent: number; up: boolean } | null>(() => {
     const data = this.summary();
     if (!data || data.appointments_previous_week === 0) return null;
@@ -377,8 +355,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return { percent: Math.abs(Math.round(change)), up: change >= 0 };
   });
 
-  /** Accepted vs awaiting, as a share of the two together — the split is the
-   *  story, and the absolute amounts are printed beside it. */
   readonly budgetSplit = computed(() => {
     const data = this.summary();
     if (!data || data.budget_accepted_total === null || data.budget_awaiting_total === null) return null;

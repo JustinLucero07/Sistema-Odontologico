@@ -30,20 +30,12 @@ class Laboratory(UUIDPKMixin, TenantMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(40))
     email: Mapped[str | None] = mapped_column(String(160))
     address: Mapped[str | None] = mapped_column(String(300))
-    # Typical turnaround, used to propose a due date rather than to enforce one.
     default_turnaround_days: Mapped[int | None] = mapped_column()
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     notes: Mapped[str | None] = mapped_column(Text)
 
 
 class LabOrder(UUIDPKMixin, TenantMixin, Base):
-    """A case sent out to a laboratory.
-
-    The status history lives in its own table rather than as a single column,
-    because "when did this crown come back, and how long did it sit at the lab"
-    is the question a clinic actually asks — and a lone current-status column
-    cannot answer it."""
-
     __tablename__ = "lab_orders"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(

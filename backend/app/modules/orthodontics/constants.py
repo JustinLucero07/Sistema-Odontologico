@@ -1,6 +1,3 @@
-"""Catálogos del módulo de ortodoncia. Son códigos estables: la interfaz
-muestra la etiqueta y la base guarda el código."""
-
 CASE_STATUSES: list[tuple[str, str]] = [
     ("activo", "Activo"),
     ("retencion", "En retención"),
@@ -43,8 +40,6 @@ APPLIANCES: list[str] = [
     "Retenedores",
 ]
 
-# Sugerencias para «Etapa del tratamiento» (texto libre: cada ortodoncista
-# nombra sus fases a su manera).
 STAGES: list[str] = [
     "Diagnóstico y registros",
     "Alineación y nivelación",

@@ -11,6 +11,10 @@ from app.core.rate_limit import limiter
 from app.modules.mail.router import router as mail_router
 from app.modules.orthodontics.router import patient_router as patient_orthodontics_router
 from app.modules.orthodontics.router import router as orthodontics_router
+from app.modules.payment_accounts.router import router as payment_accounts_router
+from app.modules.dashboard.control import router as dashboard_control_router
+from app.modules.ai_assist.briefing import router as briefing_router
+from app.modules.odontogram.dictado import router as dictado_router
 from app.modules.invoicing.router import patient_router as patient_invoices_router
 from app.modules.invoicing.router import router as invoices_router
 from app.modules.invoicing.router import settings_router as invoicing_settings_router
@@ -29,10 +33,16 @@ from app.modules.documents.router import router as documents_router
 from app.modules.prescriptions.router import router as prescriptions_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.insights.router import router as insights_router
+from app.modules.insights.inteligencia import router as inteligencia_router
+from app.modules.dashboard.especialidad import router as especialidad_router
+from app.modules.payments.estado_pdf import router as estado_pdf_router
+from app.modules.payments.ventas import router as ventas_router
 from app.modules.cartera.router import router as cartera_router
 from app.modules.diagnoses.router import router as diagnoses_router
 from app.modules.imaging.router import patient_router as patient_images_router
 from app.modules.imaging.router import router as images_router
+from app.modules.imaging.comparisons import patient_router as patient_comparisons_router
+from app.modules.imaging.comparisons import router as comparisons_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.laboratory.router import router as laboratory_router
 from app.modules.medical_history.router import router as medical_history_router
@@ -49,6 +59,7 @@ from app.modules.messaging.router import router as messaging_router
 from app.modules.portal.router import admin_router as patient_portal_router
 from app.modules.portal.router import manage_router as portal_manage_router
 from app.modules.portal.router import public_router as portal_public_router
+from app.modules.portal.comprobantes import router as comprobantes_router
 from app.modules.reports.router import router as reports_router
 from app.modules.treatment_plans.router import patient_plans_router, plans_router
 from app.modules.treatments.router import router as treatments_router
@@ -59,18 +70,12 @@ from app.modules.credits.router import patient_router as patient_credits_router,
 
 settings = get_settings()
 
-# Refuses to start an unsafe production server. Outside production the same
-# checks only log, so a developer sees what would block a release.
 enforce_production_config(settings)
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Reports and long patient lists compress well; below 1 KB the CPU costs more
-# than the bytes saved.
-# Reintentos seguros de la app sin conexión (Idempotency-Key). Se agrega antes
-# que la compresión para que quede por dentro y guarde la respuesta sin comprimir.
 app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
@@ -84,8 +89,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Total-Count"],
-    # Browsers cache a preflight — including a failed one. The default 600s
-    # means a restart during development can lock the UI out for ten minutes.
     max_age=60,
 )
 
@@ -116,6 +119,8 @@ app.include_router(documents_router)
 app.include_router(periodontogram_catalog_router)
 app.include_router(periodontogram_router)
 app.include_router(patient_images_router)
+app.include_router(patient_comparisons_router)
+app.include_router(comparisons_router)
 app.include_router(images_router)
 app.include_router(patient_finance_router)
 app.include_router(finance_router)
@@ -128,9 +133,14 @@ app.include_router(patient_ai_router)
 app.include_router(patient_portal_router)
 app.include_router(portal_manage_router)
 app.include_router(portal_public_router)
+app.include_router(comprobantes_router)
 app.include_router(privacy_patient_router)
 app.include_router(legal_router)
 app.include_router(insights_router)
+app.include_router(inteligencia_router)
+app.include_router(especialidad_router)
+app.include_router(estado_pdf_router)
+app.include_router(ventas_router)
 app.include_router(cartera_router)
 app.include_router(expenses_router)
 app.include_router(credits_router)
@@ -141,12 +151,14 @@ app.include_router(patient_invoices_router)
 app.include_router(mail_router)
 app.include_router(orthodontics_router)
 app.include_router(patient_orthodontics_router)
+app.include_router(payment_accounts_router)
+app.include_router(dashboard_control_router)
+app.include_router(briefing_router)
+app.include_router(dictado_router)
 
 
 @app.get("/api/v1/health")
 async def health():
-    # Comprueba la base de datos de verdad: un «ok» con la base caída engaña
-    # al monitoreo y a Docker, que no reiniciarían nada.
     from fastapi.responses import JSONResponse
     from sqlalchemy import text
 

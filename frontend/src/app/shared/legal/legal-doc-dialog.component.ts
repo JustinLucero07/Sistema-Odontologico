@@ -8,8 +8,6 @@ import { firstValueFrom } from 'rxjs';
 import { LegalDocument, LegalService } from '../../core/services/legal.service';
 import { printLegalDocument } from '../print/privacy-print';
 
-/** Muestra los Términos de uso o el contrato de encargo tal como los sirve
- *  el servidor (el mismo texto que ve la app del celular). */
 @Component({
   selector: 'app-legal-doc-dialog',
   standalone: true,

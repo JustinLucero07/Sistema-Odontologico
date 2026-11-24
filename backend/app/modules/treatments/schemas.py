@@ -2,7 +2,6 @@ import uuid
 
 from pydantic import BaseModel, Field, field_validator
 
-# Códigos de IVA del SRI que admite un tratamiento (ver invoicing.constants).
 VAT_CODES = {"0", "4", "5", "6", "7"}
 
 

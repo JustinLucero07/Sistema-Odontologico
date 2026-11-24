@@ -32,7 +32,6 @@ class ConsentCreate(BaseModel):
     professional_id: uuid.UUID | None = None
     title: str | None = None
     procedure_type: str | None = None
-    # Left empty when a template is given: the template's wording is copied in.
     body: str | None = None
     tooth: str | None = Field(default=None, max_length=60)
     notes: str | None = Field(default=None, max_length=1000)
@@ -42,7 +41,6 @@ class ConsentSign(BaseModel):
     signed_by_name: str = Field(min_length=1, max_length=200)
     signature_notes: str | None = None
     signer_id_number: str | None = Field(default=None, max_length=20)
-    # «paciente», o el parentesco del representante legal (madre, padre, tutor…)
     signer_relationship: str | None = Field(default=None, max_length=60)
     signature_image: str | None = None
     professional_signature_image: str | None = None

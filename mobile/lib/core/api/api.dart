@@ -4,11 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_controller.dart';
 import 'repositorios.dart';
 
-/// Acceso directo a la API para los módulos de gestión.
-///
-/// Cada respuesta que no es 2xx se convierte en [ErrorApi] con el mensaje que
-/// dio el servidor: «la caja ya está abierta», «quedan 2 en existencia»… Esa
-/// frase es justo lo que la persona necesita leer, no un «error 409».
 class Api {
   Api(this._dio);
   final Dio _dio;
@@ -31,7 +26,6 @@ class Api {
   Future<List<int>> bytes(String ruta) async =>
       List<int>.from(await _enviar(() => _dio.get<List<int>>(ruta, options: Options(responseType: ResponseType.bytes))) as List);
 
-  /// Lista: el servidor a veces responde `{items: [...]}` y a veces `[...]`.
   Future<List<Map<String, dynamic>>> lista(
     String ruta, {
     Map<String, dynamic>? query,
@@ -72,8 +66,6 @@ class Api {
         };
 }
 
-/// El `detail` del servidor en una frase legible. Los errores de validación
-/// llegan como lista; se toma el primero y se quita la jerga técnica.
 String mensajeDeError(dynamic data, int code) {
   final detail = data is Map ? data['detail'] : null;
   if (detail is String) return detail;

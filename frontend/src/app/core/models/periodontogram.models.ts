@@ -6,7 +6,6 @@ export type PeriodontalSite =
   | 'lingual_central'
   | 'lingual_mesial';
 
-/** Buccal wall first, then lingual/palatal — the order a probe walks a tooth. */
 export const BUCCAL_SITES: PeriodontalSite[] = [
   'vestibular_distal',
   'vestibular_central',
@@ -28,7 +27,6 @@ export interface PeriodontalMeasurement {
   bleeding: boolean;
   suppuration: boolean;
   plaque: boolean;
-  /** Derived server-side: probing depth + recession, null unless both exist. */
   attachment_level?: number | null;
 }
 
@@ -81,9 +79,6 @@ export interface PeriodontogramCreate {
   measurements: Omit<PeriodontalMeasurement, 'id' | 'attachment_level'>[];
 }
 
-/** Thresholds used to colour a pocket reading. These are the conventional
- *  cut-offs: up to 3 mm is a healthy sulcus, 4–5 mm is a pocket that needs
- *  attention, 6 mm and beyond is advanced. */
 export const POCKET_THRESHOLDS = { healthy: 3, moderate: 5 } as const;
 
 export function pocketSeverity(depth: number | null): 'none' | 'healthy' | 'moderate' | 'severe' {

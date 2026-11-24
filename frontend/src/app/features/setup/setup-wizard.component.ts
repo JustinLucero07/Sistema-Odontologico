@@ -16,6 +16,7 @@ import { BRAND_PALETTE, BrandingService, PracticeType } from '../../core/brandin
 import { ClinicService } from '../../core/services/clinic.service';
 import { ToothMarkComponent } from '../../shared/brand/tooth-mark.component';
 import { openLegalDoc } from '../../shared/legal/legal-doc-dialog.component';
+import { SpecialtyFocus } from '../../core/models/clinic.models';
 
 interface Modulo {
   code: string;
@@ -52,12 +53,6 @@ const DIAS = [
   { n: '7', l: 'Dom' },
 ];
 
-/**
- * Asistente de bienvenida: la primera vez que entra el administrador elige
- * cómo trabaja (solo, consultorio o clínica), sus datos, su logo, su color,
- * su horario y qué módulos ver. Con `data.edit` es la página de
- * Personalización, para cambiar todo eso después.
- */
 @Component({
   selector: 'app-setup-wizard',
   standalone: true,
@@ -103,21 +98,36 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
   cierra = '18:00';
   readonly diasSel = signal(new Set(['1', '2', '3', '4', '5', '6']));
   readonly ocultos = signal(new Set<string>(OCULTOS_POR_TIPO.independiente));
-  /** Especialidad de ortodoncia: muestra el módulo de fichas ORT y plan de cuotas. */
   readonly ortodoncia = signal(false);
+  readonly foco = signal<SpecialtyFocus>('general');
+  readonly focos: { v: SpecialtyFocus; i: string; t: string; d: string; color: string | null }[] = [
+    { v: 'general', i: 'medical_services', t: 'Odontología general', d: 'El inicio de siempre: agenda, cobros y pacientes.', color: null },
+    { v: 'ortodoncia', i: 'sentiment_very_satisfied', t: 'Ortodoncia', d: 'Controles del día, atrasos y fichas activas al abrir.', color: '#4F46E5' },
+    { v: 'estetica', i: 'auto_awesome', t: 'Estética dental', d: 'Propuestas estéticas, antes y después y fotos para redes.', color: '#D0457E' },
+    { v: 'pediatria', i: 'child_care', t: 'Odontopediatría', d: 'Niños de hoy con su edad, controles y cumpleaños.', color: '#E0614A' },
+  ];
 
   readonly usuario = computed(() => this.auth.currentUser());
   readonly tipoTexto = computed(
     () => ({ independiente: 'Consultorio', consultorio: 'Consultorio', clinica: 'Clínica' })[this.tipo()],
   );
 
+  elegirFoco(v: SpecialtyFocus): void {
+    const sugeridos = new Set(this.focos.map((f) => f.color).filter(Boolean).concat('#0D7F76'));
+    this.foco.set(v);
+    if (v === 'ortodoncia') this.ortodoncia.set(true);
+    const color = this.focos.find((f) => f.v === v)?.color ?? '#0D7F76';
+    if (sugeridos.has(this.color().toUpperCase()) || sugeridos.has(this.color())) {
+      this.color.set(color.toUpperCase());
+      this.branding.preview(this.color());
+    }
+  }
+
   async ngOnInit(): Promise<void> {
     const u = this.auth.currentUser();
     if (u) this.correo = u.email;
     try {
       const c = await firstValueFrom(this.clinics.getMyClinic());
-      // Se configura una sola vez: si ya se hizo (en el celular o en otra
-      // pestaña), no se repite; lo demás se cambia en Personalización.
       if (!this.edit && c.setup_completed_at) {
         await this.branding.load();
         this.snack.open('Tu consulta ya está configurada.', 'Cerrar', { duration: 3500 });
@@ -143,6 +153,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
         this.ocultos.set(new Set(c.hidden_modules ?? []));
       }
       this.ortodoncia.set(!!c.orthodontics_enabled);
+      this.foco.set(c.specialty_focus ?? 'general');
     } catch {
       // Sin datos previos se empieza en blanco.
     }
@@ -182,8 +193,6 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
     this.ocultos.set(s);
   }
 
-  /** El logo se reduce en el navegador a 512 px antes de guardarlo: una foto
-   *  del celular pesa varios MB y aquí basta con unos KB. */
   async subirLogo(ev: Event): Promise<void> {
     const file = (ev.target as HTMLInputElement).files?.[0];
     (ev.target as HTMLInputElement).value = '';
@@ -248,6 +257,7 @@ export class SetupWizardComponent implements OnInit, OnDestroy {
       work_days: [...this.diasSel()].sort().join(''),
       hidden_modules: [...this.ocultos()],
       orthodontics_enabled: this.ortodoncia(),
+      specialty_focus: this.foco(),
     };
     try {
       if (this.edit) {

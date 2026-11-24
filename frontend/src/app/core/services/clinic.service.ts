@@ -63,8 +63,6 @@ export class ClinicService {
     return this.http.delete<void>(`${this.base}/specialties/${id}`);
   }
 
-  // ---- Sedes y consultorios ------------------------------------------------
-
   listBranches(): Observable<Branch[]> {
     return this.http.get<Branch[]>(`${this.base}/clinics/branches`);
   }

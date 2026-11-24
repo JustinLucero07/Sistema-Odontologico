@@ -1,6 +1,3 @@
-"""Validación de cédula y RUC ecuatorianos, para rechazar un dígito mal
-escrito antes de que lo haga el SRI."""
-
 from app.modules.invoicing.constants import (
     CONSUMIDOR_FINAL_ID,
     ID_CEDULA,
@@ -23,10 +20,6 @@ def cedula_valida(cedula: str) -> bool:
 
 
 def ruc_valido(ruc: str) -> bool:
-    """Estructura del RUC: 13 dígitos, provincia válida y terminado en
-    establecimiento distinto de 000. El dígito verificador de sociedades y
-    entidades públicas tiene casos especiales, así que no se exige aquí: lo
-    confirma el SRI."""
     if len(ruc) != 13 or not ruc.isdigit() or ruc[10:] == "000":
         return False
     provincia = int(ruc[:2])

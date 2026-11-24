@@ -4,6 +4,10 @@
       <mat-button-toggle value="permanent">Permanente</mat-button-toggle>
       <mat-button-toggle value="temporary">Temporal</mat-button-toggle>
     </mat-button-toggle-group>
+    <mat-button-toggle-group [value]="modo()" (change)="modo.set($event.value)" aria-label="Vista">
+      <mat-button-toggle value="2d"><mat-icon>grid_view</mat-icon> 2D</mat-button-toggle>
+      <mat-button-toggle value="3d"><mat-icon>view_in_ar</mat-icon> 3D</mat-button-toggle>
+    </mat-button-toggle-group>
 
     <div class="stats">
       <span class="stat"><b>{{ stats().affected }}</b> con hallazgos</span>
@@ -20,8 +24,25 @@
       </button>
     }
     <button mat-button (click)="print()"><mat-icon>print</mat-icon>Imprimir</button>
+    @if (editable()) {
+      <button mat-button (click)="dictando.set(!dictando())" [class.on]="dictando()"><mat-icon>mic</mat-icon>Dictar</button>
+    }
+    <button mat-button (click)="linea.set(!linea())" [class.on]="linea()"><mat-icon>timeline</mat-icon>Línea de tiempo</button>
     <button mat-button (click)="loadVersions()" [class.on]="showVersions()"><mat-icon>history</mat-icon>Versiones</button>
   </div>
+
+  @if (dictando() && editable()) {
+    <app-odontogram-dictation (aplicar)="aplicarDictado($event)" (cerrar)="dictando.set(false)" />
+  }
+
+  @if (linea()) {
+    <app-odontogram-timeline
+      [patientId]="patientId"
+      (version)="verEnLinea($event)"
+      (pieza)="selectedFdi.set($event)"
+      (cerrada)="linea.set(false)"
+    />
+  }
 
   @if (viewingVersion(); as version) {
     <div class="version-banner">
@@ -33,6 +54,20 @@
 
   <div class="workspace">
     <div class="main-col">
+      @if (modo() === '3d') {
+        <app-odontogram-3d
+          [conditions]="shown()"
+          [denture]="denture()"
+          [selectedFdi]="selectedFdi()"
+          [editable]="editable()"
+          [pincel]="pincel3d()"
+          (toothSelected)="selectedFdi.set($event)"
+          (surfaceClicked)="editable() && onSurfaceClicked($event)"
+        ></app-odontogram-3d>
+        @if (!editable()) {
+          <p class="hint-3d"><mat-icon>info</mat-icon>Vista de solo lectura.</p>
+        }
+      } @else {
       <section class="glass-card chart-wrap" [class.painting]="tool() !== null && editable()">
         <app-odontogram-chart
           [conditions]="shown()"
@@ -58,6 +93,7 @@
           </p>
         }
       </section>
+      }
 
       @if (showVersions()) {
         <section class="glass-card versions-panel">

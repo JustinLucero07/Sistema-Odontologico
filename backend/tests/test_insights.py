@@ -1,5 +1,3 @@
-"""Oportunidades y huecos libres: reglas claras sobre datos reales."""
-
 from datetime import date, datetime, timedelta, timezone
 
 
@@ -61,7 +59,6 @@ async def test_opportunities_lists_each_rule(client, clinic_with_users):
     assert all(x["contact_allowed"] for x in d["debtors"])
     assert d["clinic_name"]
 
-    # Al retirar la autorización de comunicaciones ya no se ofrece contactar.
     await client.post(
         f"/api/v1/patients/{debtor}/privacy/consents",
         json={"kind": "comunicaciones", "granted": False, "method": "verbal"},

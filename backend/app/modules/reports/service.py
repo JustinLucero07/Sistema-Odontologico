@@ -45,8 +45,6 @@ APPOINTMENT_LABELS = {
 
 WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
-# Buckets are by how long a debt has been outstanding, counted from the day it
-# was billed. 90+ is where a clinic normally stops expecting to be paid.
 AGING_BUCKETS = [(0, 30, "0–30 días"), (31, 60, "31–60 días"), (61, 90, "61–90 días")]
 AGING_OVERFLOW = "Más de 90 días"
 
@@ -54,12 +52,6 @@ AGING_OVERFLOW = "Más de 90 días"
 async def _window(
     db: AsyncSession, clinic_id: uuid.UUID, date_from: date, date_to: date
 ) -> tuple[datetime, datetime]:
-    """A day range as an inclusive instant range, so an appointment at 23:50 on
-    the last day is inside the report rather than just outside it.
-
-    Los días son los de la clínica, no los de UTC: en Ecuador (UTC−5) algo
-    registrado a las 20:00 ya es "mañana" en UTC, y sin esto caería en el
-    reporte del día siguiente."""
     tz_name = await db.scalar(select(Clinic.timezone).where(Clinic.id == clinic_id))
     try:
         tz = ZoneInfo(tz_name or "UTC")
@@ -72,8 +64,6 @@ async def _window(
 
 
 def _rate(numerator: int, denominator: int) -> float | None:
-    """None, not zero, when there is nothing to divide. A clinic with no
-    concluded appointments has an UNKNOWN no-show rate, not a perfect one."""
     return round(numerator / denominator * 100, 1) if denominator else None
 
 
@@ -84,9 +74,6 @@ async def _professional_names(db: AsyncSession, clinic_id: uuid.UUID) -> dict[uu
         )
     )
     return {pid: f"{first} {last}" for pid, first, last in result.all()}
-
-
-# ---- Financial ----------------------------------------------------------
 
 
 async def financial_report(
@@ -112,9 +99,6 @@ async def financial_report(
     for payment in live:
         by_method[payment.method].append(payment)
 
-    # Money is attributed to the professional who did the work, through the
-    # charge's budget. A payment on account has no professional, and is left
-    # out rather than spread across everyone.
     charge_professional: dict[uuid.UUID, uuid.UUID] = {}
     charge_rows = (
         await db.execute(
@@ -201,8 +185,6 @@ async def financial_report(
 async def _receivables(
     db: AsyncSession, clinic_id: uuid.UUID
 ) -> tuple[Decimal, list[AgingBucket]]:
-    """What is still owed, bucketed by age. Computed from live charges minus
-    the payments that still stand, so a voided payment re-opens its debt."""
     charges = list(
         (
             await db.execute(
@@ -243,9 +225,6 @@ async def _receivables(
         AgingBucket(label=label, amount=money(sum(values, ZERO)), count=len(values))
         for label, values in buckets.items()
     ]
-
-
-# ---- Clinical -----------------------------------------------------------
 
 
 async def clinical_report(
@@ -336,9 +315,6 @@ async def _budget_conversion(
     budgets = list(
         (
             await db.execute(
-                # `Budget.total` walks its items, so they have to be loaded
-                # here: reaching a lazy relationship from a property later
-                # means IO outside the async context, which simply fails.
                 select(Budget)
                 .options(selectinload(Budget.items))
                 .where(
@@ -351,8 +327,6 @@ async def _budget_conversion(
         .scalars()
         .all()
     )
-    # `total` is a Python property, so the grouping happens here rather than in
-    # SQL; budget volumes per period are small enough that this is fine.
     groups: dict[str, list[Budget]] = defaultdict(list)
     for budget in budgets:
         if budget.status == "aceptado":
@@ -381,9 +355,6 @@ async def _budget_conversion(
         pending_amount=total_of(pending),
         conversion_rate=_rate(len(accepted), decided),
     )
-
-
-# ---- Appointments -------------------------------------------------------
 
 
 async def appointment_report(
@@ -415,8 +386,6 @@ async def appointment_report(
     attended = by_status.get("atendida", 0)
     no_show = by_status.get("no_asistio", 0)
     cancelled = by_status.get("cancelada", 0)
-    # Only appointments whose outcome is known count toward the rates. A slot
-    # still marked "programada" has not failed to happen — it has not happened.
     concluded = attended + no_show + cancelled
 
     names = await _professional_names(db, clinic_id)
@@ -448,9 +417,6 @@ async def appointment_report(
         no_show_rate=_rate(no_show, concluded),
         cancellation_rate=_rate(cancelled, concluded),
     )
-
-
-# ---- Patients -----------------------------------------------------------
 
 
 AGE_BANDS = [(0, 11, "0–11"), (12, 17, "12–17"), (18, 34, "18–34"), (35, 54, "35–54"), (55, 200, "55+")]
@@ -490,8 +456,6 @@ async def patient_report(
         else:
             by_band["Sin fecha"] += 1
 
-    # "Active" means seen in the last year. A patient with no visit for longer
-    # is dormant, which is the list a clinic runs a recall campaign from.
     cutoff = datetime.now(timezone.utc) - timedelta(days=365)
     seen_rows = (
         await db.execute(
@@ -527,9 +491,6 @@ async def patient_report(
         seen_last_12m=len(seen_recently),
         dormant=len(all_patients) - len(seen_recently),
     )
-
-
-# ---- Summary ------------------------------------------------------------
 
 
 async def summary(

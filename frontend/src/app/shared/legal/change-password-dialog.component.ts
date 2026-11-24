@@ -10,8 +10,6 @@ import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 
-/** Las mismas reglas que aplica el servidor (core/password_policy.py), para
- *  avisar mientras se escribe. El servidor sigue siendo quien decide. */
 function checks(password: string, personal: string[]) {
   const plain = password.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   return [

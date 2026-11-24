@@ -6,8 +6,6 @@ import '../../shared/widgets/ui.dart';
 import '../auth/auth_controller.dart';
 import '../theme/app_theme.dart';
 
-/// Aviso flotante arriba: sin conexión, cambios por subir o rechazados.
-/// Tocarlo abre la lista de cambios pendientes.
 class BarraSinConexion extends ConsumerWidget {
   const BarraSinConexion({super.key, required this.navegador});
 

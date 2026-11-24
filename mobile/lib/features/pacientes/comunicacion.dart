@@ -12,10 +12,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-/// Comunicación con el paciente, como en la web: mensajes enviados (y
-/// enviar uno nuevo), el asistente que redacta borradores y los enlaces al
-/// portal donde el paciente ve sus citas y su saldo.
-
 const _estadoMensaje = {
   'pendiente': ('Pendiente', Tonos.gris),
   'enviado': ('Enviado', Tonos.verde),
@@ -55,8 +51,6 @@ final _enlacesProvider = FutureProvider.autoDispose.family<List<Map<String, dyna
   (ref, id) => ref.watch(apiProvider).lista('/patients/$id/portal'),
 );
 
-/// Enviar un mensaje. El texto de la plantilla se copia en la caja en vez de
-/// mandarse a ciegas: quien envía lee exactamente lo que sale.
 Future<void> enviarMensaje(BuildContext context, WidgetRef ref, String pacienteId) async {
   final plantillas = await cargarOAvisar(context, ref.read(plantillasMensajeProvider.future));
   if (plantillas == null || !context.mounted) return;
@@ -460,10 +454,43 @@ class _Portal extends ConsumerWidget {
 
   final String pacienteId;
 
-  /// El enlace completo solo se ve al crearlo: el servidor guarda su huella,
-  /// no el enlace, así que después no se puede volver a mostrar.
   Future<void> _crear(BuildContext context, WidgetRef ref) async {
-    final r = await cargarOAvisar(context, ref.read(apiProvider).post('/patients/$pacienteId/portal'));
+    final clinica = await showDialog<bool>(
+      context: context,
+      builder: (d) {
+        var incluir = false;
+        return StatefulBuilder(
+          builder: (d, set) => AlertDialog(
+            title: const Text('Crear enlace al portal'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('El paciente verá sus citas, su saldo, sus cuotas y podrá enviar el comprobante de su transferencia.'),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  key: const Key('incluir-clinica'),
+                  contentPadding: EdgeInsets.zero,
+                  value: incluir,
+                  onChanged: (v) => set(() => incluir = v),
+                  title: const Text('Incluir información clínica', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Su boca en 3D, su plan y sus fotos de antes y después. Solo si lo envía directo al paciente.'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancelar')),
+              FilledButton(onPressed: () => Navigator.pop(d, incluir), child: const Text('Crear enlace')),
+            ],
+          ),
+        );
+      },
+    );
+    if (clinica == null || !context.mounted) return;
+    final r = await cargarOAvisar(
+      context,
+      ref.read(apiProvider).post('/patients/$pacienteId/portal', {'include_clinical': clinica}),
+    );
     ref.invalidate(_enlacesProvider(pacienteId));
     if (r is! Map || !context.mounted) return;
     final url = '${r['url']}';
@@ -497,7 +524,7 @@ class _Portal extends ConsumerWidget {
               await abrirWhatsapp(
                 d,
                 '${p['whatsapp'] ?? p['phone'] ?? ''}',
-                'Hola ${p['first_name'] ?? ''}, aquí puede ver sus citas y su saldo: $url',
+                'Hola ${p['first_name'] ?? ''}, aquí puede ver sus citas, su saldo y enviar sus comprobantes de pago: $url',
               );
             },
             icon: const Icon(Icons.send_rounded, size: 17),
@@ -518,7 +545,7 @@ class _Portal extends ConsumerWidget {
         const _Aviso(
           icono: Icons.lock_outline,
           color: Tonos.azul,
-          texto: 'El paciente ve sus próximas citas y su saldo, sin crear cuenta. El enlace vence y se puede revocar.',
+          texto: 'El paciente ve sus citas, su saldo y sus cuotas, y puede enviar su comprobante de pago, sin crear cuenta. El enlace vence y se puede revocar.',
         ),
         if (puede)
           FilledButton.icon(

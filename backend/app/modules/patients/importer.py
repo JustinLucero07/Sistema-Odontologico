@@ -1,12 +1,3 @@
-"""Importar pacientes desde Excel (.xlsx) o CSV, con vista previa.
-
-Dos pasos a propósito: primero se lee el archivo y se muestra qué se va a
-crear, qué está repetido y qué tiene errores; recién al confirmar se guarda.
-Así nadie mete 999 pacientes mal partidos sin darse cuenta.
-
-El .xlsx se lee con la librería estándar (es un ZIP con XML): no hace falta
-instalar nada más en el servidor."""
-
 import csv
 import io
 import re
@@ -86,9 +77,6 @@ def detectar_columnas(encabezados: list[str]) -> dict[str, str | None]:
             usados.add(campo)
         out[h] = campo
     return out
-
-
-# ---- Lectura de archivos ---------------------------------------------------
 
 
 def _leer_csv(datos: bytes) -> list[list[str]]:
@@ -204,8 +192,6 @@ def leer_archivo(nombre: str, datos: bytes) -> tuple[list[str], list[list[str]]]
     filas = [f for f in filas if any(f)]
     if not filas:
         raise ArchivoInvalido("El archivo está vacío.")
-    # El encabezado es la primera fila que tenga al menos 2 columnas reconocibles
-    # (hay planillas con un título arriba).
     for i, fila in enumerate(filas[:10]):
         if sum(1 for v in detectar_columnas(fila).values() if v) >= 2:
             encabezados = fila
@@ -219,9 +205,6 @@ def leer_archivo(nombre: str, datos: bytes) -> tuple[list[str], list[list[str]]]
     encabezados = [h or f"Columna {i + 1}" for i, h in enumerate(encabezados)]
     cuerpo = [(f + [""] * ancho)[:ancho] for f in cuerpo]
     return encabezados, cuerpo
-
-
-# ---- Conversión de valores -------------------------------------------------
 
 
 def _fecha(v: str) -> date | None:
@@ -263,10 +246,6 @@ def _titulo(v: str) -> str:
 
 
 def _partir_nombre(completo: str, orden: str) -> tuple[str, str]:
-    """Parte un nombre completo en (nombres, apellidos).
-
-    2 palabras: 1 + 1. 3 palabras: 1 nombre y 2 apellidos. 4 o más: dos
-    apellidos y el resto nombres. `orden` dice qué va primero en el archivo."""
     partes = _titulo(completo).split()
     if len(partes) == 1:
         return partes[0], ""
@@ -322,9 +301,6 @@ def convertir_fila(valores: dict[str, str], orden: str) -> tuple[dict, list[str]
         d["birth_date"] = None
     d["sex"] = _sexo(valores.get("sex", ""))
     return d, errores
-
-
-# ---- Vista previa y guardado -------------------------------------------------
 
 
 def _clave_nombre(nombres: str, apellidos: str) -> str:
@@ -394,8 +370,6 @@ async def analizar(db, clinic_id, encabezados, cuerpo, mapeo: dict[str, str | No
 
 
 async def guardar(db, clinic_id, actor_id, pacientes: list, omitir_duplicados: bool = True) -> dict:
-    """Crea los pacientes confirmados. Vuelve a revisar repetidos por si
-    alguien creó el mismo paciente mientras se revisaba la vista previa."""
     from app.core.audit import record_audit
     from app.modules.patients.models import Patient
 

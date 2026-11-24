@@ -4,10 +4,10 @@ from decimal import ROUND_HALF_UP, Decimal
 from xml.sax.saxutils import escape
 from zoneinfo import ZoneInfo
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from app.core.audit import record_audit
 from app.modules.clinics.models import Clinic
@@ -61,9 +61,6 @@ def _hoy(clinica: Clinic) -> date:
 
 def _error(codigo: int, texto: str) -> HTTPException:
     return HTTPException(status_code=codigo, detail=texto)
-
-
-# ---------------------------------------------------------------- Configuración
 
 
 async def _config(db: AsyncSession, clinic_id: uuid.UUID) -> InvoicingSettings:
@@ -208,9 +205,6 @@ async def delete_certificate(db: AsyncSession, clinic_id: uuid.UUID, actor_id: u
     return await get_settings(db, clinic_id)
 
 
-# ---------------------------------------------------------------- Consultas
-
-
 def _cargar():
     return selectinload(Invoice.lines)
 
@@ -269,10 +263,22 @@ async def list_invoices(
 async def _cargos_facturados(db: AsyncSession, cargos: list[uuid.UUID]) -> set[uuid.UUID]:
     if not cargos:
         return set()
+    nota = aliased(Invoice)
+    acreditado_sq = (
+        select(func.coalesce(func.sum(nota.total), 0))
+        .where(nota.modified_invoice_id == Invoice.id, nota.status.in_(VIGENTES))
+        .correlate(Invoice)
+        .scalar_subquery()
+    )
     filas = await db.execute(
         select(InvoiceLine.charge_id)
         .join(Invoice, Invoice.id == InvoiceLine.invoice_id)
-        .where(InvoiceLine.charge_id.in_(cargos), Invoice.doc_type == FACTURA, Invoice.status.in_(VIGENTES))
+        .where(
+            InvoiceLine.charge_id.in_(cargos),
+            Invoice.doc_type == FACTURA,
+            Invoice.status.in_(VIGENTES),
+            acreditado_sq < Invoice.total,
+        )
     )
     return {fila[0] for fila in filas.all()}
 
@@ -295,19 +301,12 @@ async def invoiceable_charges(db: AsyncSession, clinic_id: uuid.UUID, patient_id
 
 
 async def charge_is_invoiced(db: AsyncSession, charge_id: uuid.UUID) -> bool:
-    """Para no anular un cargo que figura en una factura vigente: primero va la
-    nota de crédito."""
     return bool(await _cargos_facturados(db, [charge_id]))
-
-
-# ---------------------------------------------------------------- Emisión
 
 
 def _linea(posicion: int, codigo: str, descripcion: str, cantidad: Decimal, precio: Decimal, incluye_iva: bool, descuento: Decimal, codigo_iva: str, cargo: uuid.UUID | None) -> InvoiceLine:
     tarifa = IVA[codigo_iva][1]
     if incluye_iva and tarifa:
-        # «Cuesta 115 con IVA» → base 100 + IVA 15. Se separa sobre el total
-        # de la línea para no arrastrar redondeos por unidad.
         bruto = _c(cantidad * precio) - _c(descuento)
         base = _c(bruto / (1 + tarifa / 100))
         unitario = (base + _c(descuento)) / cantidad
@@ -508,9 +507,6 @@ async def create_credit_note(db: AsyncSession, clinic_id: uuid.UUID, actor_id: u
     return nota
 
 
-# ---------------------------------------------------------------- Envío al SRI
-
-
 def _emisor(clinica: Clinic, conf: InvoicingSettings) -> Emisor:
     return Emisor(
         ruc=clinica.tax_id.strip(),
@@ -581,9 +577,6 @@ async def firmar_xml(db: AsyncSession, factura: Invoice) -> bytes:
 
 
 async def process(db: AsyncSession, factura: Invoice) -> Invoice:
-    """Avanza un comprobante un paso con el SRI: firma y envía si está
-    pendiente, y consulta la autorización si ya fue recibido. Nunca lanza por
-    fallas del SRI: las deja anotadas y reprograma el reintento."""
     if factura.status not in EN_CURSO:
         return factura
     try:
@@ -651,8 +644,6 @@ async def process_and_notify(db: AsyncSession, factura: Invoice) -> Invoice:
 
 
 async def process_due(db: AsyncSession) -> int:
-    """Lo que corre el proceso en segundo plano: retoma todo lo pendiente, de
-    todas las consultas."""
     ahora = datetime.now(timezone.utc)
     pendientes = (
         await db.execute(
@@ -673,8 +664,6 @@ async def retry(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, inv
     if factura.status in (AUTORIZADA, DESCARTADA):
         raise _error(409, "Este comprobante ya no se puede reenviar.")
     if factura.status in (DEVUELTA, NO_AUTORIZADA):
-        # Se vuelve a firmar con los datos actuales (p. ej. tras corregir el RUC
-        # o subir la firma) y con la misma clave de acceso.
         factura.status = PENDIENTE
         factura.attempts = 0
     factura.next_attempt_at = datetime.now(timezone.utc)
@@ -701,9 +690,6 @@ async def discard(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, i
         after={"reason": factura.discard_reason},
     )
     return factura
-
-
-# ---------------------------------------------------------------- PDF, XML, correo
 
 
 async def pdf(db: AsyncSession, factura: Invoice) -> bytes:

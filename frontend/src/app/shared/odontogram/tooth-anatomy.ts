@@ -1,41 +1,11 @@
-/** Anatomical tooth silhouettes for the chart's figure row.
- *
- * Drawn in a canonical 40 × 64 viewBox with the crown at the BOTTOM
- * (y ≈ 36–60) and the roots at the TOP (y ≈ 2–37), i.e. an upper-arch tooth.
- * Lower-arch teeth reuse the same paths flipped vertically, which is how
- * printed dental charts mirror the two arches around the midline.
- *
- * Three rules keep the figures from looking like clip art:
- *   1. the root's base width EQUALS the crown's cervical width, so the two
- *      meet without a shoulder — a tooth has no step at the gum line;
- *   2. the root is the LONGER half and tapers to a fine apex; a stubby root
- *      reads as a cartoon;
- *   3. the crown flares out below the cervix and is widest at its occlusal
- *      third, which is the bulge you feel with a tongue.
- *
- * Proportions follow real dentition, because a dentist reads these shapes the
- * way a driver reads road signs:
- *   · incisors are shovel-shaped with a flat incisal edge and one conical root;
- *   · canines a single pointed cusp on the longest root in the mouth;
- *   · premolars two cusps split by a central groove, on one root;
- *   · upper molars three splayed roots, lower molars two broader ones — and
- *     the outer roots CURVE away from the midline, as they do in a radiograph;
- *   · third molars are visibly smaller than first molars.
- */
-
 export type ToothType = 'incisor' | 'canine' | 'premolar' | 'molar';
 
 export interface ToothAnatomy {
   crown: string;
   roots: string[];
-  /** Stroked anatomical landmarks: the cementoenamel junction and the grooves
-   *  between cusps. Hairlines — present when you look, quiet when you don't. */
   detail: string[];
   /** Highlight down the mesial wall of the crown. */
   gloss: string;
-  /** Shadow down the distal wall. This is what gives the crown volume: it
-   *  reads on a white tooth and on a filled one alike, which a highlight
-   *  alone does not. */
   shade: string;
   /** Rendered cell width — a molar really is wider than an incisor. */
   width: number;
@@ -48,7 +18,6 @@ export function toothTypeFor(fdi: string): ToothType {
 
   if (position <= 2) return 'incisor';
   if (position === 3) return 'canine';
-  // Primary dentition has no premolars: positions 4–5 are the primary molars.
   if (isPrimary) return 'molar';
   return position <= 5 ? 'premolar' : 'molar';
 }
@@ -59,8 +28,6 @@ const INCISOR: ToothAnatomy = {
   // Shovel-shaped: narrow at the neck, widening to a flat incisal edge.
   crown:
     'M 15 36 C 13.7 41.5 12.6 47.5 12.6 53 C 12.6 57.2 13.5 59.4 15.6 59.5 L 24.4 59.5 C 26.5 59.4 27.4 57.2 27.4 53 C 27.4 47.5 26.3 41.5 25 36 Z',
-  // Cementoenamel junction, the incisal ridge, and the grooves left by worn
-  // mamelons on a young central incisor.
   detail: [
     'M 15.2 37.4 C 18 38.7 22 38.7 24.8 37.4',
     'M 14 55.8 C 17.6 57 22.4 57 26 55.8',
@@ -95,8 +62,6 @@ const PREMOLAR: ToothAnatomy = {
   width: 35,
 };
 
-// The outer roots curve away from the midline; only the palatal root runs
-// straight. Three carrots standing in a row is the giveaway of a fake chart.
 const MOLAR_ROOT_LEFT =
   'M 8.55 36.5 C 7.7 28 6 15.5 4.7 7.2 C 4.3 4.8 6 4.2 6.9 6.2 C 9.7 14 13 25.5 14.5 36.5 Z';
 const MOLAR_ROOT_CENTER =
@@ -126,8 +91,6 @@ const MOLAR_UPPER: ToothAnatomy = {
   width: 46,
 };
 
-// Lower molars carry two roots, upper molars three — a small anatomical detail
-// a dentist notices immediately. The two are broader to span the same crown.
 const MOLAR_LOWER: ToothAnatomy = {
   roots: [
     'M 8.55 36.5 C 7.9 28 6.7 15.2 5.9 6.8 C 5.6 4.4 7.5 3.8 8.5 6 C 11.5 13.6 14.5 25.5 16 36.5 Z',
@@ -140,14 +103,8 @@ const MOLAR_LOWER: ToothAnatomy = {
   width: 46,
 };
 
-/** How big a tooth is drawn, relative to the base widths above. The chart is
- *  the screen a dentist stares at longest, so it earns the room the page now
- *  gives it — the paths are vector, so this costs nothing in sharpness. */
 const CHART_SCALE = 1.4;
 
-/** Width multipliers per FDI position. Real teeth are not interchangeable
- *  within a type: upper laterals are narrower than upper centrals, LOWER
- *  centrals are the smallest teeth in the mouth, and third molars shrink. */
 function widthScale(fdi: string, arch: 'upper' | 'lower'): number {
   const position = Number(fdi[1]);
   if (position === 1) return arch === 'upper' ? 1 : 0.8;
@@ -175,8 +132,5 @@ export function anatomyFor(fdi: string, arch: 'upper' | 'lower'): ToothAnatomy {
   return { ...base, width: Math.round(base.width * scale) };
 }
 
-/** One quadrant of the circular surface wheel, drawn pointing up. The other
- * three are the same path rotated 90°, 180° and 270° about the centre — which
- * is why only one definition is needed. */
 export const SURFACE_WHEEL_SEGMENT =
   'M 7.3 7.3 A 18 18 0 0 1 32.7 7.3 L 25 15 A 7 7 0 0 0 15 15 Z';

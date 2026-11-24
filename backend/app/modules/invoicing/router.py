@@ -35,9 +35,6 @@ async def _salida(db: AsyncSession, factura: Invoice) -> InvoiceOut:
     return out
 
 
-# ---------------------------------------------------------------- Configuración
-
-
 @settings_router.get("/catalogs")
 async def get_catalogs(current_user: CurrentUser = Depends(require_permission("invoices:read"))):
     def lista(d):
@@ -96,9 +93,6 @@ async def delete_certificate(
     return out
 
 
-# ---------------------------------------------------------------- Comprobantes
-
-
 @router.get("", response_model=list[InvoiceOut])
 async def list_invoices(
     status: str | None = None,
@@ -124,8 +118,6 @@ async def post_invoice(
     current_user: CurrentUser = Depends(require_permission("invoices:write")),
 ):
     factura = await service.create_invoice(db, current_user.clinic_id, current_user.id, payload)
-    # Primero queda guardada con su número; después se intenta con el SRI.
-    # Si el SRI no responde, el proceso en segundo plano la retoma.
     await db.commit()
     await service.process_and_notify(db, factura)
     await db.commit()
@@ -218,9 +210,6 @@ async def get_xml(
         contenido.encode(), media_type="application/xml",
         headers=cabeceras_archivo(service.nombre_archivo(factura, "xml"), en_linea=False),
     )
-
-
-# ---------------------------------------------------------------- Por paciente
 
 
 @patient_router.get("/invoices", response_model=list[InvoiceOut])

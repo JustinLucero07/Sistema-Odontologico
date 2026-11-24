@@ -54,15 +54,10 @@ class Buyer(BaseModel):
 
 
 class ItemIn(BaseModel):
-    """Una línea: o un cargo de la cuenta del paciente (charge_id), o un
-    concepto escrito a mano."""
-
     charge_id: uuid.UUID | None = None
     code: str | None = Field(default=None, max_length=25)
     description: str | None = Field(default=None, max_length=300)
     quantity: Decimal = Field(default=Decimal(1), gt=0, le=Decimal("999999"))
-    # Precio por unidad. Si price_includes_vat, ya trae el IVA incluido y se
-    # separa al facturar (lo habitual en un consultorio: «la limpieza cuesta 40»).
     unit_price: Decimal | None = Field(default=None, ge=0, le=Decimal("9999999"))
     price_includes_vat: bool = True
     discount: Decimal = Field(default=Decimal(0), ge=0)
@@ -78,7 +73,6 @@ class ItemIn(BaseModel):
 
 class InvoiceCreate(BaseModel):
     patient_id: uuid.UUID | None = None
-    # Sin comprador: se toma de la ficha del paciente; sin paciente, consumidor final.
     buyer: Buyer | None = None
     items: list[ItemIn] = Field(min_length=1, max_length=200)
     payment_method: str = "01"
@@ -94,7 +88,6 @@ class InvoiceCreate(BaseModel):
 
 class CreditNoteCreate(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
-    # Sin monto: anula la factura completa. Con monto (IVA incluido): parcial.
     amount: Decimal | None = Field(default=None, gt=0)
 
 

@@ -3,8 +3,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'widgets/formulario.dart';
 
-/// Número en formato internacional para WhatsApp. Los números locales de
-/// Ecuador (09…) pasan a 5939…, que es lo que exige wa.me.
 String? numeroWhatsapp(String? numero) {
   if (numero == null) return null;
   var d = numero.replaceAll(RegExp(r'[^\d]'), '');
@@ -12,7 +10,6 @@ String? numeroWhatsapp(String? numero) {
   return d.length < 8 ? null : d;
 }
 
-/// Abre WhatsApp con el mensaje escrito. No envía nada: la persona decide.
 Future<void> abrirWhatsapp(
   BuildContext context,
   String? numero, [

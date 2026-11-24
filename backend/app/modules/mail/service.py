@@ -219,8 +219,6 @@ def escapar(texto: str) -> str:
 
 
 def pagina(clinica: Clinic, titulo: str, parrafos: list[str], boton: tuple[str, str] | None = None) -> str:
-    """Correo HTML sencillo con el color de la consulta. Los párrafos ya vienen
-    escapados (pueden traer <b>)."""
     color = clinica.primary_color or "#0D7F76"
     cuerpo = "".join(f'<p style="margin:0 0 14px;line-height:1.55">{p}</p>' for p in parrafos)
     accion = (

@@ -11,12 +11,17 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Odontogram, OdontogramSummary, ToothCondition, ToothSurface } from '../../core/models/odontogram.models';
 import { OdontogramService } from '../../core/services/odontogram.service';
 import { OdontogramChartComponent } from '../../shared/odontogram/odontogram-chart.component';
+import { Odontogram3dComponent } from '../../shared/odontogram/odontogram-3d.component';
+import { OdontogramTimelineComponent } from '../../shared/odontogram/odontogram-timeline.component';
+import { HallazgoDictado, OdontogramDictationComponent } from '../../shared/odontogram/odontogram-dictation.component';
+import { TimelineFinding } from '../../core/models/odontogram.models';
 import {
   SURFACE_LABELS,
   TOOTH_CONDITIONS,
   TOOTH_CONDITION_BY_CODE,
   ToothConditionDef,
 } from '../../shared/odontogram/tooth-conditions';
+import { BrandingService } from '../../core/branding/branding.service';
 
 interface Finding {
   def: ToothConditionDef;
@@ -27,12 +32,14 @@ interface Finding {
 @Component({
   selector: 'app-odontogram',
   standalone: true,
-  imports: [DatePipe, MatButtonModule, MatButtonToggleModule, MatIconModule, MatTooltipModule, OdontogramChartComponent],
+  imports: [DatePipe, MatButtonModule, MatButtonToggleModule, MatIconModule, MatTooltipModule, OdontogramChartComponent, Odontogram3dComponent, OdontogramTimelineComponent, OdontogramDictationComponent],
   templateUrl: './odontogram.component.html',
   styleUrl: './odontogram.component.scss',
 })
 export class OdontogramComponent implements OnChanges {
   @Input({ required: true }) patientId!: string;
+  @Input() birthDate: string | null = null;
+  private readonly marca = inject(BrandingService);
 
   private readonly odontogramService = inject(OdontogramService);
   private readonly snackBar = inject(MatSnackBar);
@@ -40,6 +47,11 @@ export class OdontogramComponent implements OnChanges {
 
   readonly canWrite = this.auth.hasPermission('odontogram:write');
   readonly denture = signal<'permanent' | 'temporary'>('permanent');
+  /** 2D para registrar; 3D para ver la boca y enseñársela al paciente. */
+  readonly modo = signal<'2d' | '3d'>('2d');
+  /** Línea de tiempo abierta: recorre las versiones guardadas. */
+  readonly linea = signal(false);
+  readonly dictando = signal(false);
   readonly latest = signal<Odontogram | null>(null);
   readonly draftConditions = signal<ToothCondition[]>([]);
   readonly saving = signal(false);
@@ -53,9 +65,12 @@ export class OdontogramComponent implements OnChanges {
   readonly showVersions = signal(false);
   readonly viewingVersion = signal<Odontogram | null>(null);
 
-  /** Pincel: la condición elegida se aplica a cada superficie que se toca.
-   *  null = modo "elegir al tocar", que pregunta en cada pieza. */
   readonly tool = signal<string | null>('caries');
+  readonly pincel3d = computed(() => {
+    const t = this.tool();
+    const c = t ? TOOTH_CONDITION_BY_CODE[t] : null;
+    return c ? { label: c.label, color: c.color === 'transparent' ? '#2b9a5b' : c.color } : null;
+  });
   readonly selectedFdi = signal<string | null>(null);
 
   readonly picker = signal<{ fdi: string; surface: ToothSurface } | null>(null);
@@ -67,7 +82,6 @@ export class OdontogramComponent implements OnChanges {
 
   readonly shown = computed(() => this.viewingVersion()?.conditions ?? this.draftConditions());
 
-  /** Resumen de hallazgos: qué hay y en qué piezas, para leer la boca de un vistazo. */
   readonly findings = computed<Finding[]>(() => {
     const groups = new Map<string, Set<string>>();
     const counts = new Map<string, number>();
@@ -86,7 +100,6 @@ export class OdontogramComponent implements OnChanges {
 
   readonly affectedTeeth = computed(() => new Set(this.shown().map((c) => c.fdi_number)).size);
 
-  /** Cifras de cabecera: cuántas piezas tienen algo, cuántas hay que tratar. */
   readonly stats = computed(() => {
     const teethWith = (codes: string[]) =>
       new Set(this.shown().filter((c) => codes.includes(c.condition)).map((c) => c.fdi_number)).size;
@@ -104,7 +117,6 @@ export class OdontogramComponent implements OnChanges {
     };
   });
 
-  /** Lo registrado en la pieza seleccionada, para verlo y corregirlo sin buscar. */
   readonly selectedDetail = computed(() => {
     const fdi = this.selectedFdi();
     if (!fdi) return null;
@@ -119,7 +131,16 @@ export class OdontogramComponent implements OnChanges {
 
   readonly editable = computed(() => this.canWrite && !this.viewingVersion());
 
+  private edadAnios(): number | null {
+    if (!this.birthDate) return null;
+    const n = new Date(this.birthDate);
+    const hoy = new Date();
+    return hoy.getFullYear() - n.getFullYear() - (hoy < new Date(hoy.getFullYear(), n.getMonth(), n.getDate()) ? 1 : 0);
+  }
+
   ngOnChanges(): void {
+    const edad = this.edadAnios();
+    if (this.marca.specialty() === 'pediatria' && edad !== null && edad < 10) this.denture.set('temporary');
     if (this.patientId) void this.load();
   }
 
@@ -146,7 +167,6 @@ export class OdontogramComponent implements OnChanges {
       );
       return;
     }
-    // Una condición de pieza completa se aplica a toda la pieza aunque se toque una cara.
     const surface = TOOTH_CONDITION_BY_CODE[tool]?.wholeToothOnly ? 'whole' : event.surface;
     this.apply({ fdi: event.fdi, surface }, tool);
   }
@@ -165,10 +185,6 @@ export class OdontogramComponent implements OnChanges {
     this.picker.set(null);
   }
 
-  /** Una pieza puede tener varios hallazgos a la vez (corona y endodoncia,
-   *  caries en dos caras…): aplicar uno nuevo lo SUMA, no borra lo anterior.
-   *  Tocar otra vez con el mismo pincel lo quita, y «Sano» limpia esa cara o,
-   *  sobre la pieza completa, toda la pieza. */
   private apply(target: { fdi: string; surface: ToothSurface }, code: string): void {
     const current = this.draftConditions();
     const isTarget = (c: ToothCondition) => c.fdi_number === target.fdi && c.surface === target.surface;
@@ -185,7 +201,24 @@ export class OdontogramComponent implements OnChanges {
     this.draftConditions.set(rest);
   }
 
-  /** Quita un hallazgo concreto de la pieza seleccionada (se puede deshacer). */
+  aplicarDictado(hallazgos: HallazgoDictado[]): void {
+    const current = this.draftConditions();
+    let rest = [...current];
+    for (const h of hallazgos) {
+      const surface = h.surface as ToothSurface;
+      if (h.condition === 'sano') {
+        rest = rest.filter((c) => c.fdi_number !== h.fdi_number || (surface !== 'whole' && c.surface !== surface));
+      } else if (!rest.some((c) => c.fdi_number === h.fdi_number && c.surface === surface && c.condition === h.condition)) {
+        rest.push({ fdi_number: h.fdi_number, surface, condition: h.condition });
+      }
+    }
+    if (rest.length === current.length && rest.every((c, i) => c === current[i])) return;
+    this.history.set([...this.history(), current]);
+    this.draftConditions.set(rest);
+    if (hallazgos.length) this.selectedFdi.set(hallazgos[hallazgos.length - 1].fdi_number);
+    this.snackBar.open(`${hallazgos.length} hallazgo(s) aplicados. Revise y guarde.`, undefined, { duration: 2500 });
+  }
+
   removeCondition(target: ToothCondition): void {
     const current = this.draftConditions();
     const rest = current.filter(
@@ -250,6 +283,11 @@ export class OdontogramComponent implements OnChanges {
 
   backToCurrent(): void {
     this.viewingVersion.set(null);
+  }
+
+  /** La línea de tiempo eligió una versión (null = la vigente). */
+  verEnLinea(v: { id: string; created_at: string; conditions: TimelineFinding[] } | null): void {
+    this.viewingVersion.set(v ? ({ ...v, conditions: v.conditions } as unknown as Odontogram) : null);
   }
 
   print(): void {

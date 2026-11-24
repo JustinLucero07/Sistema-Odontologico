@@ -118,7 +118,6 @@ export class LegalService {
     return this.controller$;
   }
 
-  /** Tras cambiar los datos legales, el próximo aviso se arma con los nuevos. */
   refreshController(): void {
     this.controller$ = null;
   }

@@ -20,8 +20,6 @@ import 'shared/widgets/carga.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Sin esto, `DateFormat('EEEE', 'es')` lanza: los datos del idioma se cargan
-  // aparte y no vienen en el binario por defecto.
   await initializeDateFormatting('es');
   await ApiConfig.cargar();
   runApp(const ProviderScope(child: OdontoApp()));
@@ -44,11 +42,7 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Cierre por inactividad, con el tiempo que la consulta eligió en
-    // Legal y cumplimiento (el mismo que usa la web).
     _reloj = Timer.periodic(const Duration(seconds: 30), (_) => _revisarInactividad());
-    // Se intenta revivir la sesión antes de dibujar nada, para que quien ya
-    // entró no vea parpadear el login.
     ref.read(sinConexionProvider).alSincronizar = () {
       _avisos.currentState?.showSnackBar(
         const SnackBar(content: Text('Cambios hechos sin conexión subidos al servidor.')),
@@ -56,8 +50,6 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
       AvisosCitas.instancia.actualizar(ref.read(apiClientProvider).dio);
     };
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // La marca guardada primero: el arranque y el login ya salen con el
-      // logo y el color de la consulta.
       await ref.read(marcaProvider.notifier).cargarGuardada();
       ref.read(authProvider.notifier).restaurarSesion();
     });
@@ -125,8 +117,6 @@ class _OdontoAppState extends ConsumerState<OdontoApp> with WidgetsBindingObserv
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: switch (auth.estado) {
         EstadoSesion.cargando => const _Arranque(),
-        // Primero la contraseña propia; después el acuerdo. Mismo orden que
-        // en la web.
         EstadoSesion.autenticado when auth.usuario?.debeCambiarClave ?? false =>
           const CambiarClavePage(obligatorio: true),
         EstadoSesion.autenticado

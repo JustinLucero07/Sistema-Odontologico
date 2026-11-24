@@ -42,10 +42,6 @@ const ESTADO_TRAT: Record<string, string> = {
   propuesto: 'Propuesto', aprobado: 'Aprobado', en_progreso: 'En curso', completado: 'Terminado', cancelado: 'Cancelado', rechazado: 'Rechazado',
 };
 
-/**
- * Cartera: la foto de todo lo que se debe y de lo que está en curso, de todos
- * los pacientes a la vez, sin entrar ficha por ficha.
- */
 @Component({
   selector: 'app-portfolio-page',
   standalone: true,

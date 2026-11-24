@@ -35,8 +35,6 @@
   font-size: 0.86rem;
 }
 
-// ---- Session -----------------------------------------------------------
-
 .session-card {
   display: flex;
   align-items: center;
@@ -102,8 +100,6 @@
   padding-top: 8px;
 }
 
-// ---- Report ------------------------------------------------------------
-
 .report {
   display: grid;
   gap: 14px;
@@ -154,8 +150,6 @@
   color: var(--color-ink-faint);
 }
 
-// One measure across a handful of categories: bars, one hue, direct labels,
-// no legend needed.
 .method-list {
   list-style: none;
   margin: 0;

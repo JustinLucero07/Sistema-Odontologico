@@ -64,8 +64,6 @@ export class InventoryService {
     return this.http.put<InventoryItem>(`${this.base}/items/${itemId}`, body);
   }
 
-  /** Returns the item with its stock recomputed, so the caller never adds up
-   *  the ledger itself. */
   recordMovement(itemId: string, body: MovementInput): Observable<InventoryItem> {
     return this.http.post<InventoryItem>(`${this.base}/items/${itemId}/movements`, body);
   }

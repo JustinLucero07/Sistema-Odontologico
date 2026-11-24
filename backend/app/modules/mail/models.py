@@ -8,13 +8,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class MailSettings(UUIDPKMixin, TenantMixin, Base):
-    """Correo saliente de una consulta: facturas, recordatorios de citas y
-    consentimientos para firmar. Cada consulta usa su propio buzón (Gmail,
-    Outlook, el de su dominio…), así los pacientes reciben los correos de su
-    consultorio y no de un remitente desconocido.
-
-    La contraseña se guarda CIFRADA, igual que la firma electrónica."""
-
     __tablename__ = "mail_settings"
     __table_args__ = (UniqueConstraint("clinic_id", name="uq_mail_settings_clinic"),)
 

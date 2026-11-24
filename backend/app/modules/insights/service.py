@@ -1,10 +1,3 @@
-"""Oportunidades y huecos libres.
-
-Nada de esto es estimado ni «inteligente»: son reglas claras sobre los datos de
-la clínica, para que recepción sepa a quién llamar hoy y cuándo hay sitio en la
-agenda. Cada lista dice por qué aparece cada paciente.
-"""
-
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
@@ -248,9 +241,6 @@ async def free_slots(
     days: int,
     limit: int,
 ) -> list[dict]:
-    """Primeros huecos donde cabe una cita de `duration` minutos para el
-    profesional, dentro del horario y los días de atención de la consulta, sin
-    pisar sus citas activas. Las horas pasadas de hoy no cuentan."""
     tz = await _clinic_tz(db, clinic_id)
     clinic = await db.get(Clinic, clinic_id)
     hora = lambda txt, defecto: time(*map(int, txt.split(":"))) if txt else defecto

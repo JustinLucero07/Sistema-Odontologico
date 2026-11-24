@@ -10,10 +10,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-/// Periodontograma: seis sitios por pieza. Igual que en la web, un examen
-/// nunca se edita: cada registro es una versión nueva y las anteriores quedan
-/// intactas para comparar.
-
 const _vestibular = ['vestibular_distal', 'vestibular_central', 'vestibular_mesial'];
 const _lingual = ['lingual_distal', 'lingual_central', 'lingual_mesial'];
 const _sitios = [..._vestibular, ..._lingual];
@@ -29,7 +25,6 @@ const _nombreSitio = {
 final _arriba = filaArcada('upper');
 final _abajo = filaArcada('lower');
 
-/// Hasta 3 mm es surco sano, 4–5 mm bolsa que vigilar, 6 mm o más avanzada.
 Color colorBolsa(int? mm) => switch (mm) {
   null => Tonos.gris,
   <= 3 => Tonos.verde,
@@ -50,8 +45,6 @@ final perioExamenProvider =
           : await api.get('/patients/${k.$1}/periodontogram/${k.$2}');
       return r == null ? null : (r as Map).cast<String, dynamic>();
     });
-
-// ------------------------------------------------------------------ Estado
 
 class _Sitio {
   int? sondaje;
@@ -103,8 +96,6 @@ Map<String, _Pieza> _desdeExamen(Map<String, dynamic>? examen) {
   }
   return piezas;
 }
-
-// ------------------------------------------------------------------ Pestaña
 
 class PestanaPeriodontograma extends ConsumerStatefulWidget {
   const PestanaPeriodontograma({super.key, required this.pacienteId});
@@ -337,8 +328,6 @@ class _Indice extends StatelessWidget {
   }
 }
 
-/// Una arcada: por pieza, tres barras vestibulares y tres linguales cuya
-/// altura es la profundidad de bolsa, con el color de su gravedad.
 class _Arcada extends StatelessWidget {
   const _Arcada({required this.fila, required this.piezas, required this.arriba, required this.alTocar});
 
@@ -468,10 +457,6 @@ class _Leyenda extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------------ Nuevo examen
-
-/// Pregunta si partir del último examen (lo habitual en un control: se
-/// vuelve a sondear la misma boca) o empezar en blanco, y abre el editor.
 Future<void> nuevoPeriodontograma(BuildContext context, WidgetRef ref, String pacienteId) async {
   final ultimo = await cargarOAvisar(context, ref.read(perioExamenProvider((pacienteId, '')).future));
   if (!context.mounted) return;
@@ -865,8 +850,6 @@ class _EditorSitio extends StatelessWidget {
   }
 }
 
-/// Número con − y +. Vacío = no medido; el primer toque lo pone en 0… o en
-/// 2 mm para el sondaje, que es la lectura más común.
 class _Paso extends StatelessWidget {
   const _Paso({
     required this.etiqueta,

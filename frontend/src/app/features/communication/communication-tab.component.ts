@@ -48,6 +48,7 @@ export class CommunicationTabComponent implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly section = signal<'mensajes' | 'asistente' | 'portal'>('mensajes');
+  readonly incluirClinica = signal(false);
   readonly loading = signal(true);
   readonly busy = signal(false);
 
@@ -106,13 +107,9 @@ export class CommunicationTabComponent implements OnInit {
     }
   }
 
-  // ---- Messages ---------------------------------------------------------
-
   useTemplate(code: string): void {
     this.chosenTemplate = code;
     const template = this.templates().find((t) => t.code === code);
-    // The body is copied into the box rather than sent blind, so whoever
-    // presses send has read the exact words going out.
     this.messageBody = template?.body ?? '';
   }
 
@@ -142,8 +139,6 @@ export class CommunicationTabComponent implements OnInit {
       this.busy.set(false);
     }
   }
-
-  // ---- Assistant --------------------------------------------------------
 
   async showContext(): Promise<void> {
     this.context.set(
@@ -202,13 +197,11 @@ export class CommunicationTabComponent implements OnInit {
     }
   }
 
-  // ---- Portal -----------------------------------------------------------
-
   async createLink(): Promise<void> {
     if (this.busy()) return;
     this.busy.set(true);
     try {
-      const created = await firstValueFrom(this.comms.createPortalLink(this.patientId));
+      const created = await firstValueFrom(this.comms.createPortalLink(this.patientId, this.incluirClinica()));
       this.freshLink.set(created.url);
       this.links.set(await firstValueFrom(this.comms.getPortalLinks(this.patientId)));
     } catch (error) {

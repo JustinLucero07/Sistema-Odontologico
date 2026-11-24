@@ -15,8 +15,6 @@ const _duraciones = <Opcion>[
   ('120', '2 horas'),
 ];
 
-/// Nueva cita o reprogramación. Con [citaId] se edita (se lee del servidor);
-/// con [pacienteId] no se pregunta el paciente.
 Future<bool> editarCita(
   BuildContext context,
   WidgetRef ref, {
@@ -152,8 +150,6 @@ Future<bool> editarCita(
   return guardado;
 }
 
-/// Cambiar el estado de una cita a cualquiera de los posibles (con motivo si
-/// se cancela).
 Future<bool> cambiarEstadoCita(
   BuildContext context,
   WidgetRef ref,

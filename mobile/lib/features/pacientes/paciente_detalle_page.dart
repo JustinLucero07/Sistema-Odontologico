@@ -11,6 +11,9 @@ import '../../core/auth/auth_controller.dart';
 import '../../shared/odontograma/condiciones.dart';
 import '../../shared/widgets/carga.dart';
 import '../../shared/odontograma/odontograma_widget.dart';
+import '../../shared/odontograma/boca_3d.dart';
+import '../../shared/odontograma/linea_tiempo.dart';
+import '../../shared/odontograma/dictado.dart';
 import '../../shared/widgets/estado_vacio.dart';
 import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
@@ -21,6 +24,7 @@ import 'pestanas.dart';
 import '../../shared/contacto.dart';
 import '../../core/marca/marca.dart';
 import '../ortodoncia/ortodoncia.dart';
+import 'resumen_paciente.dart';
 
 final _fichaProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>(
@@ -60,9 +64,6 @@ const _pestanas = [
   'Consentimientos',
 ];
 
-/// La ficha del paciente con todo lo que tiene la web: datos, historia
-/// clínica, odontograma, tratamientos, evoluciones y recetas, imágenes, citas
-/// y cuenta. El botón flotante cambia según la pestaña.
 class PacienteDetallePage extends ConsumerStatefulWidget {
   const PacienteDetallePage({
     super.key,
@@ -74,7 +75,6 @@ class PacienteDetallePage extends ConsumerStatefulWidget {
   final String pacienteId;
   final String nombre;
 
-  /// Abre directamente la pestaña de ortodoncia (desde la lista de ortodoncia).
   final bool abrirOrtodoncia;
 
   @override
@@ -84,8 +84,6 @@ class PacienteDetallePage extends ConsumerStatefulWidget {
 
 class _PacienteDetallePageState extends ConsumerState<PacienteDetallePage>
     with SingleTickerProviderStateMixin {
-  /// La pestaña de ortodoncia aparece si la consulta activó la especialidad
-  /// (en la web o en la app) y el usuario puede verla.
   late final bool _orto =
       ref.read(marcaProvider).ortodoncia && (ref.read(authProvider).usuario?.puede('orthodontics:read') ?? false);
   late final List<String> _titulos = _orto ? [_pestanas.first, 'Ortodoncia', ..._pestanas.skip(1)] : _pestanas;
@@ -263,7 +261,10 @@ class _Ficha extends ConsumerWidget {
             '${'${p['first_name']}'.characters.firstOrNull ?? ''}${'${p['last_name']}'.characters.firstOrNull ?? ''}'
                 .toUpperCase();
         return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(_fichaProvider(pacienteId)),
+          onRefresh: () async {
+            ref.invalidate(_fichaProvider(pacienteId));
+            ref.invalidate(resumenPacienteProvider(pacienteId));
+          },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -317,6 +318,7 @@ class _Ficha extends ConsumerWidget {
                   ],
                 ),
               ),
+              ResumenPaciente(pacienteId: pacienteId),
               const SizedBox(height: 12),
               _Bloque(
                 titulo: 'Contacto',
@@ -500,6 +502,13 @@ class _Odontograma extends ConsumerStatefulWidget {
 
 class _OdontogramaState extends ConsumerState<_Odontograma> {
   bool _temporal = false;
+  bool _temporalDecidido = false;
+
+  /// 2D para registrar; 3D para ver la boca y enseñársela al paciente.
+  bool _tresD = false;
+
+  bool _linea = false;
+  List<Map<String, dynamic>>? _deLinea;
   String? _seleccionado;
 
   String get pacienteId => widget.pacienteId;
@@ -519,8 +528,19 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
         onReintentar: () => ref.invalidate(_odontogramaProvider(pacienteId)),
       ),
       data: (datos) {
-        final todas = (datos?['conditions'] as List? ?? [])
-            .cast<Map<String, dynamic>>();
+        if (!_temporalDecidido) {
+          final nac = DateTime.tryParse('${ref.watch(_fichaProvider(pacienteId)).valueOrNull?['birth_date'] ?? ''}');
+          if (nac != null) {
+            _temporalDecidido = true;
+            final hoy = DateTime.now();
+            var edad = hoy.year - nac.year;
+            if (hoy.month < nac.month || (hoy.month == nac.month && hoy.day < nac.day)) edad--;
+            if (ref.read(marcaProvider).especialidad == 'pediatria' && edad < 10) _temporal = true;
+          }
+        }
+        final todas =
+            _deLinea ??
+            (datos?['conditions'] as List? ?? []).cast<Map<String, dynamic>>();
         final piezas = [
           ...filaArcada('upper', temporal: _temporal),
           ...filaArcada('lower', temporal: _temporal),
@@ -532,9 +552,6 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
         final dientes = <String, Diente>{};
         for (final fdi in piezas) {
           final delDiente = todas.where((c) => c['fdi_number'] == fdi);
-          // Puede haber varios hallazgos de pieza completa: ausente o con
-          // extracción indicada si alguno lo dice; el color de la corona lo
-          // da el más reciente de los demás.
           final completas = delDiente
               .where((c) => c['surface'] == 'whole')
               .map((c) => c['condition'] as String)
@@ -642,6 +659,53 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                   ],
                 ),
               ),
+            if (datos != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      FilterChip(
+                        avatar: const Icon(Icons.timeline, size: 18),
+                        label: const Text('Línea de tiempo'),
+                        selected: _linea,
+                        onSelected: (v) => setState(() {
+                          _linea = v;
+                          if (!v) _deLinea = null;
+                        }),
+                      ),
+                      if (_deLinea == null && (ref.watch(authProvider).usuario?.puede('odontogram:write') ?? false))
+                        ActionChip(
+                          key: const Key('btn-dictar'),
+                          avatar: const Icon(Icons.mic, size: 18),
+                          label: const Text('Dictar'),
+                          onPressed: () => _dictar(todas),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            if (_linea)
+              LineaTiempoOdontograma(
+                pacienteId: pacienteId,
+                alCambiar: (c) => setState(() => _deLinea = c),
+                alTocarPieza: (fdi) => _verPieza(fdi, todas),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: false, icon: Icon(Icons.grid_view, size: 18), label: Text('2D')),
+                  ButtonSegment(value: true, icon: Icon(Icons.view_in_ar, size: 18), label: Text('3D')),
+                ],
+                selected: {_tresD},
+                onSelectionChanged: (v) => setState(() => _tresD = v.first),
+              ),
+            ),
             if (hayTemporales || _temporal)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -653,16 +717,35 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                   ],
                   selected: {_temporal},
                   onSelectionChanged: (v) => setState(() {
+                    _temporalDecidido = true;
                     _temporal = v.first;
                     _seleccionado = null;
                   }),
                 ),
               ),
+            if (_tresD) ...[
+              Boca3D(
+                hallazgos: todas,
+                temporal: _temporal,
+                seleccionado: _seleccionado,
+                alTocar: (fdi) {
+                  if (fdi != null) _verPieza(fdi, todas);
+                },
+                alTocarCara: _deLinea == null && (ref.watch(authProvider).usuario?.puede('odontogram:write') ?? false)
+                    ? (fdi, cara) => _agregarHallazgo(fdi, todas, superficie: cara)
+                    : null,
+                alto: MediaQuery.sizeOf(context).height * 0.55,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                child: Text(
+                  'Toque la cara de un diente para registrar en ella; doble toque para acercarse.',
+                  style: TextStyle(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.5)),
+                ),
+              ),
+            ] else ...[
             GlassCard(
               clipBehavior: Clip.antiAlias,
-              // Dieciséis piezas en el ancho de un teléfono quedan pequeñas.
-              // Pellizcar para ampliar es el gesto que cualquiera prueba
-              // primero; girar el teléfono también ensancha la arcada.
               child: InteractiveViewer(
                 minScale: 1,
                 maxScale: 4,
@@ -690,6 +773,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                 ),
               ),
             ),
+            ],
             const SizedBox(height: 16),
             if (hallazgos.isNotEmpty) ...[
               Padding(
@@ -719,8 +803,6 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
                 ),
               ),
             ] else
-              // Sin hallazgos no hay colores que explicar, pero quien abre la
-              // pestaña por primera vez necesita saber qué significan.
               Wrap(
                 spacing: 14,
                 runSpacing: 8,
@@ -741,9 +823,6 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
           .toSet()
           .length;
 
-  /// Detalle de una pieza en una hoja inferior: en un teléfono es más cómodo
-  /// que un aviso que desaparece solo.
-  /// Guarda una versión nueva del odontograma (nunca se sobrescribe).
   Future<void> _guardar(List<Map<String, dynamic>> condiciones) async {
     await ref.read(apiProvider).post('/patients/$pacienteId/odontogram', {
       'conditions': [
@@ -759,10 +838,21 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
     ref.invalidate(_odontogramaProvider(pacienteId));
   }
 
+  Future<void> _dictar(List<Map<String, dynamic>> todas) async {
+    final nuevos = await mostrarDictado(context);
+    if (nuevos == null || nuevos.isEmpty || !mounted) return;
+    await intentar(
+      context,
+      () => _guardar(aplicarHallazgos(todas, nuevos)),
+      exito: '${nuevos.length} ${nuevos.length == 1 ? 'hallazgo aplicado' : 'hallazgos aplicados'} (nueva versión)',
+    );
+  }
+
   Future<void> _agregarHallazgo(
     String fdi,
-    List<Map<String, dynamic>> todas,
-  ) async {
+    List<Map<String, dynamic>> todas, {
+    String superficie = 'whole',
+  }) async {
     await mostrarFormulario(
       context,
       titulo: 'Hallazgo en la pieza $fdi',
@@ -784,7 +874,7 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
           opciones: [
             for (final e in etiquetasSuperficie.entries) (e.key, e.value),
           ],
-          inicial: 'whole',
+          inicial: superficie,
           ayuda: 'Corona, implante, ausente… se aplican a la pieza completa.',
         ),
         const Campo('notes', 'Notas', tipo: TipoCampo.multilinea),
@@ -794,9 +884,6 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
         final superficie = _soloPiezaCompleta.contains(codigo)
             ? 'whole'
             : '${v['surface']}';
-        // Una pieza puede tener varios hallazgos a la vez (corona y
-        // endodoncia, caries en dos caras…): el nuevo se SUMA a los que ya
-        // tenía. «Sano» limpia esa cara o, en la pieza completa, toda la pieza.
         if (codigo == 'sano') {
           await _guardar(todas.where((c) {
             if (c['fdi_number'] != fdi) return true;
@@ -823,7 +910,8 @@ class _OdontogramaState extends ConsumerState<_Odontograma> {
   Future<void> _verPieza(String fdi, List<Map<String, dynamic>> todas) async {
     final delDiente = todas.where((c) => c['fdi_number'] == fdi).toList();
     final puedeEditar =
-        ref.read(authProvider).usuario?.puede('odontogram:write') ?? false;
+        _deLinea == null &&
+        (ref.read(authProvider).usuario?.puede('odontogram:write') ?? false);
     setState(() => _seleccionado = fdi);
     await showModalBottomSheet<void>(
       context: context,
@@ -1099,8 +1187,6 @@ class _FilaHallazgo extends StatelessWidget {
   }
 }
 
-/// Pestañas como selector segmentado de vidrio: una cápsula con la opción
-/// activa iluminada, en vez de la línea subrayada de Material.
 class _PestanasVidrio extends StatelessWidget {
   const _PestanasVidrio({required this.controlador, required this.titulos});
 

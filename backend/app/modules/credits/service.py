@@ -35,9 +35,6 @@ ZERO = Decimal("0.00")
 METHOD_LABELS = {code: label for code, label, _ in PAYMENT_METHODS}
 
 
-# ---- Cálculo --------------------------------------------------------------
-
-
 def preview(principal: Decimal, count: int, monthly_rate: Decimal, frequency: str, first_due_on: date) -> Preview:
     rows = schedule(principal, count, monthly_rate, FREQUENCY_DAYS[frequency], first_due_on)
     return Preview(
@@ -80,8 +77,6 @@ def _coverage(rows: list[CreditInstallment], paid: Decimal, today: date) -> list
 
 
 def _interest_covered(rows: list[CreditInstallment], paid: Decimal) -> Decimal:
-    """Cuánto de lo pagado corresponde a interés: dentro de cada cuota se
-    cubre primero el interés y luego el capital, como en cualquier crédito."""
     remaining = paid
     interest = ZERO
     for r in rows:
@@ -92,9 +87,6 @@ def _interest_covered(rows: list[CreditInstallment], paid: Decimal) -> Decimal:
         remaining -= take
         remaining -= min(remaining, r.principal)
     return money(interest)
-
-
-# ---- Lectura ----------------------------------------------------------------
 
 
 async def _load(db: AsyncSession, clinic_id: uuid.UUID, credit_id: uuid.UUID) -> Credit:
@@ -256,9 +248,6 @@ async def summary(db: AsyncSession, clinic_id: uuid.UUID) -> CreditSummary:
     )
 
 
-# ---- Escritura -------------------------------------------------------------
-
-
 async def create_credit(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID, payload: CreditCreate
 ) -> CreditDetail:
@@ -314,7 +303,6 @@ async def create_credit(
             ),
         )
 
-    # El calendario anterior de cuotas simples (si lo había) queda sustituido.
     charge.installments.clear()
 
     credit = Credit(
@@ -428,8 +416,6 @@ async def pay(
 async def restructure(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, credit_id: uuid.UUID, payload: CreditRestructure
 ) -> CreditDetail:
-    """Las cuotas pagadas quedan como están; lo que falta (capital e interés ya
-    pactado) se reparte en un calendario nuevo, sin intereses adicionales."""
     credit = await _load(db, clinic_id, credit_id)
     if credit.voided_at is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El crédito está anulado")
@@ -449,8 +435,6 @@ async def restructure(
         if covered >= r.amount:
             keep_number = r.number
             continue
-        # Cuota con saldo: se sustituye. La parte ya pagada queda como una
-        # cuota pagada de ese monto; el resto pasa al calendario nuevo.
         r.superseded_at = now
         interest_cov = min(covered, r.interest)
         principal_cov = money(covered - interest_cov)
@@ -468,8 +452,6 @@ async def restructure(
     if rest_total <= ZERO:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El crédito ya está pagado")
 
-    # Renumerar: las sustituidas conservan su número histórico, las nuevas
-    # continúan después de la mayor usada para no chocar.
     max_number = max((i.number for i in credit.installments), default=0)
     start = max_number + 1
     for i, row in enumerate(new_rows):

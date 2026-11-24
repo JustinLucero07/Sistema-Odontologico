@@ -11,6 +11,8 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 import '../pacientes/paciente_detalle_page.dart';
+import '../../core/auth/auth_controller.dart';
+import 'llamar_hoy.dart';
 
 final oportunidadesProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(apiProvider).mapa('/insights/opportunities'),
@@ -113,8 +115,6 @@ String _primero(dynamic nombre) => '$nombre'.split(' ').first;
   }
 }
 
-/// Centro de oportunidades: a quién escribir hoy y por qué, con el mensaje
-/// de WhatsApp ya escrito.
 class OportunidadesPage extends ConsumerStatefulWidget {
   const OportunidadesPage({super.key});
 
@@ -130,7 +130,10 @@ class _OportunidadesPageState extends ConsumerState<OportunidadesPage> {
     return PaginaModulo(
       titulo: 'Oportunidades',
       cuerpo: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(oportunidadesProvider),
+        onRefresh: () async {
+          ref.invalidate(oportunidadesProvider);
+          ref.invalidate(llamarHoyProvider);
+        },
         child: Asincrono(
           valor: ref.watch(oportunidadesProvider),
           alReintentar: () => ref.invalidate(oportunidadesProvider),
@@ -150,6 +153,7 @@ class _OportunidadesPageState extends ConsumerState<OportunidadesPage> {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (ref.watch(authProvider).usuario?.puede('appointments:read') ?? false) const LlamarHoy(),
                 SizedBox(
                   height: 112,
                   child: ListView(

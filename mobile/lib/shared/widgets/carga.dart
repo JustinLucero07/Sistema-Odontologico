@@ -6,8 +6,6 @@ import '../../core/marca/marca.dart';
 import '../../core/theme/app_theme.dart';
 import 'tooth_mark.dart';
 
-/// Brillo que recorre los esqueletos: un solo controlador para toda la
-/// pantalla, así todas las formas brillan a la vez, como en la web.
 class Destello extends StatefulWidget {
   const Destello({super.key, required this.child});
 
@@ -80,7 +78,6 @@ class Hueso extends StatelessWidget {
   }
 }
 
-/// Lista en carga: avatar, dos líneas y una cápsula, como las filas reales.
 class EsqueletoLista extends StatelessWidget {
   const EsqueletoLista({
     super.key,
@@ -91,8 +88,6 @@ class EsqueletoLista extends StatelessWidget {
 
   final int filas;
 
-  /// Va dentro de otra lista: se dibuja como columna, sin desplazamiento ni
-  /// márgenes propios.
   final bool dentroDeLista;
 
   /// Antepone una fila de tarjetas de cifras (para el panel).
@@ -255,8 +250,6 @@ class _Aparece extends StatelessWidget {
   }
 }
 
-/// Pantalla de arranque: el logo con un aro que gira, un resplandor que
-/// respira y una barra que avanza. La misma que la web.
 class PantallaArranque extends StatefulWidget {
   const PantallaArranque({super.key, this.mensaje = 'Preparando su clínica…'});
 
@@ -442,8 +435,6 @@ class _Aro extends CustomPainter {
   bool shouldRepaint(_Aro oldDelegate) => oldDelegate.vuelta != vuelta;
 }
 
-/// El logo de la app: el diente sobre su gota de vidrio verde azulado, igual
-/// que el icono del teléfono y el de la web.
 class LogoApp extends StatelessWidget {
   const LogoApp({super.key, this.tamano = 64});
 

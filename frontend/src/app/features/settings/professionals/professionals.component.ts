@@ -19,8 +19,6 @@ import { Professional, Specialty } from '../../../core/models/clinic.models';
 import { confirmAction } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { promptText } from '../../../shared/confirm-dialog/prompt-dialog.component';
 
-/** Colores para distinguir a cada profesional en la agenda. Probados sobre el
- *  fondo claro y el oscuro: todos se leen con texto blanco encima. */
 export const PROFESSIONAL_COLORS = [
   '#0E7C74', '#2563EB', '#7C3AED', '#C2410C', '#B45309', '#BE185D', '#0F766E', '#4D7C0F',
 ];
@@ -66,8 +64,6 @@ export class ProfessionalsComponent implements OnInit {
   readonly saving = signal(false);
   readonly editing = signal<Professional | null>(null);
   readonly displayedColumns = ['name', 'specialty', 'license', 'status', 'actions'];
-  /** La paleta, más el color actual si vino de fuera de ella: si no, el
-   *  profesional editado no tendría ningún color marcado. */
   readonly colors = signal<string[]>(PROFESSIONAL_COLORS);
 
   readonly form = this.fb.nonNullable.group({
@@ -77,7 +73,6 @@ export class ProfessionalsComponent implements OnInit {
     license_number: [''],
     color_hex: [PROFESSIONAL_COLORS[0]],
   });
-
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -164,7 +159,6 @@ export class ProfessionalsComponent implements OnInit {
     });
   }
 
-  /** Propone un color que nadie use todavía, para que la agenda se distinga sola. */
   private nextColor(): string {
     const used = new Set(this.professionals().map((p) => p.color_hex?.toUpperCase()));
     return PROFESSIONAL_COLORS.find((c) => !used.has(c)) ?? PROFESSIONAL_COLORS[0];

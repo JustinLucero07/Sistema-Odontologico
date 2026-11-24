@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/formulario.dart';
 import 'api.dart';
 
-/// Catálogos que usan muchos formularios. Se piden una vez por sesión de
-/// pantalla y se reutilizan.
-
 List<Opcion> _codigos(List<Map<String, dynamic>> l) => [
   for (final e in l) ('${e['code']}', '${e['label']}'),
 ];

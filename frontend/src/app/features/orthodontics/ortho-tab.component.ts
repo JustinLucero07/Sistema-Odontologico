@@ -32,6 +32,7 @@ import {
 } from '../../core/models/orthodontics.models';
 import { FinanceService } from '../../core/services/finance.service';
 import { OrthodonticsService } from '../../core/services/orthodontics.service';
+import { openPaymentInfo } from '../../shared/payment-info/payment-info-dialog.component';
 import { confirmAction } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { promptVoidReason } from '../../shared/confirm-dialog/prompt-dialog.component';
 import {
@@ -141,8 +142,6 @@ export class OrthoTabComponent implements OnChanges {
     this.fichas.update((l) => l.map((f) => (f.id === c.id ? c : f)));
   }
 
-  // ---- Ficha ----------------------------------------------------------------
-
   async nueva(): Promise<void> {
     const out = await openOrthoCaseDialog(this.dialog, {
       patient: { id: this.patientId, name: this.patientName || 'Paciente' },
@@ -215,8 +214,6 @@ export class OrthoTabComponent implements OnChanges {
       this.snack.open('No se pudo generar el archivo.', 'Cerrar', { duration: 4000 });
     }
   }
-
-  // ---- Cuotas -----------------------------------------------------------------
 
   async agregarCuotas(): Promise<void> {
     const c = this.caso();
@@ -321,8 +318,6 @@ export class OrthoTabComponent implements OnChanges {
     this.abiertos.set(s);
   }
 
-  // ---- Documentación ------------------------------------------------------------
-
   cambiarDoc(campo: OrthoDocField, valor: OrthoDocStatus): void {
     this.docs.update((d) => ({ ...d, [campo]: valor }));
     this.docsCambiados.set(true);
@@ -339,6 +334,18 @@ export class OrthoTabComponent implements OnChanges {
     } catch (e) {
       this.snack.open(mensajeError(e), 'Cerrar', { duration: 5000 });
     }
+  }
+
+  datosPago(): void {
+    const c = this.caso();
+    if (!c) return;
+    const cuota = c.controls.find((x) => +x.balance > 0);
+    openPaymentInfo(this.dialog, {
+      patientName: `${c.patient.first_name} ${c.patient.last_name}`,
+      phone: c.patient.whatsapp || c.patient.phone,
+      amount: cuota ? cuota.balance : null,
+      concept: cuota ? `cuota ${this.pad(cuota.number)} de ortodoncia` : null,
+    });
   }
 
   pad(n: number): string {

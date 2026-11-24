@@ -32,11 +32,195 @@ import 'package:odonto_movil/features/pacientes/periodontograma.dart';
 import 'package:odonto_movil/features/pacientes/comunicacion.dart';
 import 'package:odonto_movil/features/facturacion/facturacion_page.dart';
 import 'package:odonto_movil/features/ortodoncia/ortodoncia.dart';
+import 'package:odonto_movil/shared/odontograma/linea_tiempo.dart';
+import 'package:odonto_movil/shared/odontograma/dictado.dart';
+import 'package:odonto_movil/features/oportunidades/llamar_hoy.dart';
+import 'package:odonto_movil/features/pacientes/comprobantes.dart';
+import 'package:odonto_movil/features/panel/especialidad_panel.dart';
+import 'package:odonto_movil/features/finanzas/ventas.dart';
+import 'package:odonto_movil/features/panel/mando_control.dart';
+import 'package:odonto_movil/features/pacientes/resumen_paciente.dart';
+import 'package:odonto_movil/features/configuracion/datos_pago.dart';
 
 const _pid = 'p1';
 
 /// Respuestas de ejemplo con la misma forma que el servidor real.
 final Map<String, Object?> _datos = {
+  '/patients/$_pid/briefing': {
+    'ia_disponible': true,
+    'datos': [
+      {'codigo': 'alergias', 'icono': 'warning', 'tono': 'alerta', 'texto': 'Alergias: Penicilina'},
+      {'codigo': 'ortodoncia', 'icono': 'sentiment_very_satisfied', 'tono': 'info', 'texto': 'Ortodoncia ORT-0001 · toca el control 05 de 26'},
+      {'codigo': 'saldo', 'icono': 'account_balance_wallet', 'tono': 'dinero', 'texto': 'Debe \$30,00'},
+    ],
+  },
+  '/patients/$_pid/briefing/ai': {'texto': 'Paciente alérgica a la penicilina; hoy le toca el control 5 de ortodoncia.', 'modelo': 'claude-opus-5-5'},
+  '/dashboard/control': {
+    'today': '2026-11-23', 'monthly_goal': '3000.00', 'collected_month': '1850.00',
+    'collected_previous_same_period': '1500.00', 'goal_progress': 0.6166, 'projection_month': '2400.00',
+    'workdays_total': 25, 'workdays_elapsed': 19, 'workdays_left': 7, 'needed_per_workday': '164.29',
+    'collected_today': '120.00', 'payments_today': 3, 'appointments_today': 8, 'appointments_confirmed': 4,
+    'appointments_attended': 2, 'appointments_pending_confirm': 1, 'no_shows_today': 1, 'no_shows_month': 4,
+    'new_patients_month': 9,
+    'daily_income': [for (var i = 0; i < 30; i++) {'date': '2026-11-${(i % 28 + 1).toString().padLeft(2, '0')}', 'amount': '${(i * 37) % 180}.00'}],
+    'ortho_overdue': 2,
+  },
+  '/patients/$_pid/portal-receipts': [
+    {
+      'id': 'r1',
+      'patient_id': _pid,
+      'patient_name': null,
+      'amount': '30.00',
+      'paid_on': '2026-11-20',
+      'reference': 'TRX-1',
+      'note': null,
+      'destino': 'Ortodoncia ORT-0001 · cuota 05',
+      'status': 'pendiente',
+      'status_label': 'En revisión',
+      'reject_reason': null,
+      'payment_id': null,
+      'mime_type': 'application/pdf',
+      'created_at': '2026-11-20T10:00:00Z',
+      'reviewed_at': null,
+    },
+    {
+      'id': 'r0',
+      'patient_id': _pid,
+      'patient_name': null,
+      'amount': '15.00',
+      'paid_on': '2026-11-01',
+      'reference': null,
+      'note': null,
+      'destino': 'Abono a su cuenta',
+      'status': 'rechazado',
+      'status_label': 'Rechazado',
+      'reject_reason': 'No se ve el monto',
+      'payment_id': null,
+      'mime_type': 'image/png',
+      'created_at': '2026-11-01T10:00:00Z',
+      'reviewed_at': '2026-11-02T10:00:00Z',
+    },
+  ],
+  '/sales': {
+    'resumen': {
+      'ventas': 2, 'vendido': '100.00', 'cobrado': '60.00', 'pendiente': '40.00',
+      'facturado': '40.00', 'sin_facturar': '60.00', 'abonos_sin_asignar': '15.00', 'pacientes': 1,
+    },
+    'facturacion_lista': true,
+    'faltantes': [],
+    'items': [
+      {
+        'id': 'c1', 'fecha': '2026-11-20', 'patient_id': 'p1', 'paciente': 'María Gómez', 'cedula': '1710034065',
+        'descripcion': 'Limpieza dental', 'origen': 'manual', 'monto': '40.00', 'pagado': '40.00', 'pendiente': '0.00',
+        'estado_pago': 'pagada', 'anulada': false,
+        'pagos': [
+          {'id': 'x1', 'fecha': '2026-11-20', 'monto': '40.00', 'medio': 'Transferencia bancaria', 'medio_codigo': 'transferencia', 'referencia': 'TRX-9', 'comprobante_id': null},
+        ],
+        'factura': {'id': 'f1', 'numero': '001-001-000000001', 'estado': 'autorizada', 'fecha': '2026-11-20', 'total': '40.00', 'acreditado': '0.00'},
+        'facturable': false, 'motivo': 'Ya facturada (001-001-000000001)',
+      },
+      {
+        'id': 'c2', 'fecha': '2026-11-21', 'patient_id': 'p1', 'paciente': 'María Gómez', 'cedula': '1710034065',
+        'descripcion': 'Resina', 'origen': 'presupuesto', 'monto': '60.00', 'pagado': '20.00', 'pendiente': '40.00',
+        'estado_pago': 'parcial', 'anulada': false, 'pagos': [], 'factura': null, 'facturable': true, 'motivo': null,
+      },
+    ],
+  },
+  '/dashboard/specialty': {
+    'foco': 'pediatria',
+    'titulo': 'Tu día de odontopediatría',
+    'subtitulo': 'Pacientes menores de 14 años.',
+    'cifras': [
+      {'codigo': 'hoy', 'valor': 2, 'etiqueta': 'niños hoy', 'icono': 'child_care', 'tono': 'info', 'ruta': '/agenda'},
+      {'codigo': 'sin_control', 'valor': 3, 'etiqueta': 'sin control en 6 meses', 'icono': 'person_search', 'tono': 'alerta', 'ruta': null},
+    ],
+    'accesos': [],
+    'lista_titulo': 'Niños que vienen hoy',
+    'lista': [
+      {'patient_id': 'p1', 'nombre': 'Tomás Ruiz', 'detalle': '7 años · Ana Paz', 'hora': '2030-01-07T14:00:00Z'},
+    ],
+    'lista_vacia': 'Hoy no hay niños agendados.',
+  },
+  '/insights/call-today': {
+    'huecos': [
+      {
+        'professional_id': 'pr1',
+        'professional_name': 'Valeria Andrade',
+        'starts_at': '2030-01-07T22:30:00Z',
+        'ends_at': '2030-01-08T00:00:00Z',
+        'minutos': 90,
+      },
+    ],
+    'minutos_libres': 90,
+    'sugerencias': [
+      {
+        'patient_id': 'p9',
+        'patient_name': 'Andrés Guerrero',
+        'phone': '0983457975',
+        'whatsapp': '0983457975',
+        'motivo': 'ortodoncia',
+        'detalle': 'Control de ortodoncia atrasado desde el 16/11',
+        'razones': ['Control de ortodoncia atrasado desde el 16/11', 'Asistió a sus últimas 9 citas'],
+        'riesgo': 'bajo',
+        'puntaje': 67,
+        'hueco': {
+          'professional_id': 'pr1',
+          'professional_name': 'Valeria Andrade',
+          'starts_at': '2030-01-07T22:30:00Z',
+          'ends_at': '2030-01-08T00:00:00Z',
+          'minutos': 90,
+        },
+        'mensaje': 'Hola Andrés',
+      },
+      {
+        'patient_id': 'p8',
+        'patient_name': 'Rosa Ruiz',
+        'phone': null,
+        'whatsapp': null,
+        'motivo': 'reagendar',
+        'detalle': 'Canceló su cita del 20/11 y no ha reagendado',
+        'razones': ['Canceló su cita del 20/11 y no ha reagendado', 'Faltó a 3 de sus últimas 5 citas'],
+        'riesgo': 'alto',
+        'puntaje': 10,
+        'hueco': null,
+        'mensaje': 'Hola Rosa',
+      },
+    ],
+  },
+  '/odontogram/dictation': {
+    'hallazgos': [
+      {'fdi_number': '36', 'surface': 'oclusal', 'condition': 'caries'},
+      {'fdi_number': '18', 'surface': 'whole', 'condition': 'ausente'},
+    ],
+    'sin_entender': ['paciente con dolor'],
+  },
+  '/patients/$_pid/odontogram/timeline': [
+    {
+      'id': 'v1', 'created_at': '2026-03-10T15:00:00Z', 'type': 'initial', 'notes': 'Primera consulta', 'author_name': 'Dra. Paz',
+      'conditions': [{'fdi_number': '16', 'surface': 'oclusal', 'condition': 'caries'}],
+      'added': [{'fdi_number': '16', 'surface': 'oclusal', 'condition': 'caries'}],
+      'removed': [],
+    },
+    {
+      'id': 'v2', 'created_at': '2026-05-02T15:00:00Z', 'type': 'followup', 'notes': null, 'author_name': 'Dra. Paz',
+      'conditions': [{'fdi_number': '16', 'surface': 'oclusal', 'condition': 'restauracion'}],
+      'added': [{'fdi_number': '16', 'surface': 'oclusal', 'condition': 'restauracion'}],
+      'removed': [{'fdi_number': '16', 'surface': 'oclusal', 'condition': 'caries'}],
+    },
+  ],
+  '/payment-accounts': [
+    {
+      'id': 'pa1', 'label': 'Banco Pichincha', 'sort_order': 1, 'is_active': true,
+      // PNG de 1×1 px: basta para dibujar la miniatura del QR.
+      'qr_data': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'holder_name': 'Clínica Sonrisa', 'holder_id': '1790011223001', 'account_type': 'ahorros',
+      'account_number': '2201234567', 'email': null, 'note': 'Envíe el comprobante por WhatsApp',
+    },
+    {
+      'id': 'pa2', 'label': 'DeUna', 'sort_order': 2, 'is_active': false, 'qr_data': null, 'holder_name': null,
+      'holder_id': null, 'account_type': null, 'account_number': null, 'email': 'pagos@sonrisa.ec', 'note': null,
+    },
+  ],
   '/orthodontics/cases': {
     'items': [_fichaOrto],
     'total': 3,
@@ -707,7 +891,6 @@ final _devuelta = {
     ],
   };
 
-
 const _fichaOrto = {
   'id': 'o1',
   'number': 1,
@@ -861,6 +1044,7 @@ void main() {
     'Plantillas de consentimiento': const PlantillasConsentimientoPage(),
     'Facturación': const FacturacionPage(),
     'Ortodoncia': const OrtodonciaPage(),
+    'Datos de pago': const DatosPagoPage(),
     'Ficha de ortodoncia': const Scaffold(body: PestanaOrtodoncia(pacienteId: _pid, nombre: 'Ana Mora')),
   };
 
@@ -922,6 +1106,150 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Datos de pago: lista y ventana para el paciente', (tester) async {
+    await _abrir(tester, const DatosPagoPage());
+    expect(find.text('Banco Pichincha'), findsOneWidget);
+    expect(find.text('N.º 2201234567'), findsOneWidget);
+    expect(find.text('Oculta'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ver como el paciente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Datos de pago'), findsWidgets);
+    expect(find.textContaining('cuota'), findsWidgets);
+    expect(find.text('Copiar datos'), findsWidgets);
+    expect(find.text('Enviar por WhatsApp'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Ventas: resumen, factura y detalle de pagos', (tester) async {
+    await _abrir(tester, const Scaffold(body: VentasVista()));
+    expect(find.text('María Gómez'), findsOneWidget);
+    expect(find.text('Factura 001-001-000000001'), findsOneWidget);
+    expect(find.text('Sin facturar'), findsWidgets);
+    await tester.tap(find.text('Limpieza dental'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('TRX-9'), findsOneWidget);
+    expect(find.text('Ver factura'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Franja de especialidad: pediatría', (tester) async {
+    await _abrir(tester, const Scaffold(body: SingleChildScrollView(child: EspecialidadPanel())));
+    expect(find.text('ODONTOPEDIATRÍA'), findsOneWidget);
+    expect(find.text('Tu día de odontopediatría'), findsOneWidget);
+    expect(find.text('niños hoy'), findsOneWidget);
+    expect(find.text('Tomás Ruiz'), findsOneWidget);
+    expect(find.text('7 años · Ana Paz'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Comprobantes del portal: lista y hoja de revisión', (tester) async {
+    await _abrir(
+      tester,
+      const Scaffold(body: SingleChildScrollView(child: ComprobantesPortal(pacienteId: _pid, puedeCobrar: true))),
+    );
+    expect(find.text('Comprobantes del portal'), findsOneWidget);
+    expect(find.textContaining('Ortodoncia ORT-0001 · cuota 05'), findsOneWidget);
+    expect(find.text('Rechazado: No se ve el monto'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('revisar-r1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Revisar comprobante'), findsOneWidget);
+    expect(find.byKey(const Key('abrir-pdf-comprobante')), findsOneWidget);
+    expect(find.text('Aceptar y registrar pago'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A quién llamar hoy: razones, riesgo y hueco propuesto', (tester) async {
+    await _abrir(tester, const Scaffold(body: SingleChildScrollView(child: LlamarHoy())));
+    expect(find.text('A quién llamar hoy'), findsOneWidget);
+    expect(find.textContaining('Hay 1 h 30 min libres'), findsOneWidget);
+    expect(find.text('Andrés Guerrero'), findsOneWidget);
+    expect(find.text('Cumplido'), findsOneWidget);
+    expect(find.text('Suele faltar'), findsOneWidget);
+    expect(find.textContaining('con Valeria Andrade'), findsOneWidget);
+    expect(find.text('· Faltó a 3 de sus últimas 5 citas'), findsOneWidget);
+    expect(find.text('Agendar'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Dictado del odontograma: interpreta y devuelve hallazgos', (tester) async {
+    List<Map<String, dynamic>>? r;
+    await _abrir(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (c) => TextButton(onPressed: () async => r = await mostrarDictado(c), child: const Text('abrir')),
+        ),
+      ),
+    );
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('dictado-texto')), '36 caries oclusal, falta el 18, paciente con dolor');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('36 · Caries'), findsOneWidget);
+    expect(find.textContaining('No entendí: paciente con dolor'), findsOneWidget);
+    await tester.tap(find.textContaining('Aplicar 2'));
+    await tester.pumpAndSettle();
+    expect(r?.length, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('aplicarHallazgos suma sin duplicar y «sano» limpia', () {
+    final actuales = [
+      {'fdi_number': '36', 'surface': 'oclusal', 'condition': 'caries', 'notes': null},
+      {'fdi_number': '11', 'surface': 'whole', 'condition': 'corona', 'notes': null},
+    ];
+    final r = aplicarHallazgos(actuales, [
+      {'fdi_number': '36', 'surface': 'oclusal', 'condition': 'caries'},
+      {'fdi_number': '11', 'surface': 'whole', 'condition': 'sano'},
+      {'fdi_number': '18', 'surface': 'whole', 'condition': 'ausente'},
+    ]);
+    expect(r.map((c) => '${c['fdi_number']}-${c['condition']}'), ['36-caries', '18-ausente']);
+  });
+
+  testWidgets('Línea de tiempo del odontograma: recorre versiones y muestra cambios', (tester) async {
+    final vistas = <List<Map<String, dynamic>>?>[];
+    await _abrir(
+      tester,
+      Scaffold(body: ListView(children: [LineaTiempoOdontograma(pacienteId: _pid, alCambiar: vistas.add)])),
+    );
+    expect(find.text('Línea de tiempo'), findsOneWidget);
+    expect(find.text('Así empezó:'), findsOneWidget);
+    expect(find.textContaining('+ Caries · 16'), findsOneWidget);
+    // La primera versión se muestra al abrir.
+    expect(vistas.last?.first['condition'], 'caries');
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    expect(find.text('Cambios en esta visita:'), findsOneWidget);
+    expect(find.textContaining('− Caries · 16'), findsOneWidget);
+    // La última es la vigente: vuelve al odontograma actual (null).
+    expect(vistas.last, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Mando de control del panel', (tester) async {
+    await _abrir(tester, const Scaffold(body: SingleChildScrollView(child: MandoControl())));
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('META DE NOVIEMBRE'), findsOneWidget);
+    expect(find.textContaining('por debajo del ritmo'), findsOneWidget);
+    expect(find.textContaining('por día hábil'), findsOneWidget);
+    expect(find.text('2 ortodoncias atrasadas'), findsOneWidget);
+    expect(find.text('9 pacientes nuevos este mes'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Antes de atender: datos clave y resumen con IA', (tester) async {
+    await _abrir(tester, const Scaffold(body: SingleChildScrollView(child: ResumenPaciente(pacienteId: _pid))));
+    expect(find.text('Antes de atender'), findsOneWidget);
+    expect(find.text('Alergias: Penicilina'), findsOneWidget);
+    expect(find.text('Debe \$30,00'), findsOneWidget);
+    await tester.tap(find.text('Resumen con IA'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('control 5 de ortodoncia'), findsOneWidget);
+    expect(find.text('Borrador de IA. Revíselo antes de usarlo.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Ortodoncia: lista con filtros', (tester) async {
     await _abrir(tester, const OrtodonciaPage());
     expect(find.text('Ana Mora'), findsOneWidget);
@@ -943,7 +1271,10 @@ void main() {
     // Sin aceptar los términos no se puede terminar.
     final boton = tester.widget<FilledButton>(find.ancestor(of: find.text('Empezar a usar el sistema'), matching: find.byType(FilledButton)));
     expect(boton.onPressed, isNull);
-    // Al centro: abajo la tapa la barra de botones del asistente.
+    await tester.tap(find.byKey(const Key('foco-pediatria')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ChoiceChip>(find.byKey(const Key('foco-pediatria'))).selected, isTrue);
+    await tester.scrollUntilVisible(find.byType(CheckboxListTile), 200, scrollable: find.byType(Scrollable).last);
     await Scrollable.ensureVisible(tester.element(find.byType(CheckboxListTile)), alignment: 0.5);
     await tester.pumpAndSettle();
     await tester.tap(find.byType(CheckboxListTile));

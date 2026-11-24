@@ -8,6 +8,7 @@ import '../caja/caja_page.dart';
 import '../cartera/cartera_page.dart';
 import '../configuracion/configuracion_pages.dart';
 import '../configuracion/correo_page.dart';
+import '../configuracion/datos_pago.dart';
 import '../configuracion/roles_plantillas.dart';
 import '../creditos/creditos_page.dart';
 import '../../core/offline/barra_sin_conexion.dart';
@@ -37,8 +38,6 @@ class _Modulo {
   ]);
   final String titulo;
   final IconData icono;
-  // Se conserva por si se quiere volver a distinguir módulos por color;
-  // hoy todos usan el de la marca, que es más sobrio.
   final Color color;
   final String? permiso;
   final Widget Function() pagina;
@@ -189,6 +188,13 @@ final _grupos = <(String, List<_Modulo>)>[
         () => const PlantillasConsentimientoPage(),
       ),
       _Modulo(
+        'Datos de pago',
+        Icons.qr_code_2,
+        Tonos.verde,
+        'settings:manage',
+        () => const DatosPagoPage(),
+      ),
+      _Modulo(
         'Correo',
         Icons.mail_outline,
         Tonos.azul,
@@ -220,7 +226,6 @@ final _grupos = <(String, List<_Modulo>)>[
   ),
 ];
 
-/// Todo lo que la web tiene en su menú lateral, en una rejilla a un toque.
 class MasPage extends ConsumerWidget {
   const MasPage({super.key});
 
@@ -249,8 +254,6 @@ class MasPage extends ConsumerWidget {
               // 3 columnas en el teléfono, hasta 6 en una tablet grande.
               crossAxisCount: (MediaQuery.sizeOf(context).width / 170).floor().clamp(3, 6),
               shrinkWrap: true,
-              // Sin esto hereda el relleno inferior de la barra flotante y
-              // deja un hueco entre grupos.
               padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,

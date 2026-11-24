@@ -1,10 +1,3 @@
-"""Anular en vez de borrar, para los registros clínicos.
-
-Un diagnóstico o una receta mal hechos no desaparecen: quedan en la historia
-marcados como anulados, con quién, cuándo y por qué. Así la ficha sigue
-contando lo que realmente pasó, que es lo que exige un expediente clínico.
-"""
-
 import uuid
 from datetime import datetime, timezone
 

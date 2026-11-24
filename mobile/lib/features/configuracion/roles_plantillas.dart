@@ -9,11 +9,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-/// Roles y permisos, plantillas de mensajes y plantillas de consentimiento:
-/// las mismas pantallas de configuración que la web.
-
-// ------------------------------------------------------------------- Roles
-
 const _modulos = {
   'appointments': 'Agenda',
   'audit': 'Auditoría',
@@ -48,7 +43,6 @@ final _permisosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>
 class RolesPage extends ConsumerWidget {
   const RolesPage({super.key});
 
-  /// Nuevo rol (opcionalmente copia de otro) o edición de nombre y descripción.
   Future<void> _editar(BuildContext context, WidgetRef ref, {Map<String, dynamic>? rol, Map<String, dynamic>? copiaDe}) async {
     final roles = await cargarOAvisar(context, ref.read(rolesProvider.future));
     if (roles == null || !context.mounted) return;
@@ -157,8 +151,6 @@ class RolesPage extends ConsumerWidget {
   }
 }
 
-/// Permisos de un rol, agrupados por módulo. Los roles del sistema se ven
-/// pero no se cambian: para personalizarlos se duplican.
 class RolPermisosPage extends ConsumerStatefulWidget {
   const RolPermisosPage({super.key, required this.rolId});
 
@@ -258,8 +250,6 @@ class _RolPermisosPageState extends ConsumerState<RolPermisosPage> {
     );
   }
 }
-
-// ------------------------------------------------------ Plantillas de mensaje
 
 const _variables = {
   '{paciente}': 'Lucía',
@@ -414,8 +404,6 @@ class PlantillasMensajePage extends ConsumerWidget {
   }
 }
 
-// ------------------------------------------------ Plantillas de consentimiento
-
 final _consentimientosProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>(
   (ref) => ref.watch(apiProvider).lista('/consents/templates', query: {'include_inactive': true}),
 );
@@ -456,7 +444,6 @@ class _PlantillasConsentimientoPageState extends ConsumerState<PlantillasConsent
     },
   );
 
-  /// Biblioteca odontológica: textos base que se copian como plantillas propias.
   Future<void> _biblioteca() async {
     final lista = await cargarOAvisar(context, ref.read(apiProvider).lista('/consents/library'));
     if (lista == null || !mounted) return;

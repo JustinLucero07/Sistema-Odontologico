@@ -1,6 +1,3 @@
-"""Corregir y anular lo que faltaba: evoluciones, presupuestos y planes."""
-
-
 async def _h(client, email="admin@clinicatest.io", password="Admin123!"):
     r = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
     return {"Authorization": f"Bearer {r.json()['access_token']}"}

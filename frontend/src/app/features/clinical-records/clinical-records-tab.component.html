@@ -25,7 +25,6 @@
       }
     </div>
 
-
     @if (evolutions().length === 0) {
       <p class="empty-hint">Sin evoluciones registradas.</p>
     }
@@ -73,7 +72,6 @@
         </button>
       }
     </div>
-
 
     @if (prescriptions().length === 0) {
       <p class="empty-hint">Sin recetas emitidas.</p>
@@ -130,7 +128,6 @@
         </button>
       }
     </div>
-
 
     @if (consents().length === 0) {
       <p class="empty-hint">Sin consentimientos registrados.</p>
@@ -200,7 +197,6 @@
       }
     </div>
 
-
     <mat-slide-toggle class="archived-toggle" [checked]="showArchivedDocs()" (change)="toggleArchivedDocs($event.checked)">
       Ver archivados
     </mat-slide-toggle>
@@ -253,7 +249,6 @@
     }
   }
 </div>
-
 
 <ng-template #evolucionesDialog>
   <h2 mat-dialog-title>{{ editingEvolution() ? 'Corregir evolución' : 'Nueva evolución' }}</h2>

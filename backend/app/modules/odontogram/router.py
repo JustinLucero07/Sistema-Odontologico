@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.modules.odontogram import service
-from app.modules.odontogram.schemas import OdontogramCreate, OdontogramOut, OdontogramSummary
+from app.modules.odontogram.schemas import OdontogramCreate, OdontogramOut, OdontogramSummary, TimelineEntry
 
 router = APIRouter(prefix="/api/v1/patients/{patient_id}/odontogram", tags=["odontogram"])
 
@@ -27,6 +27,16 @@ async def get_odontogram_versions(
     current_user: CurrentUser = Depends(require_permission("odontogram:read")),
 ):
     return await service.list_versions(db, current_user.clinic_id, patient_id)
+
+
+@router.get("/timeline", response_model=list[TimelineEntry])
+async def get_odontogram_timeline(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_permission("odontogram:read")),
+):
+    """Línea de tiempo de la boca: cada versión con lo que cambió."""
+    return await service.timeline(db, current_user.clinic_id, patient_id)
 
 
 @router.get("/{odontogram_id}", response_model=OdontogramOut)

@@ -17,8 +17,6 @@ async def get_opportunities(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(require_permission("patients:read")),
 ):
-    """A quién llamar hoy y por qué. Los deudores solo aparecen para quien
-    puede ver los cobros."""
     can_money = current_user.is_superadmin or "payments:read" in current_user.permissions
     return await service.opportunities(db, current_user.clinic_id, can_money)
 

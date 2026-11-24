@@ -1,6 +1,3 @@
-"""RIDE: la representación impresa (PDF) del comprobante electrónico, que es lo
-que recibe el paciente. Lleva la clave de acceso en código de barras."""
-
 import base64
 import io
 from decimal import Decimal
@@ -48,8 +45,6 @@ def _logo(data_url: str | None, ancho: float) -> Image | None:
 
 
 def generar(factura, clinica, modificada=None) -> bytes:
-    """`factura` es un Invoice con sus líneas; `clinica` la Clinic emisora;
-    `modificada` la factura original si es una nota de crédito."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=12 * mm, bottomMargin=12 * mm)
     ancho = A4[0] - 28 * mm

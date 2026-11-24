@@ -44,8 +44,6 @@ class ConsentOut(BaseModel):
 
 
 class PrivacyStatus(BaseModel):
-    """Estado actual (el último registro de cada tipo) y la historia completa."""
-
     current_policy_version: str
     privacy_notice: ConsentOut | None
     communications: ConsentOut | None
@@ -60,9 +58,6 @@ class AccessEntry(BaseModel):
 
 
 class LegalController(BaseModel):
-    """Identidad del responsable del tratamiento: la clínica. Es lo que el
-    aviso de privacidad tiene que decirle al paciente."""
-
     name: str
     legal_name: str | None
     tax_id: str | None

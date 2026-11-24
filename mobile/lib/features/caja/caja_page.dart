@@ -32,8 +32,6 @@ final _cajaProvider = FutureProvider.autoDispose<_DatosCaja>((ref) async {
   );
 });
 
-/// Caja del día: apertura con fondo, lo que entra y sale en efectivo, y el
-/// cierre con arqueo. Igual que en la web.
 class CajaPage extends ConsumerWidget {
   const CajaPage({super.key});
 

@@ -1,10 +1,3 @@
-"""Cartera de la consulta: todo lo que se debe, lo cobrado y lo que viene.
-
-Mismas reglas que el estado de cuenta de cada paciente (payments.service):
-el saldo es lo cargado menos lo pagado, ambos sin anulados, y un cargo está
-pagado por los cobros aplicados a él. Aquí solo se suman de todos a la vez.
-"""
-
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -140,8 +133,6 @@ async def portfolio(db: AsyncSession, clinic_id: uuid.UUID) -> dict:
     }
 
 
-# ---- Gastos fijos ---------------------------------------------------------
-
 def _due_on(r: RecurringExpense, today: date) -> date:
     return today.replace(day=r.day_of_month)
 
@@ -212,8 +203,6 @@ async def register_recurring(db, clinic_id, actor_id, rid, payload) -> dict:
     r.last_registered_month = mes
     return out
 
-
-# ---- Proyección de flujo --------------------------------------------------
 
 async def projection(db: AsyncSession, clinic_id: uuid.UUID, days: int) -> dict:
     from app.modules.credits.service import get_credit

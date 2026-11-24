@@ -12,12 +12,6 @@ from app.shared.voiding import VoidableMixin
 
 
 class Expense(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
-    """Un egreso: dinero que salió de la clínica.
-
-    Como los cobros, un gasto no se borra: si se registró mal se anula con
-    motivo y se registra el correcto. Así el arqueo de un día ya cerrado sigue
-    cuadrando con lo que se vio ese día."""
-
     __tablename__ = "expenses"
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_expense_amount_positive"),
@@ -33,8 +27,6 @@ class Expense(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
         UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True
     )
     supplier_name: Mapped[str | None] = mapped_column(String(160))
-    # Número de la factura o comprobante del proveedor: es lo que respalda el
-    # gasto ante el SRI y lo que pide el contador.
     receipt_number: Mapped[str | None] = mapped_column(String(80))
     # Si se pagó en efectivo con la caja abierta, sale de esa caja.
     cash_session_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -48,12 +40,6 @@ class Expense(UUIDPKMixin, TenantMixin, VoidableMixin, Base):
 
 
 class RecurringExpense(UUIDPKMixin, TenantMixin, Base):
-    """Gasto fijo que se repite cada mes (arriendo, sueldos, internet…).
-
-    Es una PLANTILLA, no un egreso: nada sale de caja hasta que alguien lo
-    registra en el mes. Así el sistema recuerda qué falta pagar sin inventar
-    gastos que quizá ese mes no ocurrieron."""
-
     __tablename__ = "recurring_expenses"
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_recurring_expense_amount_positive"),

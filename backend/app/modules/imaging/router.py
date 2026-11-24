@@ -86,8 +86,6 @@ async def get_image_file(
     return Response(
         content=content,
         media_type=image.mime_type or "application/octet-stream",
-        # Inline, not an attachment: the viewer shows these in place. Clinical
-        # images are never cached by a shared proxy.
         headers={**cabeceras_archivo(image.original_filename, en_linea=True), "Cache-Control": "private, max-age=300"},
     )
 

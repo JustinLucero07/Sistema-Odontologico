@@ -27,10 +27,6 @@ const ACTION_LABELS: Record<string, string> = {
   delete: 'Dio de baja al paciente',
 };
 
-/**
- * Protección de datos del paciente, en su ficha: qué se le informó, qué
- * autorizó, quién ha visto su historia, y la copia de sus datos si la pide.
- */
 @Component({
   selector: 'app-patient-privacy-card',
   standalone: true,

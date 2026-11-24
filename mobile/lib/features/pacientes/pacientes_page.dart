@@ -57,8 +57,6 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
   }
 
   void _buscar(String texto) {
-    // Sin esta espera, cada tecla lanza una petición; con la clínica llena, el
-    // servidor recibe una ráfaga por cada nombre que alguien teclea.
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () {
       ref.read(busquedaProvider.notifier).state = texto;
@@ -160,8 +158,6 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                       bottom: 110 + MediaQuery.paddingOf(context).bottom,
                     ),
                     itemCount: lista.length + (lista.length >= 300 ? 1 : 0),
-                    // Lista agrupada: una sola tarjeta blanca con separadores
-                    // finos, en vez de filas sueltas sobre el fondo.
                     separatorBuilder: (_, i) => i >= lista.length - 1
                         ? const SizedBox.shrink()
                         : Container(
@@ -170,8 +166,6 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
                             child: const Divider(height: 1, indent: 72),
                           ),
                     itemBuilder: (context, i) {
-                      // Lista paginada en el servidor: con muchos pacientes se
-                      // muestran los primeros 300 y la búsqueda encuentra al resto.
                       if (i == lista.length) {
                         return const Padding(
                           padding: EdgeInsets.all(20),
@@ -238,7 +232,6 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
       ),
     );
 
-    // Tablet: lista a la izquierda y ficha a la derecha, sin cambiar de pantalla.
     if (MediaQuery.sizeOf(context).width < _anchoDoblePanel) return lista;
     final abierto = _abierto;
     return Row(
@@ -264,8 +257,6 @@ class _PacientesPageState extends ConsumerState<PacientesPage> {
   }
 }
 
-/// Fondo y tinta del avatar de una persona: siempre el mismo tono para el
-/// mismo paciente, elegido de una paleta apagada que combina con la marca.
 (Color, Color) tonoAvatar(String id, Brightness brillo) {
   const claros = [
     (Color(0xFFE3EFEC), Color(0xFF1F5F57)),

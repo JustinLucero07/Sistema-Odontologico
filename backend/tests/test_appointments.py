@@ -35,7 +35,6 @@ async def test_create_appointment_schedules_default_reminders(client, clinic_wit
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
     professional_id = await _create_professional(client, token)
-    # Far enough out that both the 24 h and the 2 h reminder still lie ahead.
     starts_at, ends_at = _slot(days_ahead=4)
 
     response = await client.post(
@@ -61,8 +60,6 @@ async def test_create_appointment_schedules_default_reminders(client, clinic_wit
 
 
 async def test_reminder_whose_moment_already_passed_is_not_scheduled(client, clinic_with_users):
-    """Booking an appointment for later today must not create a 24 h reminder
-    that would already be overdue the moment it is written."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
     professional_id = await _create_professional(client, token)
@@ -117,8 +114,6 @@ async def test_double_booking_same_professional_is_rejected(client, clinic_with_
 
 
 async def test_back_to_back_appointments_are_allowed(client, clinic_with_users):
-    """The slot range is half-open, so an appointment can start exactly when
-    the previous one ends."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     professional_id = await _create_professional(client, token)
     patient_id = await _create_patient(client, token)

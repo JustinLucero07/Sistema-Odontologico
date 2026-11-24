@@ -21,8 +21,6 @@ from app.modules.privacy.models import DataConsent
 from app.modules.privacy.schemas import ConsentCreate, ConsentOut, PrivacyStatus
 from app.modules.users.models import User
 
-# ---- Consentimientos ------------------------------------------------------
-
 
 async def _user_names(db: AsyncSession, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
     if not ids:
@@ -98,9 +96,6 @@ async def record_consent(
 
 
 async def communications_revoked(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> bool:
-    """True solo si el paciente RETIRÓ expresamente su autorización. Sin ningún
-    registro se permite: los recordatorios de citas forman parte del servicio
-    que el paciente pidió, pero en cuanto dice que no, se deja de enviar."""
     latest = (
         await db.execute(
             select(DataConsent.granted)
@@ -116,15 +111,9 @@ async def communications_revoked(db: AsyncSession, clinic_id: uuid.UUID, patient
     return latest is False
 
 
-# ---- Registro de accesos -------------------------------------------------
-
-
 async def log_patient_access(
     db: AsyncSession, clinic_id: uuid.UUID, user_id: uuid.UUID, patient_id: uuid.UUID, action: str = "view"
 ) -> None:
-    """Deja constancia de quién abrió la ficha de un paciente. La historia
-    clínica es confidencial: poder responder quién la vio es parte de
-    protegerla."""
     since = datetime.now(timezone.utc) - timedelta(minutes=ACCESS_DEDUP_MINUTES)
     if action == "view":
         recent = await db.scalar(
@@ -169,9 +158,6 @@ async def access_log(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UU
     ]
 
 
-# ---- Exportación (derecho de acceso y portabilidad) -----------------------
-
-
 def _json_value(value):
     if isinstance(value, (datetime, date)):
         return value.isoformat()
@@ -191,12 +177,6 @@ def _row(table: Table, row) -> dict:
 async def export_patient_data(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID
 ) -> dict:
-    """Todo lo que el sistema guarda de un paciente, en un formato legible por
-    máquina. Se arma recorriendo el esquema en vez de una lista a mano: una
-    tabla nueva con patient_id entra sola, y no se puede "olvidar" un módulo.
-
-    Incluye las tablas hijas directas (ítems de receta, de presupuesto, eventos
-    de laboratorio…) enlazadas por clave foránea a esas tablas."""
     patient = await get_patient_or_404(db, clinic_id, patient_id)
     tables = Base.metadata.tables
 
@@ -254,9 +234,6 @@ async def export_patient_data(
     }
 
 
-# ---- Personal ----------------------------------------------------------------
-
-
 def confidentiality_required(user: User) -> bool:
     return user.confidentiality_version != CONFIDENTIALITY_VERSION
 
@@ -268,11 +245,6 @@ async def accept_confidentiality(db: AsyncSession, user: User) -> None:
         db, clinic_id=user.clinic_id, user_id=user.id, action="accept", entity_type="confidentiality",
         entity_id=str(user.id), after={"version": CONFIDENTIALITY_VERSION},
     )
-
-
-# ---------------------------------------------------------------------------
-# Solicitudes de los titulares (derechos LOPDP)
-# ---------------------------------------------------------------------------
 
 
 def _rights_out(r, patient_name: str | None, today) -> dict:

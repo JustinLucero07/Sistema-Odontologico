@@ -1,19 +1,11 @@
-"""Reglas de contraseña, en un solo sitio para altas, restablecimientos y
-cambios propios.
-
-Siguen la línea de NIST SP 800-63B: lo que protege es la longitud y no usar
-una contraseña conocida o adivinable, no obligar a símbolos raros que acaban
-en un papel pegado al monitor."""
-
 import re
 import unicodedata
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 MIN_LENGTH = 8
 MAX_LENGTH = 128
 
-# Las que cualquier ataque prueba primero, más las obvias de este producto.
 COMMON = {
     "12345678", "123456789", "1234567890", "password", "password1", "password123", "contrasena",
     "contraseña", "qwerty123", "qwertyuiop", "abc12345", "abcd1234", "11111111", "00000000",

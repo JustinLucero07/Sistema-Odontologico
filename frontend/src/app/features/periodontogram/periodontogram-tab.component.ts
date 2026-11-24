@@ -54,8 +54,6 @@ export class PeriodontogramTabComponent implements OnInit {
     return this.auth.hasPermission('periodontogram:write');
   }
 
-  /** Viewing an old exam is read-only. Editing always starts a NEW snapshot,
-   *  which is what keeps the history honest. */
   get isHistorical(): boolean {
     const latest = this.versions()[0];
     return !!latest && this.selectedVersionId() !== latest.id && this.selectedVersionId() !== null;
@@ -89,8 +87,6 @@ export class PeriodontogramTabComponent implements OnInit {
   }
 
   startNew(): void {
-    // The new exam opens pre-filled with the last one: a follow-up re-probes
-    // the same mouth, and retyping 168 numbers is how sites get skipped.
     this.editing.set(true);
     this.notes = '';
   }

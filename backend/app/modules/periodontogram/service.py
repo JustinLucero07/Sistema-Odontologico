@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -72,8 +72,6 @@ async def create_snapshot(
 ) -> Periodontogram:
     await get_patient_or_404(db, clinic_id, patient_id)
 
-    # One row per tooth/site. A duplicate means the client sent the same probe
-    # reading twice, which would silently skew every index computed from it.
     seen: set[tuple[str, str]] = set()
     for m in payload.measurements:
         key = (m.fdi_number, m.site)

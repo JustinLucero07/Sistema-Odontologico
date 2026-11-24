@@ -1,7 +1,5 @@
 export type MessageChannel = 'whatsapp' | 'sms' | 'email';
 
-/** `simulado` is deliberately distinct from `enviado`: the backend refuses to
- *  collapse them, and so does the UI. */
 export type MessageStatus = 'pendiente' | 'enviado' | 'fallido' | 'simulado' | 'cancelado';
 
 export interface MessageTemplate {
@@ -50,8 +48,6 @@ export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = {
   cancelado: 'Cancelado',
 };
 
-// ---- Assistant ----------------------------------------------------------
-
 export type SuggestionStatus = 'borrador' | 'aceptado' | 'descartado';
 
 export interface AiStatus {
@@ -66,8 +62,6 @@ export interface AiSuggestion {
   patient_id: string;
   kind: string;
   request: string | null;
-  /** Exactly what the assistant was given — shown so a clinician can check
-   *  its whole world before trusting a word of the output. */
   context_used: string;
   output: string;
   model: string | null;
@@ -86,8 +80,6 @@ export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
   descartado: 'Descartado',
 };
 
-// ---- Portal -------------------------------------------------------------
-
 export interface PortalLink {
   id: string;
   patient_id: string;
@@ -97,10 +89,9 @@ export interface PortalLink {
   use_count: number;
   revoked_at: string | null;
   is_active: boolean;
+  include_clinical?: boolean;
 }
 
-/** The raw URL comes back exactly once, at creation. Only its hash is stored,
- *  so it can never be shown again. */
 export interface PortalLinkCreated extends PortalLink {
   url: string;
 }
@@ -113,6 +104,7 @@ export interface PortalAppointment {
 }
 
 export interface PortalCharge {
+  id?: string | null;
   description: string;
   issued_on: string;
   amount: string;
@@ -127,4 +119,59 @@ export interface PortalView {
   balance: string;
   charges: PortalCharge[];
   expires_at: string;
+  payment_accounts?: {
+    label: string;
+    qr_data: string | null;
+    holder_name: string | null;
+    holder_id: string | null;
+    account_type: string | null;
+    account_number: string | null;
+    email: string | null;
+    note: string | null;
+  }[];
+  ortodoncia?: PortalOrtho | null;
+  plan?: { treatment: string; fdi_number: string | null; status: string; status_label: string }[];
+  odontograma?: { fdi_number: string; surface: string; condition: string }[];
+  comparaciones?: { id: string; title: string; treatment: string | null; before_id: string; after_id: string }[];
+  comprobantes?: PortalComprobante[];
+  incluye_clinica?: boolean;
+}
+
+export interface PortalCuota {
+  id: string;
+  number: number;
+  planned_on: string | null;
+  attended_on: string | null;
+  amount: string;
+  paid: string;
+  balance: string;
+  status: string;
+}
+
+export interface PortalOrtho {
+  code: string;
+  appliance: string | null;
+  started_on: string | null;
+  estimated_months: number | null;
+  status: string;
+  controls_attended: number;
+  controls_total: number;
+  progress: number | null;
+  next_control_on: string | null;
+  next_control_overdue: boolean;
+  agreed_total: string;
+  paid: string;
+  balance: string;
+  cuotas: PortalCuota[];
+}
+
+export interface PortalComprobante {
+  id: string;
+  amount: string;
+  paid_on: string;
+  destino: string;
+  status: 'pendiente' | 'aceptado' | 'rechazado';
+  status_label: string;
+  reject_reason: string | null;
+  created_at: string;
 }

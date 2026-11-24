@@ -82,9 +82,6 @@ async def _assert_slot_free(
     ends_at: datetime,
     exclude_id: uuid.UUID | None = None,
 ) -> None:
-    """Friendly pre-check so the user gets a clear message instead of a raw
-    constraint violation. The database constraint is still the real guarantee
-    against two bookings racing each other."""
     conflicts = or_(Appointment.professional_id == professional_id)
     if operatory_id is not None:
         conflicts = or_(Appointment.professional_id == professional_id, Appointment.operatory_id == operatory_id)
@@ -109,12 +106,12 @@ async def _assert_slot_free(
 
 
 def _build_reminders(
-    clinic_id: uuid.UUID, starts_at: datetime, channels: list[str]
+    clinic_id: uuid.UUID, starts_at: datetime, channels: list[str], offsets: list[int] | None = None
 ) -> list[AppointmentReminder]:
     now = datetime.now(timezone.utc)
     reminders: list[AppointmentReminder] = []
     for channel in channels:
-        for offset in DEFAULT_REMINDER_OFFSETS_MINUTES:
+        for offset in offsets or DEFAULT_REMINDER_OFFSETS_MINUTES:
             scheduled_for = starts_at - timedelta(minutes=offset)
             # A reminder whose moment already passed would never be useful.
             if scheduled_for <= now:
@@ -130,6 +127,12 @@ def _build_reminders(
                 )
             )
     return reminders
+
+
+async def offsets_recordatorio(db: AsyncSession, clinic_id: uuid.UUID, patient_id: uuid.UUID) -> list[int]:
+    from app.modules.insights.inteligencia import offsets_recordatorio as calcular
+
+    return await calcular(db, clinic_id, patient_id)
 
 
 async def _canales(db: AsyncSession, clinic_id: uuid.UUID, payload: AppointmentCreate) -> list[str]:
@@ -157,7 +160,10 @@ async def create_appointment(
     appointment = Appointment(
         clinic_id=clinic_id,
         created_by_id=actor_id,
-        reminders=_build_reminders(clinic_id, payload.starts_at, await _canales(db, clinic_id, payload)),
+        reminders=_build_reminders(
+            clinic_id, payload.starts_at, await _canales(db, clinic_id, payload),
+            await offsets_recordatorio(db, clinic_id, payload.patient_id),
+        ),
         **payload.model_dump(exclude={"reminder_channels"}),
     )
     db.add(appointment)
@@ -239,9 +245,6 @@ async def update_status(
 
 
 async def list_due_reminders(db: AsyncSession, clinic_id: uuid.UUID) -> list[AppointmentReminder]:
-    """Reminders whose moment has arrived and that nothing has sent yet. The
-    messaging integrations of a later phase consume this; sending is not this
-    module's job."""
     result = await db.execute(
         select(AppointmentReminder)
         .where(

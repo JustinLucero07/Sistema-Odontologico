@@ -14,6 +14,10 @@
           Facturar
         </button>
       }
+      <button mat-stroked-button (click)="showPaymentInfo()">
+        <mat-icon>qr_code_2</mat-icon>
+        Datos de pago / QR
+      </button>
       <button mat-stroked-button (click)="printStatement()" [disabled]="!account()">
         <mat-icon>print</mat-icon>
         Estado de cuenta
@@ -30,6 +34,8 @@
     }
     </div>
   </header>
+
+  <app-portal-receipts [patientId]="patientId" [canWrite]="canWrite" (changed)="refrescar()" />
 
   @if (loading()) {
     <app-skeleton variant="cards" [rows]="3" label="Cargando estado de cuenta" />
@@ -73,8 +79,6 @@
         </article>
       }
     </section>
-
-
 
     <!-- Charges -->
     <section class="block">

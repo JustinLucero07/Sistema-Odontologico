@@ -1,6 +1,3 @@
-"""La sesión no debe cerrarse sola cuando dos peticiones renuevan a la vez,
-pero tampoco puede revivir después de cerrar sesión o cambiar la contraseña."""
-
 from app.core.config import get_settings
 
 BODY = {"X-Token-Delivery": "body"}

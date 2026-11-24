@@ -1,7 +1,3 @@
-"""Global permission catalog. New modules add codes here as they ship — the
-mechanism (code string on a role) never changes, so later phases never require
-an RBAC schema migration, only new rows."""
-
 PERMISSION_CATALOG: list[tuple[str, str, str]] = [
     # (code, module, description)
     ("patients:read", "patients", "Ver pacientes"),

@@ -73,7 +73,6 @@ export class TreatmentsComponent implements OnInit {
     vat_code: ['0'],
   });
 
-  /** Los servicios de salud van con IVA 0 %; un tratamiento estético puede llevar 15 %. */
   readonly vatOptions = [
     { code: '0', label: 'IVA 0 % (servicio de salud)' },
     { code: '4', label: 'IVA 15 %' },

@@ -1,17 +1,7 @@
-"""CSV rendering for the reports.
-
-A report nobody can take out of the screen is half a report: clinics reconcile
-against a spreadsheet, and their accountant will not log in. The separator and
-the encoding are chosen for that reader, not for a parser.
-"""
-
 import csv
 import io
 from typing import Iterable, Sequence
 
-# Excel in a Spanish locale reads a comma-separated file as one column, so the
-# file declares its separator. The BOM is what makes Excel honour UTF-8 and
-# stop mangling every accent.
 CSV_DELIMITER = ";"
 UTF8_BOM = "﻿"
 

@@ -21,6 +21,8 @@ async def update_clinic(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.U
     data = payload.model_dump(exclude_unset=True)
     for field, value in data.items():
         setattr(clinic, field, value)
+    if data.get("specialty_focus") == "ortodoncia":
+        clinic.orthodontics_enabled = True
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="clinic", entity_id=str(clinic_id),
         after={k: v for k, v in payload.model_dump(exclude_unset=True, mode="json").items() if k != "logo_data"},
@@ -29,8 +31,6 @@ async def update_clinic(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.U
 
 
 async def accept_terms(db: AsyncSession, clinic: Clinic, user) -> None:
-    """Deja constancia de quién aceptó los Términos de uso y el contrato de
-    encargo de tratamiento, en qué versión y cuándo."""
     from datetime import datetime, timezone
 
     from app.modules.privacy.constants import TERMS_VERSION
@@ -180,12 +180,12 @@ async def complete_setup(db: AsyncSession, clinic_id: uuid.UUID, user, payload) 
         data["legal_name"] = data["name"]
     for field, value in data.items():
         setattr(clinic, field, value)
+    if data.get("specialty_focus") == "ortodoncia":
+        clinic.orthodontics_enabled = True
     clinic.setup_completed_at = datetime.now(timezone.utc)
     await accept_terms(db, clinic, user)
 
     if payload.i_am_dentist:
-        # Quien configura también atiende: queda como profesional vinculado a
-        # su usuario (si ya lo era, solo se actualiza su registro).
         nombre_esp = (payload.specialty or "Odontología general").strip()
         esp = (
             await db.execute(select(Specialty).where(Specialty.clinic_id == clinic_id, Specialty.name == nombre_esp))

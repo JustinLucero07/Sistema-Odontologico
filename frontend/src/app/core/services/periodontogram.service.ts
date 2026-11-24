@@ -29,8 +29,6 @@ export class PeriodontogramService {
     return this.http.get<Periodontogram>(`${this.base(patientId)}/${id}`);
   }
 
-  /** Always a POST: an exam is never edited in place, so there is no update
-   *  method to call by mistake. */
   create(patientId: string, payload: PeriodontogramCreate): Observable<Periodontogram> {
     return this.http.post<Periodontogram>(this.base(patientId), payload);
   }

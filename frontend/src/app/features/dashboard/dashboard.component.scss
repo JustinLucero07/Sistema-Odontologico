@@ -4,10 +4,6 @@
   width: 100%;
 }
 
-// ---- Hero --------------------------------------------------------------
-// La superficie más "pesada" del panel: la única con color de marca de fondo,
-// para que el resumen del día se lea antes que cualquier cifra.
-
 .hero {
   position: relative;
   overflow: hidden;
@@ -162,8 +158,6 @@
   }
 }
 
-// ---- Stat cards --------------------------------------------------------
-
 .stat-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -179,7 +173,6 @@
 
   &.is-skeleton {
     min-height: 104px;
-    // A slow, low-amplitude sheen — no strobing, and it stops for reduced motion.
     background-image: linear-gradient(
       100deg,
       transparent 20%,
@@ -277,8 +270,6 @@
     height: 22px;
   }
 
-  // Tinted tiles carry no meaning — they label the card, so they stay soft and
-  // never borrow a status colour.
   &.tone-teal {
     background: var(--color-primary-soft);
     color: var(--color-primary);
@@ -296,8 +287,6 @@
     color: var(--color-ink-soft);
   }
 }
-
-// ---- Card chrome shared by the chart & panel cards ---------------------
 
 .chart-card,
 .panel-card {
@@ -354,8 +343,6 @@
   }
 }
 
-// ---- Area chart --------------------------------------------------------
-
 .area-wrap {
   position: relative;
   margin-top: auto;
@@ -369,7 +356,6 @@
   touch-action: none;
 }
 
-// Grid and axes are recessive: they orient, they don't compete with the data.
 .grid-line {
   stroke: var(--color-border);
   stroke-width: 1;
@@ -463,8 +449,6 @@
     text-transform: capitalize;
   }
 }
-
-// ---- Donut -------------------------------------------------------------
 
 .donut-wrap {
   display: flex;
@@ -594,8 +578,6 @@
   color: var(--color-ink-faint);
 }
 
-// ---- Agenda y pendientes -----------------------------------------------
-
 .main-row {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
@@ -630,7 +612,6 @@
   animation: skeleton-sweep 1.5s ease-in-out infinite;
 }
 
-// La siguiente cita, destacada: es la pregunta que más se hace en recepción.
 .next-up {
   color: var(--color-ink);
   display: grid;
@@ -1009,7 +990,6 @@
   }
 }
 
-// Accepted vs awaiting is polarity, not identity: settled reads teal, open gold.
 .accepted {
   background: var(--color-primary);
 }

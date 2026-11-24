@@ -5,8 +5,6 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
-// Without this every named date format falls back to en-US, which prints
-// "Sunday 20 de September de 2026" — half the sentence in the wrong language.
 registerLocaleData(localeEs);
 
 import { routes } from './app.routes';

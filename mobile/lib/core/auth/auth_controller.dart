@@ -22,11 +22,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return client;
 });
 
-/// Estado de la sesión.
-///
-/// `cargando` es un tercer estado a propósito: al abrir la app hay un momento
-/// en que no se sabe si hay sesión, y dibujar el login durante ese momento
-/// hace parpadear la pantalla a quien sí la tiene.
 enum EstadoSesion { cargando, autenticado, anonimo }
 
 class AuthState {
@@ -53,9 +48,6 @@ class AuthController extends StateNotifier<AuthState> {
   ApiClient get _api => _ref.read(apiClientProvider);
   TokenStore get _tokens => _ref.read(tokenStoreProvider);
 
-  /// Al abrir la app se intenta revivir la sesión con el token del llavero.
-  /// Si no se puede, se cae al login sin ruido: un token caducado es lo normal
-  /// después de una semana, no un error que mostrar.
   Future<void> restaurarSesion() async {
     final refresh = await _tokens.readRefreshToken();
     if (refresh == null) {
@@ -77,8 +69,6 @@ class AuthController extends StateNotifier<AuthState> {
       if (rotado != null) await _tokens.saveRefreshToken(rotado);
       await _cargarUsuario();
     } on DioException {
-      // Sin red no se cierra la sesión: se entra con la última guardada y
-      // se trabaja con la copia local hasta que vuelva la conexión.
       final guardado = await _ref.read(sinConexionProvider).usuarioGuardado();
       if (guardado != null) {
         state = AuthState(estado: EstadoSesion.autenticado, usuario: Usuario.fromJson(guardado));
@@ -89,9 +79,6 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<bool> iniciarSesion(String email, String password) async {
-    // No se pasa a «cargando»: eso reemplazaría el login por la pantalla de
-    // arranque y, si falla, se perdería lo escrito. El botón ya muestra la
-    // espera.
     state = state.copyWith(error: null);
     try {
       final response = await _api.dio.post(
@@ -101,8 +88,6 @@ class AuthController extends StateNotifier<AuthState> {
       if (response.statusCode != 200) {
         state = AuthState(
           estado: EstadoSesion.anonimo,
-          // El servidor distingue «credenciales inválidas» de «cuenta
-          // bloqueada por intentos»; esa diferencia le importa a quien la lee.
           error: messageFrom(response, 'No se pudo iniciar sesión'),
         );
         return false;
@@ -135,8 +120,6 @@ class AuthController extends StateNotifier<AuthState> {
     state = AuthState(estado: EstadoSesion.autenticado, usuario: Usuario.fromJson(datos));
     final local = _ref.read(sinConexionProvider);
     await local.guardarUsuario(datos);
-    // Lo esencial para trabajar sin red: pacientes, la agenda de la semana y
-    // el panel. Lo demás se guarda a medida que se consulta.
     unawaited(_precargar());
   }
 
@@ -161,16 +144,11 @@ class AuthController extends StateNotifier<AuthState> {
     await AvisosCitas.instancia.actualizar(dio);
   }
 
-  /// Registra la aceptación del acuerdo y relee el usuario, que ya no lo
-  /// tendrá pendiente.
   Future<void> aceptarConfidencialidad() async {
     await _api.dio.post('/auth/confidentiality');
     await _cargarUsuario();
   }
 
-  /// Cambia la contraseña propia. El servidor cierra las demás sesiones y
-  /// devuelve tokens nuevos para esta. Devuelve el mensaje de error, o nulo
-  /// si salió bien.
   Future<String?> cambiarClave(String actual, String nueva) async {
     try {
       final response = await _api.dio.post(
@@ -200,8 +178,7 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _api.dio.post('/auth/logout', data: {'refresh_token': refresh});
     } on DioException {
-      // Si el servidor no contesta, la sesión se cierra en el dispositivo de
-      // todas formas: dejar al usuario dentro porque falló la red sería peor.
+      // Sin red: igual se cierra la sesión local.
     }
     // Al salir a propósito no queda nada de esta persona en el teléfono.
     await _ref.read(sinConexionProvider).olvidarTodo();

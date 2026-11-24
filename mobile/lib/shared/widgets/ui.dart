@@ -7,9 +7,6 @@ import 'carga.dart';
 import 'estado_vacio.dart';
 import 'glass.dart';
 
-/// Piezas visuales comunes de los módulos, para que todas las pantallas
-/// hablen el mismo idioma que la web.
-
 /// Cifra destacada (KPI) en tarjeta de vidrio.
 class Kpi extends StatelessWidget {
   const Kpi({

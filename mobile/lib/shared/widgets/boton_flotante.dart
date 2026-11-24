@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Botón flotante para las pantallas que viven dentro de la navegación
-/// inferior: se coloca por encima de la barra de vidrio, no detrás de ella.
 class BotonFlotante extends StatelessWidget {
   const BotonFlotante({
     super.key,

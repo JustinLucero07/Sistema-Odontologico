@@ -26,8 +26,6 @@ String _cant(dynamic v) {
   return n == n.roundToDouble() ? n.toStringAsFixed(0) : n.toStringAsFixed(2);
 }
 
-/// Inventario: existencias que salen de los movimientos, alertas de mínimo y
-/// caducidad, artículos y proveedores.
 class InventarioPage extends ConsumerStatefulWidget {
   const InventarioPage({super.key});
 

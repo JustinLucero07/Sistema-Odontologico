@@ -1,11 +1,6 @@
 import { Consent } from '../../core/models/clinical-record.models';
 import { ClinicIdentity, clinicBlock, esc, longDate, openPrintWindow } from './print-document';
 
-/**
- * Consentimiento informado como documento para firmar. El texto es la copia
- * que se guardó al emitirlo: lo que el paciente lee en papel es exactamente lo
- * que consta en su historia, aunque la plantilla haya cambiado después.
- */
 export function printConsent(
   consent: Consent,
   clinic: ClinicIdentity | null,

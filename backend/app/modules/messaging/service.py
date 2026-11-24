@@ -30,8 +30,6 @@ from app.modules.privacy.service import communications_revoked
 from app.modules.mail import service as correo
 from app.shared.messaging import DeliveryResult
 
-# Templates a clinic gets on day one. They are seeded per clinic on first use
-# so a practice can edit its own wording without touching anyone else's.
 DEFAULT_TEMPLATES = [
     (
         "recordatorio_cita",
@@ -68,9 +66,6 @@ def provider_status() -> ProviderStatus:
     )
 
 
-# ---- Templates ----------------------------------------------------------
-
-
 async def list_templates(db: AsyncSession, clinic_id: uuid.UUID) -> list[MessageTemplate]:
     result = await db.execute(
         select(MessageTemplate).where(MessageTemplate.clinic_id == clinic_id).order_by(MessageTemplate.name)
@@ -79,7 +74,6 @@ async def list_templates(db: AsyncSession, clinic_id: uuid.UUID) -> list[Message
     if templates:
         return templates
 
-    # First visit: give the clinic something to edit rather than an empty page.
     for code, name, body in DEFAULT_TEMPLATES:
         db.add(
             MessageTemplate(
@@ -118,26 +112,15 @@ async def upsert_template(
 
 
 def render(body: str, values: dict[str, str]) -> str:
-    """Substitutes {placeholders}. An unknown one is left visible rather than
-    blanked, so a broken template is obvious in the preview instead of going
-    out as 'Hola , le recordamos...'."""
     out = body
     for key, value in values.items():
         out = out.replace("{" + key + "}", value)
     return out
 
 
-# ---- Sending ------------------------------------------------------------
-
-
 async def _placeholders(
     db: AsyncSession, clinic_id: uuid.UUID, patient: Patient, appointment: Appointment | None = None
 ) -> dict[str, str]:
-    """Every placeholder a template can use, filled from real data.
-
-    Anything left unfilled stays visible as `{nombre}` — a template with a typo
-    should look broken in the preview, not go out reading "Hola , le
-    recordamos". That only works if the ones we DO know are all here."""
     clinic = (
         await db.execute(select(Clinic).where(Clinic.id == clinic_id))
     ).scalar_one_or_none()
@@ -147,8 +130,6 @@ async def _placeholders(
         "clinica": clinic.name if clinic else "la clínica",
     }
     if appointment is not None:
-        # La hora que lee el paciente es la de la clínica, no la de UTC: una
-        # cita a las 11:00 en Ecuador no puede llegar anunciada a las 16:00.
         try:
             tz = ZoneInfo(clinic.timezone if clinic and clinic.timezone else "UTC")
         except ZoneInfoNotFoundError:
@@ -220,8 +201,6 @@ async def send_message(
         error=result.error,
         created_by_id=actor_id,
         created_at=datetime.now(timezone.utc),
-        # Only a real delivery gets a send timestamp. A simulated message has
-        # no moment at which it reached anyone.
         sent_at=datetime.now(timezone.utc) if result.status == STATUS_SENT else None,
     )
     db.add(message)
@@ -244,17 +223,9 @@ async def list_messages(
     return list(result.scalars().all())
 
 
-# ---- Reminder dispatch --------------------------------------------------
-
-
 async def dispatch_due_reminders(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID | None = None
 ) -> DispatchResult:
-    """Turns reminders whose moment has arrived into real messages.
-
-    Phase 5 recorded WHAT should go out and WHEN but deliberately sent nothing.
-    This is the other half. It is idempotent by status: a reminder already
-    resolved is never picked up twice, so running it repeatedly is safe."""
     now = datetime.now(timezone.utc)
     rows = (
         await db.execute(
@@ -274,8 +245,6 @@ async def dispatch_due_reminders(
 
     for reminder in rows:
         appointment = reminder.appointment
-        # A cancelled or already-attended appointment must not send a reminder;
-        # the patient is not coming, or has already been.
         if appointment is None or appointment.status in ("cancelada", "atendida", "no_asistio"):
             reminder.status = STATUS_CANCELLED
             result.skipped += 1
@@ -299,6 +268,8 @@ async def dispatch_due_reminders(
             DEFAULT_TEMPLATES[0][2],
             await _placeholders(db, clinic_id, patient, appointment),
         )
+        if reminder.offset_minutes > 24 * 60:
+            body += "\nPor favor confírmenos su asistencia respondiendo a este mensaje."
 
         if reminder.channel == "email":
             clinica = clinica or (await db.execute(select(Clinic).where(Clinic.id == clinic_id))).scalar_one()
@@ -342,8 +313,6 @@ async def dispatch_due_reminders(
 
 
 async def _por_correo(db: AsyncSession, clinica: Clinic, destino: str, asunto: str, texto: str, cita=None) -> DeliveryResult:
-    """Envía por el correo de la consulta. Sin correo configurado el mensaje
-    queda como fallido con el motivo, nunca como «enviado»."""
     parrafos = [correo.escapar(texto)]
     if cita is not None:
         parrafos.append("Si no puede asistir, por favor avísenos respondiendo a este correo o llamando a la consulta.")

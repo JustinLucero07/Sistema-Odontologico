@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Odontogram, OdontogramCreate, OdontogramSummary } from '../models/odontogram.models';
+import { Odontogram, OdontogramCreate, OdontogramSummary, OdontogramTimelineEntry } from '../models/odontogram.models';
 
 @Injectable({ providedIn: 'root' })
 export class OdontogramService {
@@ -15,6 +15,10 @@ export class OdontogramService {
 
   getLatest(patientId: string): Observable<Odontogram | null> {
     return this.http.get<Odontogram | null>(this.base(patientId));
+  }
+
+  getTimeline(patientId: string): Observable<OdontogramTimelineEntry[]> {
+    return this.http.get<OdontogramTimelineEntry[]>(`${this.base(patientId)}/timeline`);
   }
 
   getVersion(patientId: string, odontogramId: string): Observable<Odontogram> {

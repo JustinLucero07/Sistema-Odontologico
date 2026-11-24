@@ -12,8 +12,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-/// Elige un Excel (.xlsx) o CSV y abre la vista previa de la importación.
-/// Devuelve true si se importó algo.
 Future<bool> importarPacientes(BuildContext context) async {
   final elegidos = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['xlsx', 'csv']);
   if (elegidos.isEmpty || !context.mounted) return false;
@@ -26,8 +24,6 @@ Future<bool> importarPacientes(BuildContext context) async {
   return r == true;
 }
 
-/// Vista previa: qué se crea, qué ya existe y qué tiene errores. Nada se
-/// guarda hasta tocar «Importar».
 class ImportarPacientesPage extends ConsumerStatefulWidget {
   const ImportarPacientesPage({super.key, required this.nombre, required this.bytes});
 

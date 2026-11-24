@@ -13,20 +13,12 @@ from app.shared.mixins import TenantMixin, TimestampMixin, UUIDPKMixin
 
 
 class Appointment(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
-    """A booked slot in a professional's calendar.
-
-    Overlaps are rejected by exclusion constraints on the table itself (see the
-    Alembic migration), not only by the service layer — two receptionists
-    booking the same slot at the same instant must not both succeed."""
-
     __tablename__ = "appointments"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)
     professional_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("professionals.id"), nullable=False, index=True)
     operatory_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("operatories.id"), nullable=True)
     treatment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("treatments.id"), nullable=True)
-    # Links the calendar back to the treatment plan, so a booked appointment is
-    # not an island: it can point at the exact plan item it is meant to resolve.
     treatment_plan_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("treatment_plan_items.id"), nullable=True
     )
@@ -53,13 +45,6 @@ class Appointment(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
 
 
 class AppointmentReminder(UUIDPKMixin, TenantMixin, Base):
-    """A reminder scheduled for an appointment.
-
-    Nothing here sends anything: it records *what* should go out and *when*, so
-    the messaging integrations added in a later phase only have to pick up rows
-    that are due. Keeping the schedule in the database means a reminder survives
-    a restart and can be audited after the fact."""
-
     __tablename__ = "appointment_reminders"
 
     appointment_id: Mapped[uuid.UUID] = mapped_column(

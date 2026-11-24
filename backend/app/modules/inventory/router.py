@@ -104,8 +104,6 @@ async def post_movement(
 ):
     await service.record_movement(db, current_user.clinic_id, current_user.id, item_id, payload)
     await db.commit()
-    # The item comes back with its recomputed stock, so the caller never has to
-    # do the arithmetic itself.
     item = await service.get_item_or_404(db, current_user.clinic_id, item_id)
     return service.to_item_out(item)
 

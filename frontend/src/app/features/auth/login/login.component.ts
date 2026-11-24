@@ -40,8 +40,6 @@ export class LoginComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly hidePassword = signal(true);
 
-  // Solo el correo se recuerda aquí. La contraseña la guarda el gestor de
-  // contraseñas del navegador (cifrado y protegido por el sistema), nunca la app.
   private static readonly CLAVE_CORREO = 'login.correo';
   readonly recordar = signal(true);
   private readonly correo = viewChild<ElementRef<HTMLInputElement>>('correo');
@@ -57,8 +55,6 @@ export class LoginComponent {
   }
 
   async submit(): Promise<void> {
-    // El autollenado del navegador no avisa a Angular hasta que el usuario
-    // toca la página: se toman los valores que ya están en los campos.
     const correo = this.correo()?.nativeElement.value ?? '';
     const clave = this.clave()?.nativeElement.value ?? '';
     if (correo && correo !== this.form.controls.email.value) this.form.controls.email.setValue(correo);
@@ -85,9 +81,6 @@ export class LoginComponent {
     }
   }
 
-  // Tras un ingreso correcto: recordar el correo (si se pidió) y ofrecer al
-  // navegador guardar la contraseña. Chrome y Edge lo hacen con la API de
-  // credenciales; Firefox y Safari lo detectan por el propio formulario.
   private async guardarCredenciales(): Promise<void> {
     const { email, password } = this.form.getRawValue();
     try {

@@ -10,8 +10,6 @@ class PatientContact(BaseModel):
     patient_name: str
     phone: str | None
     whatsapp: str | None
-    # False si el paciente retiró su autorización de comunicaciones: la
-    # oportunidad se muestra, pero sin botón de WhatsApp.
     contact_allowed: bool
 
 

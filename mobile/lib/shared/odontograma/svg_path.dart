@@ -1,10 +1,5 @@
 import 'dart:ui';
 
-/// Convierte una cadena de trazado SVG en un `Path` de Flutter.
-///
-/// Solo entiende los comandos que usan las formas dentales —M, L, C, A y Z, en
-/// mayúsculas— en lugar de traer una librería entera de SVG. Si algún día una
-/// forma usa otro comando, esto lanza en vez de dibujar algo raro en silencio.
 Path parseSvgPath(String d, {double scale = 1}) {
   final path = Path();
   final tokens = RegExp(
@@ -38,8 +33,6 @@ Path parseSvgPath(String d, {double scale = 1}) {
           curY = next();
           path.cubicTo(c1x, c1y, c2x, c2y, curX, curY);
         case 'A':
-          // Arco: se usa solo en la rueda de superficies, siempre como medio
-          // círculo. Se aproxima con el arco del rectángulo que lo contiene.
           final rx = next(), ry = next();
           next(); // rotación del eje x, siempre 0 aquí
           final largeArc = next() != 0;
@@ -56,8 +49,6 @@ Path parseSvgPath(String d, {double scale = 1}) {
           throw UnsupportedError('Comando SVG no soportado: $cmd en «$d»');
       }
     } else {
-      // Un número suelto tras un comando significa repetirlo; ninguna de las
-      // formas dentales lo hace, así que es más útil fallar que adivinar.
       throw FormatException('Número sin comando en el trazado: «$d»');
     }
   }

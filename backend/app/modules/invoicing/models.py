@@ -22,12 +22,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class InvoicingSettings(UUIDPKMixin, TenantMixin, Base):
-    """Configuración de facturación electrónica de una consulta.
-
-    La firma (.p12) y su clave se guardan CIFRADAS con una llave que vive en
-    el servidor (app.modules.invoicing.crypto), nunca en claro: quien robe un
-    respaldo de la base no puede facturar a nombre de la consulta."""
-
     __tablename__ = "invoicing_settings"
     __table_args__ = (UniqueConstraint("clinic_id", name="uq_invoicing_settings_clinic"),)
 
@@ -44,10 +38,6 @@ class InvoicingSettings(UUIDPKMixin, TenantMixin, Base):
 
 
 class InvoiceSequence(UUIDPKMixin, TenantMixin, Base):
-    """Siguiente número por establecimiento, punto de emisión y tipo. Se lee
-    con bloqueo de fila: dos personas que facturan a la vez nunca obtienen el
-    mismo número."""
-
     __tablename__ = "invoice_sequences"
     __table_args__ = (
         UniqueConstraint(
@@ -62,13 +52,6 @@ class InvoiceSequence(UUIDPKMixin, TenantMixin, Base):
 
 
 class Invoice(UUIDPKMixin, TenantMixin, Base):
-    """Factura o nota de crédito electrónica.
-
-    Lo que se emitió no se borra ni se edita: una factura autorizada se corrige
-    con una nota de crédito, y una rechazada por el SRI se descarta con su
-    motivo. Los datos del comprador y del emisor se copian al emitir, para que
-    el comprobante no cambie si después cambia la ficha del paciente."""
-
     __tablename__ = "invoices"
     __table_args__ = (
         UniqueConstraint("clinic_id", "doc_type", "establishment", "emission_point", "sequential", name="uq_invoice_number"),
@@ -139,7 +122,6 @@ class InvoiceLine(UUIDPKMixin, Base):
     invoice_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("invoices.id", name="fk_invoice_lines_invoice", ondelete="CASCADE"), nullable=False, index=True
     )
-    # El cargo de la cuenta del paciente que esta línea factura (si viene de uno).
     charge_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("charges.id", name="fk_invoice_lines_charge"), index=True
     )

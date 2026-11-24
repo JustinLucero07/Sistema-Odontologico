@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Entrada escalonada: el hijo sube 14 px y se funde al aparecer, un poco
-/// después que el anterior ([orden]). Solo la primera vez que se construye;
-/// al volver a la pantalla no se repite. Con «reducir movimiento» aparece
-/// sin animar.
 class Aparecer extends StatefulWidget {
   const Aparecer({super.key, required this.child, this.orden = 0});
 

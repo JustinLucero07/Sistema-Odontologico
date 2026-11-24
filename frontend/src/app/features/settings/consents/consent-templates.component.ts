@@ -151,7 +151,6 @@ export class ConsentTemplatesComponent implements OnInit {
     }
   }
 
-  /** Retirar la quita del selector al emitir; lo ya firmado conserva su texto. */
   async toggleActive(template: ConsentTemplate): Promise<void> {
     const { id, ...rest } = template;
     await firstValueFrom(this.records.updateConsentTemplate(id, { ...rest, is_active: !template.is_active }));

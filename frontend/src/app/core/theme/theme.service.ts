@@ -31,7 +31,6 @@ export class ThemeService {
     this.apply();
   }
 
-  /** Cycles light → dark → system, which is what a single toolbar button needs. */
   cycle(): void {
     const order: ThemePreference[] = ['light', 'dark', 'system'];
     const next = order[(order.indexOf(this.preference()) + 1) % order.length];
@@ -44,8 +43,6 @@ export class ThemeService {
     this.resolved.set(resolved);
 
     const root = document.documentElement;
-    // A brightness jump is jarring, so the swap eases — the class is removed
-    // once the transition has run so it never slows ordinary interaction.
     root.classList.add('theme-transition');
     root.dataset['theme'] = resolved;
     window.setTimeout(() => root.classList.remove('theme-transition'), 320);

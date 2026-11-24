@@ -10,11 +10,6 @@ from app.shared.mixins import TenantMixin, UUIDPKMixin
 
 
 class MedicalHistory(UUIDPKMixin, TenantMixin, Base):
-    """Append-only: every save inserts a new row, never updates one. The
-    current state of a patient's history is simply the latest row by
-    created_at — this is the same versioning philosophy as the odontogram,
-    so nothing clinically important is ever silently overwritten."""
-
     __tablename__ = "medical_histories"
 
     patient_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True)

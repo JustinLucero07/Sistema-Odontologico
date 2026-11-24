@@ -341,8 +341,6 @@ export class TreatmentPlansTabComponent implements OnChanges {
     }
   }
 
-  // ---- Correcciones ---------------------------------------------------------
-
   readonly visibleDiagnoses = computed(() =>
     this.diagnoses().filter((d) => this.showVoided() || !d.voided_at),
   );
@@ -447,8 +445,6 @@ export class TreatmentPlansTabComponent implements OnChanges {
 
   private readonly clinicService = inject(ClinicService);
 
-  /** Certificado de los tratamientos terminados del plan (o de todo el plan
-   *  si aún no hay ninguno terminado), firmado por el profesional. */
   async printCertificate(plan: TreatmentPlan): Promise<void> {
     try {
       const [clinic, patient, profesionales] = await Promise.all([
@@ -492,7 +488,6 @@ export class TreatmentPlansTabComponent implements OnChanges {
     }
   }
 
-  /** Prints the budget as its own clean document rather than the whole page. */
   async printBudget(budget: Budget, planTitle: string): Promise<void> {
     try {
       const [clinic, patient] = await Promise.all([

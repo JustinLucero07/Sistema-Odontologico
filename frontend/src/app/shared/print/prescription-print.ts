@@ -13,13 +13,6 @@ export interface PrescriptionPatient {
   age: number | null;
 }
 
-/**
- * Receta médica como documento propio. Lleva lo que una receta necesita para
- * ser válida: quién prescribe y su registro profesional, a quién, cuándo, cada
- * medicamento con su dosis, frecuencia y duración, y el espacio para la firma.
- * Si el profesional no tiene registro cargado, se deja la línea en blanco para
- * escribirlo a mano en vez de imprimir la receta sin él.
- */
 export function printPrescription(
   prescription: Prescription,
   clinic: ClinicIdentity | null,

@@ -3,8 +3,6 @@
   gap: 16px;
 }
 
-// ---- Barra superior --------------------------------------------------------
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -20,7 +18,6 @@
   flex: 1 1 auto;
 }
 
-// Cifras en cápsulas de vidrio: la boca resumida antes de mirar el dibujo.
 .stats {
   display: flex;
   flex-wrap: wrap;
@@ -85,8 +82,6 @@
   }
 }
 
-// ---- Distribución: gráfico + panel lateral ----------------------------------
-
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -101,7 +96,6 @@
   min-width: 0;
 }
 
-// El panel de herramientas acompaña al desplazarse: el pincel siempre a mano.
 .side-col {
   position: sticky;
   top: 88px;
@@ -126,8 +120,6 @@
     align-items: start;
   }
 }
-
-// ---- Gráfico -----------------------------------------------------------------
 
 .chart-wrap {
   padding: 8px 8px 12px;
@@ -187,8 +179,6 @@
     }
   }
 }
-
-// ---- Tarjetas del panel -----------------------------------------------------
 
 .side-col h3,
 .versions-panel h3 {
@@ -311,8 +301,6 @@
   }
 }
 
-// ---- Detalle de la pieza seleccionada ----------------------------------------
-
 .tooth-detail {
   padding: 14px 12px 10px 16px;
   animation: page-enter 0.25s var(--ease-spring) both;
@@ -380,8 +368,6 @@
     color: var(--color-ink-faint);
   }
 }
-
-// ---- Hallazgos -----------------------------------------------------------------
 
 .findings {
   padding: 16px;
@@ -489,8 +475,6 @@
   color: var(--color-ink-faint);
 }
 
-// ---- Versiones ------------------------------------------------------------------
-
 .versions-panel {
   padding: 14px 12px 12px 18px;
   animation: page-enter 0.25s var(--ease-spring) both;
@@ -554,8 +538,6 @@
   font-size: 0.76rem;
   color: var(--color-ink-faint);
 }
-
-// ---- Selector de condición ------------------------------------------------------
 
 .picker-overlay {
   position: fixed;
@@ -661,8 +643,6 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-// ---- Barra de guardado ------------------------------------------------------
-
 .save-bar {
   position: sticky;
   bottom: 12px;
@@ -738,12 +718,26 @@
   }
 }
 
-// En oscuro, los colores muy oscuros (fractura, endodoncia) necesitan canto claro.
 :host-context([data-theme='dark']) {
   .tool i,
   .finding-head i,
   .detail-row i,
   .picker-swatch {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  }
+}
+
+.hint-3d {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 2px 0;
+  font-size: 0.78rem;
+  color: var(--color-ink-faint);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }

@@ -135,7 +135,6 @@ export class LegalPageComponent {
   readonly doc = signal<Doc>('privacidad');
   readonly controller = toSignal(this.legal.getController());
 
-  /** Términos y contrato vienen del servidor: el mismo texto que ve el celular. */
   readonly serverDoc = toSignal(
     toObservable(this.doc).pipe(
       switchMap((d) => (d === 'terminos' || d === 'encargo' ? this.legal.getDocument(d) : of(null))),

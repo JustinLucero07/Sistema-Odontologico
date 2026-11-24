@@ -8,12 +8,6 @@ function sections(list: { title: string; paragraphs: string[] }[]): string {
     .join('');
 }
 
-/**
- * Aviso de privacidad para entregar y firmar. Deja dos constancias separadas:
- * que se informó (obligatorio) y si autoriza mensajes (opcional). Mezclarlas
- * en una sola firma haría que negarse a los mensajes pareciera negarse a
- * ser atendido.
- */
 export function printPrivacyNotice(controller: LegalController, patientName: string | null): boolean {
   return openPrintWindow(
     'Aviso de privacidad',
@@ -72,7 +66,6 @@ export function printConfidentialityAgreement(controller: LegalController, staff
   );
 }
 
-/** Términos de uso o contrato de encargo, con la constancia de aceptación. */
 export function printLegalDocument(
   controller: LegalController,
   doc: { title: string; version: string; sections: { title: string; paragraphs: string[] }[] },

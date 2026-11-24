@@ -3,12 +3,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 
 import '../marca/marca.dart';
 
-/// Los mismos tokens que la web, para que la app no parezca otro producto.
-/// El set oscuro está *elegido*, no invertido: una paleta invertida da
-/// medios tonos sucios y primarios muertos.
 class AppColors {
-  // El color principal es el de la marca de cada consulta; el resto de su
-  // familia se deriva de él para que todo combine.
   static Color get primary => Marca.actual;
   static Color get primaryDark => tono(Marca.actual, -0.28);
   static Color get mint => tono(Marca.actual, 0.3);
@@ -16,9 +11,6 @@ class AppColors {
   static const danger = Color(0xFFB3352B);
   static const success = Color(0xFF2B7A4B);
 
-  // Porcelana: un blanco cálido, como el esmalte, en lugar del gris azulado
-  // de hospital. Las tarjetas son blanco puro y se separan del fondo por
-  // contraste de temperatura, no por sombras pesadas.
   static const inkLight = Color(0xFF14242B);
   static const baseLight = Color(0xFFF6F4EF);
   static const surfaceLight = Color(0xFFFFFFFF);
@@ -36,9 +28,6 @@ class AppColors {
   static const lineDark = Color(0xFF223236);
 }
 
-/// Colores de estado de cita. Vienen validados para daltonismo desde la web
-/// (peor par adyacente ΔE 9,5 protan / 21,3 visión normal), así que se copian
-/// tal cual en lugar de elegirse otra vez a ojo.
 class StatusColors {
   static const Map<String, Color> light = {
     'programada': Color(0xFF22B8CF),
@@ -50,9 +39,6 @@ class StatusColors {
     'no_asistio': Color(0xFF9C36B5),
   };
 
-  /// Tres pasos del set claro caen por debajo de 3:1 sobre el fondo oscuro,
-  /// así que índigo, rojo y morado se re-escalan. El resto se mantiene: un
-  /// estado no debería cambiar de identidad al cambiar el tema.
   static const Map<String, Color> dark = {
     'programada': Color(0xFF22B8CF),
     'confirmada': Color(0xFF2B8A3E),
@@ -83,8 +69,6 @@ const Map<String, String> statusLabels = {
 const fuenteTitulos = 'Jakarta';
 const fuenteTexto = 'Inter';
 
-/// Estilo de título editorial: Jakarta, peso alto y tracking negativo que se
-/// aprieta a medida que crece.
 TextStyle estiloTitulo(double tamano, {Color? color, FontWeight peso = FontWeight.w700}) =>
     TextStyle(
       fontFamily: fuenteTitulos,
@@ -171,8 +155,6 @@ ThemeData _build(Brightness brightness) {
       ),
       margin: EdgeInsets.zero,
     ),
-    // Campos blancos sobre porcelana, con borde fino que se vuelve del color
-    // de la marca al enfocarlos.
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: dark ? const Color(0xFF152225) : Colors.white,

@@ -8,19 +8,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Trabajo sin conexión.
-///
-/// - Todo lo que se consulta con red se guarda en el teléfono; sin red, la
-///   app muestra esa copia.
-/// - Los cambios hechos sin red (editar un paciente, agendar, anotar una
-///   evolución…) se guardan en una cola, se ven al instante en pantalla y se
-///   suben solos, en orden, cuando vuelve la conexión.
-/// - Cada cambio lleva una llave única (Idempotency-Key): si la red se cortó
-///   justo después de que el servidor lo guardara, al reenviarlo no se
-///   duplica.
-/// - Hay cosas que solo tienen sentido con el servidor delante: facturar ante
-///   el SRI, subir fotos, enviar mensajes, iniciar sesión. Esas no se encolan.
-
 /// Rutas que nunca se encolan (necesitan al servidor en ese momento).
 const _soloEnLinea = [
   '/auth/',
@@ -54,7 +41,6 @@ class Pendiente {
   final Map<String, dynamic>? query;
   final DateTime creado;
 
-  /// Si es una creación, el id provisional con que se muestra hasta subirla.
   final String? idTemporal;
 
   /// Motivo por el que el servidor lo rechazó (queda como conflicto).
@@ -131,8 +117,6 @@ String nuevaLlave() {
   return '${h(0, 4)}-${h(4, 6)}-${h(6, 8)}-${h(8, 10)}-${h(10, 16)}';
 }
 
-/// Almacén en archivos: una copia por consulta y la cola de cambios. En la
-/// versión web (solo para pruebas) vive en memoria.
 class Almacen {
   Directory? _dir;
   final Map<String, String> _memoria = {};
@@ -227,8 +211,6 @@ class SinConexion extends ChangeNotifier {
 
   Future<void> iniciar(Dio dio) async {
     _dio = dio;
-    // El interceptor va de inmediato: la primera petición (revivir la sesión)
-    // ya debe poder resolverse sin red.
     dio.interceptors.add(interceptor());
     await _almacen.abrir();
     final guardada = await _almacen.leer('cola');
@@ -241,15 +223,12 @@ class SinConexion extends ChangeNotifier {
     }
     if (!kIsWeb) {
       try {
-        // El aviso sigue al estado de la red del sistema: aparece al cortarse
-        // y se va al volver (y entonces se sube lo pendiente).
         _red = Connectivity().onConnectivityChanged.listen(
           (r) => _estado(r.any((x) => x != ConnectivityResult.none)),
           onError: (_) {}, // sin el servicio de red del sistema, queda el reintento periódico
         );
       } catch (_) {}
     }
-    // Además de avisar el sistema, se reintenta cada 30 s mientras haya cola.
     _reloj = Timer.periodic(const Duration(seconds: 30), (_) {
       if (pendientes.isNotEmpty) sincronizar();
     });
@@ -459,9 +438,6 @@ class SinConexion extends ChangeNotifier {
     return t;
   }
 
-  /// Sube la cola en orden. Se detiene al primer corte de red; un rechazo
-  /// del servidor (dato inválido, ya anulado…) queda como conflicto para que
-  /// la persona decida, sin frenar lo demás.
   Future<void> sincronizar() async {
     final dio = _dio;
     if (dio == null || _sincronizando || pendientes.isEmpty) return;

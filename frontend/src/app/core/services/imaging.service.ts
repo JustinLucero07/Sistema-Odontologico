@@ -44,16 +44,12 @@ export class ImagingService {
     );
   }
 
-  /** The viewer loads bytes through the API so the auth interceptor applies —
-   *  a clinical image is never a public URL. */
   fetchBlob(imageId: string): Observable<Blob> {
     return this.http.get(`${environment.apiUrl}/images/${imageId}/file`, {
       responseType: 'blob',
     });
   }
 
-  /** There is no delete. A withdrawn study stays in the record with its
-   *  reason, because "which image was seen at the time" is itself clinical. */
   archive(imageId: string, reason: string): Observable<ClinicalImage> {
     return this.http.post<ClinicalImage>(`${environment.apiUrl}/images/${imageId}/archive`, {
       reason,

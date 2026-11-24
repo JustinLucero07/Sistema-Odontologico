@@ -1,4 +1,3 @@
-import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -6,9 +5,6 @@ from pydantic import BaseModel
 
 
 class DateRange(BaseModel):
-    """Every report states the window it covers, so a printed page is never
-    ambiguous about which dates produced the numbers."""
-
     date_from: date
     date_to: date
 
@@ -34,8 +30,6 @@ class FinancialReport(BaseModel):
     by_method: list[NamedAmount]
     by_professional: list[NamedAmount]
     daily: list[dict]
-    # Receivables are as of TODAY, not of the range: a debt does not belong to
-    # the window in which it was billed, it belongs to now.
     outstanding_total: Decimal
     aging: list[AgingBucket]
     voided_total: Decimal
@@ -49,8 +43,6 @@ class BudgetConversion(BaseModel):
     rejected_amount: Decimal
     pending_count: int
     pending_amount: Decimal
-    # Accepted over DECIDED budgets. Counting the still-open ones as failures
-    # would understate a clinic that simply has proposals in flight.
     conversion_rate: float | None
 
 
@@ -69,8 +61,6 @@ class AppointmentReport(BaseModel):
     by_status: list[NamedAmount]
     by_professional: list[NamedAmount]
     by_weekday: list[NamedAmount]
-    # Denominators exclude appointments that have not happened yet — a slot
-    # next Tuesday is not an attendance a patient failed to make.
     concluded: int
     attended: int
     no_show: int

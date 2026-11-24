@@ -79,8 +79,6 @@ export class ShellComponent {
 
   readonly collapsed = signal(this.readCollapsed());
 
-  /** Pantallas estrechas (tablet vertical, móvil): el menú flota sobre el
-   *  contenido y se abre con un botón, en vez de ocupar un tercio del ancho. */
   readonly compact = toSignal(
     inject(BreakpointObserver)
       .observe('(max-width: 960px)')
@@ -88,10 +86,6 @@ export class ShellComponent {
     { initialValue: false },
   );
 
-  // Tres grupos por lo que se hace en cada uno: atender, administrar,
-  // configurar. Odontograma, planes y presupuestos no están aquí porque son de
-  // UN paciente y viven como pestañas en su ficha; como entradas sueltas solo
-  // eran un buscador que llevaba allí.
   readonly sections: NavSection[] = [
     {
       title: 'Clínica',
@@ -159,14 +153,13 @@ export class ShellComponent {
           permission: 'roles:manage',
         },
         { label: 'Personalización', icon: 'palette', route: '/settings/branding', permission: 'settings:manage' },
+        { label: 'Datos de pago', icon: 'qr_code_2', route: '/settings/payment-accounts', permission: 'settings:manage' },
         { label: 'Correo', icon: 'mail', route: '/settings/mail', permission: 'settings:manage' },
         { label: 'Legal y cumplimiento', icon: 'gavel', route: '/settings/compliance', permission: 'settings:manage' },
         { label: 'Datos de la consulta', icon: 'storefront', route: '/settings/clinic', permission: 'settings:manage' },
       ],
     },
   ];
-
-  // ---- Global search ----------------------------------------------------
 
   readonly searchControl = this.fb.nonNullable.control('');
   private readonly search$ = new Subject<string>();
@@ -192,9 +185,6 @@ export class ShellComponent {
     return avisos;
   });
 
-  // ---- Cierre de sesión por inactividad --------------------------------
-  // La última actividad se comparte entre pestañas: trabajar en una mantiene
-  // abiertas las demás.
   private static readonly ACTIVIDAD = 'odonto.lastActivity';
   private ultimaMarca = 0;
 
@@ -240,8 +230,6 @@ export class ShellComponent {
   private passwordOpen = false;
 
   constructor() {
-    // Nadie trabaja con datos de pacientes sin haber aceptado el acuerdo
-    // vigente: si falta, se pide antes de cualquier otra cosa.
     effect(() => {
       const user = this.auth.currentUser();
       // Primero la contraseña temporal; el acuerdo viene después.
@@ -313,15 +301,12 @@ export class ShellComponent {
     if (event.key === 'Escape') this.closeSearch();
   }
 
-  // ---- Sidenav ----------------------------------------------------------
-
   toggleCollapsed(): void {
     const next = !this.collapsed();
     this.collapsed.set(next);
     try {
       localStorage.setItem(COLLAPSED_KEY, String(next));
     } catch {
-      // Private browsing or blocked storage: the preference just won't persist.
     }
   }
 
@@ -364,8 +349,6 @@ export class ShellComponent {
         return 'Según el sistema';
     }
   }
-
-  // ---- Crear desde cualquier pantalla ---------------------------------------
 
   async newPatient(): Promise<void> {
     const created = await openPatientCreateDialog(this.dialog);

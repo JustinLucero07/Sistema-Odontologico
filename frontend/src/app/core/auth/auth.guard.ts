@@ -12,8 +12,6 @@ export const authGuard: CanActivateFn = async () => {
     return true;
   }
 
-  // A hard refresh loses the in-memory access token but the httpOnly refresh
-  // cookie may still be valid — try a silent refresh before bouncing to login.
   try {
     await firstValueFrom(auth.refresh());
     const user = await auth.loadCurrentUser();

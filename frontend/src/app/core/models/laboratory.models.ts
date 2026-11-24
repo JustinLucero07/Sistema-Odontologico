@@ -63,7 +63,6 @@ export interface LabOrder {
   days_overdue: number | null;
 }
 
-/** The forward chain, used to offer only the steps a case can actually take. */
 export const LAB_STATUS_ORDER: LabOrderStatus[] = [
   'borrador',
   'enviado',
@@ -78,8 +77,6 @@ export const LAB_TERMINAL: LabOrderStatus[] = ['instalado', 'cancelado'];
 export function nextStatuses(current: LabOrderStatus): LabOrderStatus[] {
   if (LAB_TERMINAL.includes(current)) return [];
   const index = LAB_STATUS_ORDER.indexOf(current);
-  // From "rechazado" the case goes back out to the lab, so the chain restarts
-  // at "enviado" rather than at whatever step it had reached.
   const forward = index < 0 ? LAB_STATUS_ORDER.slice(1) : LAB_STATUS_ORDER.slice(index + 1);
   return [...forward, 'rechazado', 'cancelado'];
 }

@@ -75,16 +75,11 @@ async def create_user(
 
 
 async def _revoke_sessions(db: AsyncSession, user_id: uuid.UUID) -> None:
-    """Cierra todas las sesiones abiertas del usuario (web y móvil). Se usa al
-    desactivarlo o cambiarle la contraseña: si no, seguiría dentro hasta que
-    caducara su token de renovación."""
     await db.execute(
         update(RefreshToken)
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(timezone.utc))
     )
-    # Sin gracia para los recién renovados: tras un cambio de contraseña o
-    # una desactivación no entra nadie con un token anterior.
     await db.execute(update(RefreshToken).where(RefreshToken.user_id == user_id).values(rotated_at=None))
 
 
@@ -136,8 +131,6 @@ async def deactivate_user(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid
         db, clinic_id=clinic_id, user_id=actor_id, action="deactivate", entity_type="user", entity_id=str(user.id),
     )
 
-
-# --- Roles ---------------------------------------------------------------
 
 async def list_roles(db: AsyncSession, clinic_id: uuid.UUID) -> list[Role]:
     result = await db.execute(

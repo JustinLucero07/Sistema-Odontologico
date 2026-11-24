@@ -19,7 +19,6 @@ export interface LabOrderInput {
   notes?: string | null;
 }
 
-/** Lo que se puede corregir de un trabajo abierto: todo menos paciente y estado. */
 export type LabOrderEdit = Omit<LabOrderInput, 'patient_id' | 'professional_id'>;
 
 @Injectable({ providedIn: 'root' })

@@ -94,9 +94,6 @@ class PaymentCreate(BaseModel):
         return value.strip() if value and value.strip() else None
 
     def model_post_init(self, _context: object) -> None:
-        # A card or transfer without its reference number cannot be matched
-        # against the bank statement later, which is the whole point of
-        # recording it.
         if self.method in METHODS_REQUIRING_REFERENCE and not self.reference:
             raise ValueError("Este medio de pago requiere número de referencia")
 
@@ -123,9 +120,6 @@ class PaymentOut(BaseModel):
 
 
 class VoidRequest(BaseModel):
-    """Voiding demands a reason: without one the statement records that money
-    moved and then un-moved, with nothing to explain it to an auditor."""
-
     reason: str = Field(min_length=3)
 
 
@@ -153,8 +147,6 @@ class CashSessionOut(BaseModel):
     difference: Decimal | None
     notes: str | None
     is_open: bool
-    # Solo en la caja abierta: lo que va entrando y saliendo en efectivo, y
-    # cuánto debería haber ahora mismo en el cajón.
     cash_in: Decimal | None = None
     cash_out: Decimal | None = None
     expected_now: Decimal | None = None
@@ -195,7 +187,6 @@ class DailyCashReport(BaseModel):
     by_method: list[MethodBreakdown]
     voided_total: Decimal
     voided_count: int
-    # Egresos del día: el total y cuánto de eso salió de la caja en efectivo.
     expenses_total: Decimal = Decimal("0.00")
     expenses_count: int = 0
     cash_expenses: Decimal = Decimal("0.00")

@@ -16,6 +16,7 @@
         </p>
       </div>
       <span class="espacio"></span>
+      <button mat-stroked-button (click)="datosPago()"><mat-icon>qr_code_2</mat-icon>Datos de pago</button>
       <button mat-stroked-button (click)="exportar('pdf')"><mat-icon>print</mat-icon>Imprimir / PDF</button>
       <button mat-stroked-button (click)="exportar('csv')"><mat-icon>table_view</mat-icon>Excel</button>
       @if (canWrite) {

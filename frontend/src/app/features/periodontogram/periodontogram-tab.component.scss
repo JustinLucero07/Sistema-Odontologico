@@ -57,8 +57,6 @@
   }
 }
 
-// ---- Indices -----------------------------------------------------------
-
 .indices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -75,8 +73,6 @@
   backdrop-filter: var(--glass-card-blur);
   -webkit-backdrop-filter: var(--glass-card-blur);
   border: 1px solid var(--glass-card-border);
-  // The tone is a hint, never the message: every card states its own label
-  // and number, so the colour adds emphasis rather than meaning.
   border-left: 3px solid var(--color-border-strong);
 
   &[data-tone='good'] {

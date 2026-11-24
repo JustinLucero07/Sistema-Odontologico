@@ -28,8 +28,6 @@ from app.shared.voiding import apply_void
 
 # Un enlace de firma a distancia vale 7 días.
 DIAS_ENLACE = 7
-# Una firma dibujada pesa unas decenas de KB; 400 KB es holgado y evita que
-# alguien suba cualquier cosa como «firma».
 MAX_FIRMA = 400_000
 
 
@@ -47,8 +45,6 @@ async def update_template(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, template_id: uuid.UUID,
     payload: ConsentTemplateUpdate,
 ) -> ConsentTemplate:
-    """Cambiar una plantilla no toca los consentimientos ya emitidos: cada uno
-    guardó su propia copia del texto que el paciente leyó."""
     template = (
         await db.execute(
             select(ConsentTemplate).where(ConsentTemplate.id == template_id, ConsentTemplate.clinic_id == clinic_id)
@@ -79,9 +75,6 @@ async def create_template(
     return template
 
 
-# ---------------------------------------------------------------- Biblioteca
-
-
 async def library(db: AsyncSession, clinic_id: uuid.UUID) -> list[dict]:
     tiene = {t.name for t in await list_templates(db, clinic_id, include_inactive=True)}
     return [
@@ -91,8 +84,6 @@ async def library(db: AsyncSession, clinic_id: uuid.UUID) -> list[dict]:
 
 
 async def add_from_library(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, nombres: list[str] | None) -> int:
-    """Copia a la consulta las plantillas elegidas (o todas) que aún no tenga.
-    Quedan como plantillas propias y editables."""
     tiene = {t.name for t in await list_templates(db, clinic_id, include_inactive=True)}
     agregadas = 0
     for nombre, tipo, cuerpo in BIBLIOTECA:
@@ -106,9 +97,6 @@ async def add_from_library(db: AsyncSession, clinic_id: uuid.UUID, actor_id: uui
         entity_id=None, after={"added": agregadas},
     )
     return agregadas
-
-
-# ---------------------------------------------------------------- Emisión
 
 
 def _edad(nacimiento: date | None) -> str:
@@ -173,8 +161,6 @@ async def create_consent(
         template = result.scalar_one_or_none()
         if template is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plantilla no encontrada")
-        # Snapshot the wording: the patient consents to this exact text, and a
-        # later edit to the template must not change what they agreed to.
         title = title or template.name
         body = body or template.body
         procedure_type = procedure_type or template.procedure_type
@@ -196,8 +182,6 @@ async def create_consent(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profesional no encontrado")
     clinica = (await db.execute(select(Clinic).where(Clinic.id == clinic_id))).scalar_one()
     hoy = datetime.now(ZoneInfo(clinica.timezone or "America/Guayaquil")).date()
-    # Los datos se escriben en el texto al emitirlo: lo que se firma queda
-    # completo y legible por sí mismo, sin depender de la ficha.
     valores = {
         "paciente": f"{paciente.first_name} {paciente.last_name}",
         "cedula": paciente.national_id or "__________",
@@ -302,8 +286,6 @@ def url_firma(raw: str) -> str:
 async def create_sign_link(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, consent_id: uuid.UUID, send_email: bool
 ) -> dict:
-    """Enlace para que el paciente lea y firme desde su teléfono. Se muestra
-    una sola vez: solo se guarda su huella. Un enlace nuevo invalida el anterior."""
     consent = await get_consent_or_404(db, clinic_id, consent_id)
     _firmable(consent)
     raw = secrets.token_urlsafe(32)
@@ -346,8 +328,6 @@ async def create_sign_link(
 
 
 async def resolve_public(db: AsyncSession, raw: str) -> tuple[Consent, Patient, Clinic]:
-    """Un enlace vencido, usado o inexistente dan la misma respuesta: no se
-    revela si existió."""
     consent = (
         await db.execute(select(Consent).where(Consent.sign_token_hash == _huella_token(raw)))
     ).scalar_one_or_none()
@@ -390,9 +370,6 @@ async def sign_public(db: AsyncSession, raw: str, payload: PublicSign, ip: str |
 async def void_consent(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, consent_id: uuid.UUID, reason: str
 ) -> Consent:
-    """Un consentimiento no se borra. Si estaba pendiente se anula (emitido por
-    error); si estaba firmado, el paciente lo revoca, que es su derecho. En
-    ambos casos el texto y la firma originales siguen en la historia."""
     consent = await get_consent_or_404(db, clinic_id, consent_id)
     apply_void(consent, actor_id, reason, "El consentimiento")
     consent.sign_token_hash = None

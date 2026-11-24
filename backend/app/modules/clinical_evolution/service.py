@@ -57,8 +57,6 @@ async def update_evolution(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, evolution_id: uuid.UUID,
     payload: EvolutionUpdate,
 ) -> ClinicalEvolution:
-    """Corrections are allowed, but every change is recorded with its previous
-    value — a clinical note is never silently rewritten."""
     entry = await get_or_404(db, clinic_id, evolution_id)
     if entry.voided_at is not None:
         raise HTTPException(status_code=409, detail="La evolución está anulada: no se puede editar")
@@ -76,8 +74,6 @@ async def update_evolution(
 async def void_evolution(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, evolution_id: uuid.UUID, reason: str
 ) -> ClinicalEvolution:
-    """Una evolución registrada por error se anula con su motivo; el texto
-    original se conserva para la historia clínica."""
     from datetime import datetime, timezone
 
     entry = await get_or_404(db, clinic_id, evolution_id)

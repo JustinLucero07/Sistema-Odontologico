@@ -1,10 +1,4 @@
-"""Phase 8: charges, payments, instalments and the till.
-
-These tests are about money integrity: that a balance is derived rather than
-stored, that nothing is ever deleted, that a charge cannot be billed twice,
-and that arithmetic on money does not drift.
-"""
-
+from datetime import date, timedelta
 from decimal import Decimal
 
 
@@ -43,9 +37,6 @@ async def _pay(client, token, patient_id, amount, **extra):
     )
 
 
-# ---- Statement ----------------------------------------------------------
-
-
 async def test_balance_is_charges_minus_payments(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
@@ -63,8 +54,6 @@ async def test_balance_is_charges_minus_payments(client, clinic_with_users):
 
 
 async def test_money_arithmetic_does_not_drift(client, clinic_with_users):
-    """Three payments of 0.10 against 0.30 must settle the charge exactly.
-    In float arithmetic they do not."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
     charge = await _charge(client, token, patient_id, "0.30")
@@ -115,9 +104,6 @@ async def test_card_payment_requires_a_reference(client, clinic_with_users):
         headers=_auth(token),
     )
     assert response.status_code == 422
-
-
-# ---- Voiding ------------------------------------------------------------
 
 
 async def test_voided_payment_stops_counting_but_survives(client, clinic_with_users):
@@ -183,12 +169,7 @@ async def test_payments_have_no_delete_endpoint(client, clinic_with_users):
     assert deleted.status_code in (404, 405)
 
 
-# ---- Instalments --------------------------------------------------------
-
-
 async def test_installments_sum_exactly_to_the_charge(client, clinic_with_users):
-    """100 / 3 does not divide evenly; the remainder has to land somewhere or
-    the patient is left with a debt they cannot clear."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
     charge = await _charge(client, token, patient_id, "100.00")
@@ -211,7 +192,7 @@ async def test_payments_cover_installments_oldest_first(client, clinic_with_user
     charge = await _charge(client, token, patient_id, "300.00")
     await client.post(
         f"/api/v1/finance/charges/{charge['id']}/installments",
-        json={"count": 3, "first_due_on": "2026-10-01"},
+        json={"count": 3, "first_due_on": (date.today() + timedelta(days=30)).isoformat()},
         headers=_auth(token),
     )
     await _pay(client, token, patient_id, "150.00", charge_id=charge["id"])
@@ -224,9 +205,6 @@ async def test_payments_cover_installments_oldest_first(client, clinic_with_user
     assert Decimal(rows[1]["paid"]) == Decimal("50.00")
     assert rows[1]["status"] == "parcial"
     assert rows[2]["status"] == "pendiente"
-
-
-# ---- Budget integration -------------------------------------------------
 
 
 async def test_accepting_a_budget_raises_exactly_one_charge(client, clinic_with_users):
@@ -266,9 +244,6 @@ async def test_accepting_a_budget_raises_exactly_one_charge(client, clinic_with_
     assert Decimal(account["total_charged"]) == Decimal("400.00")
 
 
-# ---- Till ---------------------------------------------------------------
-
-
 async def test_cash_session_reconciles_against_counted_cash(client, clinic_with_users):
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
@@ -281,7 +256,6 @@ async def test_cash_session_reconciles_against_counted_cash(client, clinic_with_
     assert opened.status_code == 201
 
     await _pay(client, token, patient_id, "120.00")
-    # A card payment never enters the till, so it must not be expected there.
     await client.post(
         f"/api/v1/patients/{patient_id}/payments",
         json={"amount": "60.00", "method": "tarjeta_credito", "reference": "1234"},

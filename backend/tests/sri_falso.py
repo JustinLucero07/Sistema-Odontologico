@@ -1,6 +1,3 @@
-"""Ayudas para probar la facturación sin tocar el SRI real: una firma .p12 de
-prueba (autofirmada) y un SRI simulado que responde lo que se le pida."""
-
 import datetime as dt
 
 from cryptography import x509
@@ -32,9 +29,6 @@ def p12_de_prueba(vence_en_dias: int = 365) -> tuple[bytes, x509.Certificate]:
 
 
 class SriFalso:
-    """Reemplaza enviar/consultar. `recepcion` y `autorizacion` deciden la
-    respuesta; `caido` simula que el SRI no contesta."""
-
     def __init__(self, monkeypatch):
         self.recepcion = "RECIBIDA"
         self.autorizacion = "AUTORIZADO"
@@ -62,7 +56,6 @@ class SriFalso:
 
 
 async def preparar_emisor(client, h, p12: bytes | None = None) -> None:
-    """Deja la consulta lista para facturar: RUC, razón social, dirección y firma."""
     r = await client.put("/api/v1/clinics/me", headers=h, json={
         "legal_name": "Consultorio Dental de Prueba", "tax_id": RUC_PRUEBA, "address": "Av. Amazonas N1 y Colón, Quito",
     })

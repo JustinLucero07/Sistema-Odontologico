@@ -21,8 +21,6 @@ export interface ConsentSignData {
 
 export const RELATIONSHIPS = ['Paciente', 'Madre', 'Padre', 'Tutor legal', 'Cónyuge', 'Hijo/a', 'Otro representante'];
 
-/** Firma presencial: el paciente (o su representante) firma en la pantalla,
- *  y opcionalmente el profesional y un testigo. */
 @Component({
   selector: 'app-consent-sign-dialog',
   standalone: true,

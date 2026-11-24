@@ -1,9 +1,3 @@
-"""Categorías de gasto de una clínica dental.
-
-Son las que un contador espera ver separadas en un estado de resultados: los
-insumos y el laboratorio son costo directo del tratamiento; el resto, gasto de
-operación."""
-
 EXPENSE_CATEGORIES: list[tuple[str, str]] = [
     ("insumos", "Insumos y materiales dentales"),
     ("laboratorio", "Laboratorio dental"),

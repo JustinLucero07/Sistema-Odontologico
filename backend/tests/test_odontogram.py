@@ -113,8 +113,6 @@ async def test_dentist_without_write_permission_gets_403(client, clinic_with_use
 
 
 async def test_tooth_keeps_several_conditions_at_once(client, clinic_with_users):
-    """Una pieza puede tener varios hallazgos: corona y endodoncia en la pieza
-    completa, y caries en dos caras distintas. Ninguno pisa al otro."""
     token = await _login(client, "admin@clinicatest.io", "Admin123!")
     patient_id = await _create_patient(client, token)
 
@@ -132,3 +130,30 @@ async def test_tooth_keeps_several_conditions_at_once(client, clinic_with_users)
     latest = await client.get(f"/api/v1/patients/{patient_id}/odontogram", headers=_auth(token))
     saved = {(c["surface"], c["condition"]) for c in latest.json()["conditions"]}
     assert saved == {(c["surface"], c["condition"]) for c in conditions}
+
+
+async def test_linea_de_tiempo_con_cambios(client, clinic_with_users):
+    r = await client.post("/api/v1/auth/login", json={"email": "admin@clinicatest.io", "password": "Admin123!"})
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    pid = (await client.post("/api/v1/patients", json={"first_name": "Ana", "last_name": "Mora"}, headers=h)).json()["id"]
+    base = f"/api/v1/patients/{pid}/odontogram"
+    assert (await client.get(f"{base}/timeline", headers=h)).json() == []
+
+    await client.post(base, json={"conditions": [
+        {"fdi_number": "16", "surface": "oclusal", "condition": "caries"},
+        {"fdi_number": "11", "surface": "whole", "condition": "sano"},
+    ]}, headers=h)
+    await client.post(base, json={"conditions": [
+        {"fdi_number": "16", "surface": "oclusal", "condition": "restauracion"},
+        {"fdi_number": "36", "surface": "whole", "condition": "ausente"},
+    ]}, headers=h)
+
+    linea = (await client.get(f"{base}/timeline", headers=h)).json()
+    assert len(linea) == 2
+    primera, segunda = linea
+    assert primera["created_at"] <= segunda["created_at"]
+    # Lo «sano» no cuenta como hallazgo.
+    assert primera["added"] == [{"fdi_number": "16", "surface": "oclusal", "condition": "caries"}]
+    assert primera["author_name"]
+    assert {(c["fdi_number"], c["condition"]) for c in segunda["added"]} == {("16", "restauracion"), ("36", "ausente")}
+    assert segunda["removed"] == [{"fdi_number": "16", "surface": "oclusal", "condition": "caries"}]

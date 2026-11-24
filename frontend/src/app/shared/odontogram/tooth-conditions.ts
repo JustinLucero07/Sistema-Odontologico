@@ -2,7 +2,6 @@ export interface ToothConditionDef {
   code: string;
   label: string;
   color: string;
-  /** Whole-tooth conditions render as a symbol over the tooth instead of a surface fill. */
   wholeToothOnly?: boolean;
 }
 

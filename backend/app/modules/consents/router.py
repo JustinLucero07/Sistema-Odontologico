@@ -111,9 +111,6 @@ async def void_consent(
     return consent
 
 
-# ---------------------------------------------------------------- Biblioteca
-
-
 @router.get("/library")
 async def get_library(
     db: AsyncSession = Depends(get_db),
@@ -131,9 +128,6 @@ async def post_library(
     n = await service.add_from_library(db, current_user.clinic_id, current_user.id, payload.names)
     await db.commit()
     return {"added": n}
-
-
-# ---------------------------------------------------------------- Enlace y PDF
 
 
 @router.post("/{consent_id}/sign-link", response_model=SignLinkOut)
@@ -165,9 +159,6 @@ async def get_pdf(
         pdf.generar(consent, paciente, clinica, profesional), media_type="application/pdf",
         headers=cabeceras_archivo(nombre, en_linea=True),
     )
-
-
-# ---------------------------------------------------------------- Firma a distancia
 
 
 @public_router.get("/{token}", response_model=PublicConsentView)

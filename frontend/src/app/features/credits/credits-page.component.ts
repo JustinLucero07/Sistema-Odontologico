@@ -58,7 +58,6 @@ export class CreditsPageComponent implements OnInit {
   readonly search = signal('');
   readonly loading = signal(true);
 
-  // Alta desde esta pantalla: primero el paciente, luego el cargo a financiar.
   readonly pickedPatient = signal<PatientListItem | null>(null);
   readonly openCharges = signal<Charge[]>([]);
 

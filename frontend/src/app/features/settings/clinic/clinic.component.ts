@@ -104,7 +104,6 @@ export class ClinicComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const clinic = await firstValueFrom(this.clinicService.getMyClinic());
-    // Si la clínica ya tenía una zona fuera de la lista, se conserva visible.
     if (!TIMEZONES.some((t) => t.value === clinic.timezone)) {
       this.timezones.set([{ value: clinic.timezone, label: clinic.timezone }, ...TIMEZONES]);
     }
@@ -139,8 +138,6 @@ export class ClinicComponent implements OnInit {
       this.saving.set(false);
     }
   }
-
-  // ---- Sedes y consultorios ------------------------------------------------
 
   private async reloadRooms(): Promise<void> {
     const [branches, operatories] = await Promise.all([

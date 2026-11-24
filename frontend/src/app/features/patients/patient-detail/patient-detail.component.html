@@ -69,6 +69,8 @@
       </div>
     </mat-card>
 
+    <app-patient-briefing [patientId]="p.id" />
+
     <mat-tab-group class="hub-tabs" animationDuration="0ms" [selectedIndex]="tabIndex()" (selectedIndexChange)="tabIndex.set($event)">
       <mat-tab label="Ficha">
         <div class="tab-content">
@@ -203,7 +205,7 @@
 
       <mat-tab label="Odontograma">
         <div class="tab-content">
-          <app-odontogram [patientId]="p.id"></app-odontogram>
+          <app-odontogram [patientId]="p.id" [birthDate]="p.birth_date ?? null"></app-odontogram>
         </div>
       </mat-tab>
       <mat-tab label="Periodontograma">
@@ -247,7 +249,6 @@
 } @else {
   <app-skeleton variant="detail" label="Cargando ficha del paciente" />
 }
-
 
 <ng-template #demographicsDialog>
   <form [formGroup]="demographicsForm" (ngSubmit)="saveDemographics()">

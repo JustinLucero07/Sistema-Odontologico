@@ -1,16 +1,3 @@
-"""Reintentos seguros: la cabecera Idempotency-Key.
-
-La app del celular guarda los cambios hechos sin conexión y los reenvía al
-volver la red. Si la red se cortó justo DESPUÉS de que el servidor guardara un
-cambio, el teléfono no se entera y lo vuelve a mandar. Con la misma llave, el
-servidor no lo repite: devuelve la respuesta que ya dio. Así un paciente o una
-cita nunca se crean dos veces.
-
-Las respuestas se guardan 24 h en Redis, separadas por usuario (la llave sola
-no sirve para leer la respuesta de otra persona). Sin Redis disponible, las
-peticiones pasan normalmente: se pierde la protección, no el servicio.
-"""
-
 import hashlib
 import json
 import logging
@@ -96,7 +83,6 @@ class IdempotencyMiddleware:
             await send(mensaje)
 
         await self.app(scope, receive, enviar)
-        # Solo se recuerda lo que el servidor resolvió: un 5xx se puede reintentar.
         if estado["status"] < 500 and estado["tam"] <= MAX_CUERPO:
             try:
                 await redis.set(

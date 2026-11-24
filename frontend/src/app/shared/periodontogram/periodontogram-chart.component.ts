@@ -30,14 +30,10 @@ interface ToothState {
   sites: Record<PeriodontalSite, SiteState>;
 }
 
-/** One millimetre, in SVG units. The chart is read by eye, so the scale has
- *  to be generous enough that 3 mm and 5 mm are obviously different heights. */
 const MM = 4.2;
 /** Width of one site column; a tooth is three of them. */
 const SITE_W = 15;
 const TOOTH_W = SITE_W * 3;
-/** Where the cementoenamel junction sits: recession draws above it, pockets
- *  below, which is how a printed perio chart is laid out. */
 const CEJ_Y = 26;
 const GRAPH_H = 92;
 
@@ -74,8 +70,6 @@ export class PeriodontogramChartComponent {
     [...PERMANENT_UPPER, ...PERMANENT_LOWER].map(emptyTooth),
   );
 
-  /** Loading a saved exam replaces the whole grid: an exam is a snapshot, so
-   *  merging one into another would invent a reading nobody took. */
   @Input() set value(exam: Periodontogram | null) {
     const fresh = [...PERMANENT_UPPER, ...PERMANENT_LOWER].map(emptyTooth);
     if (!exam) {
@@ -119,16 +113,11 @@ export class PeriodontogramChartComponent {
     return row.length * TOOTH_W;
   }
 
-  /** The lingual wall is charted from the other side of the arch, so its three
-   *  sites run in the mirror order of the buccal wall's. Getting this wrong
-   *  swaps mesial and distal on half the chart. */
   sitesFor(wall: 'buccal' | 'lingual', tooth: ToothState): PeriodontalSite[] {
     const sites = wall === 'buccal' ? BUCCAL_SITES : LINGUAL_SITES;
     return tooth.arch === 'upper' ? sites : [...sites].reverse();
   }
 
-  /** The three per-site toggles, reached by name so the template never has to
-   *  index into the state with an untyped key. */
   flagValue(tooth: ToothState, site: PeriodontalSite, field: SiteFlag): boolean {
     return tooth.sites[site][field];
   }
@@ -136,8 +125,6 @@ export class PeriodontogramChartComponent {
   severity(tooth: ToothState, site: PeriodontalSite): string {
     return pocketSeverity(tooth.sites[site].probing_depth);
   }
-
-  // ---- Editing -----------------------------------------------------------
 
   setDepth(tooth: ToothState, site: PeriodontalSite, raw: string): void {
     tooth.sites[site].probing_depth = this.clampNumber(raw, 0, 15);
@@ -166,9 +153,6 @@ export class PeriodontogramChartComponent {
     this.stateSignal.set([...this.stateSignal()]);
   }
 
-  /** Out-of-range input is clamped rather than rejected: a probe cannot read
-   *  20 mm, and silently dropping the keystroke leaves the field looking
-   *  accepted when it was not. */
   private clampNumber(raw: string, min: number, max: number): number | null {
     if (raw === '' || raw === '-') return null;
     const parsed = Number(raw);
@@ -176,11 +160,6 @@ export class PeriodontogramChartComponent {
     return Math.min(Math.max(Math.round(parsed), min), max);
   }
 
-  // ---- Profile curves ----------------------------------------------------
-
-  /** Two polylines per wall: the gingival margin and the bottom of the pocket.
-   *  The band between them IS the attachment loss, which is why they are drawn
-   *  together rather than as two separate charts. */
   curve(row: ToothState[], wall: 'buccal' | 'lingual', line: 'margin' | 'pocket'): string {
     const points: string[] = [];
     row.forEach((tooth, toothIndex) => {
@@ -198,8 +177,6 @@ export class PeriodontogramChartComponent {
     return points.join(' ');
   }
 
-  /** Bleeding points are plotted on the margin line, where a clinician looks
-   *  for them, rather than listed in a separate row. */
   bleedingDots(row: ToothState[], wall: 'buccal' | 'lingual'): { x: number; y: number }[] {
     const dots: { x: number; y: number }[] = [];
     row.forEach((tooth, toothIndex) => {
@@ -214,11 +191,6 @@ export class PeriodontogramChartComponent {
     return dots;
   }
 
-  // ---- Output ------------------------------------------------------------
-
-  /** Only sites that were actually charted are sent. An untouched site is
-   *  absent from the payload, not a row of zeros — "not probed" and "0 mm"
-   *  are different findings. */
   buildPayload() {
     const teeth = [];
     const measurements = [];

@@ -15,9 +15,6 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 class CurrentUser:
-    """Resolved principal for the request: the user row plus the flattened
-    set of permission codes granted by all of their roles."""
-
     def __init__(self, user: User, permissions: set[str]):
         self.user = user
         self.id: uuid.UUID = user.id
@@ -57,9 +54,6 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario inactivo o inexistente")
 
-    # Permissions are re-read from the database on every request (not trusted from
-    # the JWT) so a revoked role takes effect immediately, without waiting for the
-    # access token to expire.
     permissions = {perm.code for role in user.roles for perm in role.permissions}
     request.state.clinic_id = user.clinic_id
     return CurrentUser(user=user, permissions=permissions)

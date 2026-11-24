@@ -31,8 +31,6 @@
   font-size: 0.85rem;
 }
 
-// ---- Range -------------------------------------------------------------
-
 .range-bar {
   display: flex;
   align-items: center;
@@ -80,8 +78,6 @@
     width: 165px;
   }
 }
-
-// ---- KPIs --------------------------------------------------------------
 
 .kpis {
   display: grid;
@@ -136,8 +132,6 @@
   color: var(--color-ink-faint);
 }
 
-// ---- Tabs --------------------------------------------------------------
-
 .rep-tabs {
   display: flex;
   gap: 2px;
@@ -175,8 +169,6 @@
     border-bottom-color: var(--color-primary);
   }
 }
-
-// ---- Panels ------------------------------------------------------------
 
 .panels {
   display: grid;
@@ -240,8 +232,6 @@
   }
 }
 
-// ---- Bars: one measure across categories, single hue, direct labels ----
-
 .bars {
   list-style: none;
   margin: 0;
@@ -300,8 +290,6 @@
   font-weight: 700;
 }
 
-// ---- Sparkline ---------------------------------------------------------
-
 .spark {
   display: block;
   width: 100%;
@@ -314,8 +302,6 @@
   stroke-width: 0.8;
   stroke-linecap: round;
   stroke-linejoin: round;
-  // preserveAspectRatio="none" stretches the path, so the stroke is kept at a
-  // constant screen width rather than being squashed with it.
   vector-effect: non-scaling-stroke;
 }
 
@@ -325,8 +311,6 @@
   font-size: 0.7rem;
   color: var(--color-ink-faint);
 }
-
-// ---- Facts & conversion ------------------------------------------------
 
 .facts {
   display: grid;

@@ -1,8 +1,3 @@
-"""Servicios web del SRI (esquema offline): recepción y autorización.
-
-Son SOAP; se arma el sobre a mano porque son dos operaciones fijas y así no
-hace falta descargar el WSDL en cada arranque."""
-
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -40,8 +35,6 @@ class Recepcion:
 
     @property
     def ya_registrada(self) -> bool:
-        """El SRI ya tiene esta clave (un envío anterior llegó aunque no
-        recibimos la respuesta): se pasa directo a consultar la autorización."""
         return any(m.identificador == "43" or "REGISTRADA" in m.mensaje.upper() for m in self.mensajes)
 
 
@@ -61,8 +54,6 @@ def _esquema(tipo: str) -> etree.XMLSchema:
 
 
 def errores_de_esquema(xml: bytes, tipo: str) -> list[str]:
-    """Valida contra el XSD oficial antes de enviar: un error se ve aquí, en
-    español y al instante, en vez de como rechazo del SRI."""
     esquema = _esquema(tipo)
     if esquema.validate(etree.fromstring(xml)):
         return []

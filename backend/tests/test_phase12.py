@@ -1,11 +1,3 @@
-"""Phase 12: hardening.
-
-Nothing here adds a feature. These tests check the things that only matter on
-the day something goes wrong: that an unsafe production config refuses to
-start, that the browser gets the headers it needs, and that an account under
-attack locks itself.
-"""
-
 import pytest
 
 from app.core.config import Settings
@@ -30,9 +22,6 @@ def _production(**overrides) -> Settings:
     return Settings(**base)
 
 
-# ---- Production config guard -------------------------------------------
-
-
 def test_a_safe_production_config_passes():
     assert check_production_config(_production()) == []
     enforce_production_config(_production())  # must not raise
@@ -55,8 +44,6 @@ def test_each_unsafe_setting_is_caught(overrides, expected):
 
 
 def test_production_refuses_to_start_when_unsafe():
-    """Fatal on purpose: a warning in a log nobody reads is not a safety
-    mechanism."""
     with pytest.raises(UnsafeProductionConfig) as exc:
         enforce_production_config(_production(JWT_SECRET_KEY="change-me-in-production"))
     assert "no puede arrancar" in str(exc.value)
@@ -67,9 +54,6 @@ def test_development_only_informs():
     unsafe = _production(ENV="development", JWT_SECRET_KEY="change-me-in-production")
     assert check_production_config(unsafe)  # the problem is still detected
     enforce_production_config(unsafe)  # but it does not raise
-
-
-# ---- Security headers ---------------------------------------------------
 
 
 async def test_every_response_carries_the_security_headers(client, clinic_with_users):
@@ -88,8 +72,6 @@ async def test_every_response_carries_the_security_headers(client, clinic_with_u
 
 
 async def test_hsts_is_only_sent_over_https(client, clinic_with_users):
-    """Sending HSTS from a plain-HTTP dev server would pin the developer's
-    browser to https://localhost and break it for everything else."""
     response = await client.get("/health")
     assert "Strict-Transport-Security" not in response.headers
 
@@ -99,12 +81,7 @@ def test_hsts_is_sent_in_production():
     assert middleware.https_only is True
 
 
-# ---- Login lockout ------------------------------------------------------
-
-
 async def test_an_account_locks_after_repeated_failures(client, clinic_with_users):
-    """The per-IP rate limit does not cover a distributed attempt against ONE
-    account, which is the shape an attack on a known email takes."""
     from app.modules.auth.service import MAX_FAILED_LOGINS
 
     body = {"email": "admin@clinicatest.io", "password": "contraseña-equivocada"}
@@ -150,8 +127,6 @@ async def test_a_successful_login_clears_the_counter(client, clinic_with_users, 
 
 
 async def test_a_wrong_password_and_an_unknown_email_look_the_same(client, clinic_with_users):
-    """Saying 'that account exists but the password was wrong' tells an
-    attacker which emails are real."""
     unknown = await client.post(
         "/api/v1/auth/login",
         json={"email": "nadie@clinicatest.io", "password": "loquesea"},

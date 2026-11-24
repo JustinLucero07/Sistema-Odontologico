@@ -25,6 +25,7 @@ import { PatientPickerComponent } from '../patient-picker/patient-picker.compone
 export interface InvoiceCreateData {
   patientId?: string | null;
   patientName?: string | null;
+  chargeIds?: string[];
 }
 
 interface ChargeRow extends InvoiceableCharge {
@@ -327,7 +328,8 @@ export class InvoiceCreateDialogComponent implements OnInit {
     this.loadingCharges.set(true);
     try {
       const list = await firstValueFrom(this.service.invoiceableCharges(id));
-      this.charges.set(list.map((c) => ({ ...c, selected: true, vat_code: '0' })));
+      const elegidos = this.data.chargeIds;
+      this.charges.set(list.map((c) => ({ ...c, selected: elegidos ? elegidos.includes(c.id) : true, vat_code: '0' })));
       if (!list.length && !this.manual().length) this.addManual();
     } finally {
       this.loadingCharges.set(false);

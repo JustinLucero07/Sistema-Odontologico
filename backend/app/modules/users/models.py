@@ -37,12 +37,8 @@ class User(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
     failed_login_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    # Acuerdo de confidencialidad: qué versión aceptó y cuándo. Quien accede a
-    # historias clínicas se compromete a guardar el secreto de lo que ve.
     confidentiality_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     confidentiality_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    # La contraseña la puso un administrador (alta o restablecimiento): es
-    # temporal y el usuario debe cambiarla al entrar, para que solo él la sepa.
     must_change_password: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
@@ -65,9 +61,6 @@ class Role(UUIDPKMixin, TimestampMixin, TenantMixin, Base):
 
 
 class Permission(UUIDPKMixin, Base):
-    """Global catalog of permissions the software understands — not tenant scoped.
-    New permissions are added here as new modules ship; existing rows never change meaning."""
-
     __tablename__ = "permissions"
 
     code: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
@@ -85,8 +78,6 @@ class RefreshToken(UUIDPKMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    # Cuándo se sustituyó por uno nuevo al renovar. Distinto de un cierre de
-    # sesión: permite unos segundos de gracia a peticiones que ya iban en camino.
     rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(300))
     ip_address: Mapped[str | None] = mapped_column(String(50))

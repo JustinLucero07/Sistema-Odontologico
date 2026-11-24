@@ -1,10 +1,3 @@
-"""Cálculo del calendario de cuotas.
-
-Sistema francés (cuota fija), el habitual en créditos de consumo: cada cuota
-paga el interés del saldo y el resto amortiza capital. Sin interés, el capital
-se reparte en partes iguales. Todo en Decimal y a centavos; el redondeo se
-ajusta en la última cuota para que el total cierre exacto."""
-
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal

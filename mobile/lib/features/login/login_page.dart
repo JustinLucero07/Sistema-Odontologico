@@ -10,13 +10,6 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/carga.dart';
 import '../../shared/widgets/tooth_mark.dart';
 
-/// Ingreso. Es la primera impresión del producto, así que se cuida como una
-/// portada: el diente de la marca se dibuja solo, aparece el nombre de la
-/// consulta y sube una hoja de porcelana con el formulario.
-///
-/// Todo el movimiento de entrada dura poco más de dos segundos y no bloquea:
-/// se puede escribir en cuanto la hoja asoma. Con «reducir movimiento» del
-/// sistema se muestra directamente el estado final.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -289,8 +282,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [AutofillHints.email, AutofillHints.username],
                           textInputAction: TextInputAction.next,
-                          // Un correo no se autocorrige ni se capitaliza: el
-                          // teclado lo «arreglaría» y el acceso fallaría.
                           autocorrect: false,
                           enableSuggestions: false,
                           decoration: const InputDecoration(
@@ -493,8 +484,6 @@ class _Portada extends StatelessWidget {
   }
 }
 
-/// El molar se dibuja a mano alzada: primero el contorno, luego se llena de
-/// blanco y un destello cruza el esmalte.
 class _LogoDibujado extends StatelessWidget {
   const _LogoDibujado({required this.entrada, required this.tamano});
 
@@ -775,7 +764,6 @@ class _AvisoError extends StatelessWidget {
   }
 }
 
-/// Botón principal: tinta oscura, con la flecha que avanza al presionarlo.
 class _BotonIngresar extends StatefulWidget {
   const _BotonIngresar({required this.enviando, required this.onPressed});
 

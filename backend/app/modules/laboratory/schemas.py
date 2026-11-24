@@ -56,9 +56,6 @@ class LabOrderCreate(BaseModel):
 
 
 class LabOrderUpdate(BaseModel):
-    """Datos del trabajo que se pueden corregir mientras siga abierto. El
-    paciente y el estado no: el estado solo avanza por su propio camino."""
-
     laboratory_id: uuid.UUID
     work_type: str
     description: str = Field(min_length=1, max_length=400)

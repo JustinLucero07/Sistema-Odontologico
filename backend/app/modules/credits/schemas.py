@@ -53,8 +53,7 @@ class CreditUpdate(BaseModel):
 
 
 class CreditRestructure(_Terms):
-    """Refinanciar: el saldo pendiente se reparte en un calendario nuevo, sin
-    intereses adicionales. Las cuotas ya pagadas no cambian."""
+    pass
 
 
 class CreditPayment(BaseModel):

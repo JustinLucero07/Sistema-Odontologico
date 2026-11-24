@@ -1,8 +1,3 @@
-/**
- * Base común de los documentos que se imprimen (presupuesto, receta, aviso de
- * privacidad): una ventana propia con solo el documento, sin la interfaz.
- */
-
 /** Lo que un documento necesita saber de la clínica para su encabezado. */
 export interface ClinicIdentity {
   name: string;
@@ -17,13 +12,8 @@ export interface ClinicIdentity {
   document_footer?: string | null;
 }
 
-/** Identidad de la última clínica usada en el encabezado: el pie y el color
- *  de marca del documento salen de aquí al abrir la ventana. */
 let marca: ClinicIdentity | null = null;
 
-/** Escapa texto antes de meterlo en el HTML: lo escriben usuarios, y el
- *  documento se arma con `document.write`. Sin esto, un `<` en una nota
- *  se convertiría en marcado. */
 export function esc(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -33,8 +23,6 @@ export function esc(value: unknown): string {
 }
 
 export function longDate(value: string | Date = new Date()): string {
-  // Una fecha sola («2026-10-11») es medianoche UTC: en Ecuador eso es el día
-  // anterior. Se lee al mediodía para que la fecha impresa sea la registrada.
   const d = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value + 'T12:00:00') : new Date(value);
   return d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 }
@@ -73,8 +61,6 @@ export const BASE_CSS = `
   @media print { body { padding: 0 8px; } }
 `;
 
-/** Abre el documento y lanza el diálogo de impresión. Devuelve false si el
- *  navegador bloqueó la ventana, para que quien llama lo diga. */
 export function openPrintWindow(title: string, css: string, body: string): boolean {
   const win = window.open('', '_blank', 'width=820,height=1000');
   if (!win) return false;
@@ -94,8 +80,6 @@ ${body}
   return true;
 }
 
-/** Imprime desde la app y no con un script dentro del documento: la política
- *  de seguridad (CSP) del sistema no permite scripts en línea. */
 export function lanzarImpresion(win: Window): void {
   const imprimir = () => { win.focus(); win.print(); };
   const imgs = Array.from(win.document.images);

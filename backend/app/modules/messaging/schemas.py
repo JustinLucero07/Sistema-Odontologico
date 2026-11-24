@@ -61,9 +61,6 @@ class MessageOut(BaseModel):
 
 
 class ProviderStatus(BaseModel):
-    """What the UI shows before anyone presses send, so the difference between
-    a real delivery and a simulation is never a surprise."""
-
     provider: str
     is_live: bool
     message: str

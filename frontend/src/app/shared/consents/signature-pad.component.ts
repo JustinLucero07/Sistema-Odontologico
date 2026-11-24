@@ -2,8 +2,6 @@ import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, O
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
-/** Recuadro de firma: se firma con el dedo, el lápiz o el ratón. Emite la
- *  firma como PNG (data URL), o null si está vacío. */
 @Component({
   selector: 'app-signature-pad',
   standalone: true,
@@ -64,8 +62,6 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver?.disconnect();
   }
 
-  /** Ajusta el lienzo a su tamaño real (y a la densidad de la pantalla) sin
-   *  perder lo ya dibujado. */
   private resize(): void {
     const canvas = this.canvasRef.nativeElement;
     const ratio = Math.max(window.devicePixelRatio || 1, 1);

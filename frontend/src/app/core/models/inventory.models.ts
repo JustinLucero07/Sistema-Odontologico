@@ -69,7 +69,6 @@ export interface StockAlerts {
 /** Quantities travel as strings so three decimals survive the round trip. */
 export function formatQuantity(value: string | number): string {
   const n = typeof value === 'number' ? value : Number(value);
-  // Whole counts read as "12", not "12,000" — boxes are not measured in grams.
   return Number.isInteger(n)
     ? String(n)
     : new Intl.NumberFormat('es', { maximumFractionDigits: 3 }).format(n);

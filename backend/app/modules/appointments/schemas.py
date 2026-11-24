@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.modules.appointments.constants import APPOINTMENT_STATUS_CODES, REMINDER_CHANNEL_CODES
 
@@ -17,8 +17,6 @@ class AppointmentCreate(BaseModel):
     status: str = "programada"
     color_hex: str | None = None
     notes: str | None = None
-    # Sin indicar (None): WhatsApp y, si la consulta tiene correo y el
-    # paciente un e-mail, también correo. Una lista vacía = sin recordatorios.
     reminder_channels: list[str] | None = None
 
     @field_validator("status")

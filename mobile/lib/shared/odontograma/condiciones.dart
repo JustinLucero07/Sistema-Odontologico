@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Catálogo de condiciones del odontograma.
-///
-/// Mismos códigos, nombres y colores que la web
-/// (frontend/src/app/shared/odontogram/tooth-conditions.ts): una caries no
-/// puede ser roja en el escritorio y de otro color en el teléfono.
 class Condicion {
   const Condicion(this.codigo, this.etiqueta, this.color);
 
@@ -47,8 +42,6 @@ const condiciones = <Condicion>[
 
 final _porCodigo = {for (final c in condiciones) c.codigo: c};
 
-/// Un código que el teléfono aún no conoce se muestra tal cual y en gris, en
-/// vez de desaparecer: es un hallazgo clínico y no puede perderse.
 Condicion condicionDe(String codigo) =>
     _porCodigo[codigo] ?? Condicion(codigo, codigo, const Color(0xFFBDBDBD));
 

@@ -14,8 +14,6 @@ import { ClinicalRecordsService } from '../../core/services/clinical-records.ser
 import { RELATIONSHIPS } from '../../shared/consents/consent-sign-dialog.component';
 import { SignaturePadComponent } from '../../shared/consents/signature-pad.component';
 
-/** Página pública donde el paciente lee y firma su consentimiento desde el
- *  teléfono. No hay sesión: el enlace es la credencial y sirve una sola vez. */
 @Component({
   selector: 'app-consent-sign-page',
   standalone: true,

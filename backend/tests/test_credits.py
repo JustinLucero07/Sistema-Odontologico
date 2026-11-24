@@ -1,10 +1,3 @@
-"""Créditos: financiar un tratamiento en cuotas.
-
-Lo que siempre tiene que cuadrar: el calendario suma exactamente lo
-financiado más el interés; cada pago cubre las cuotas de la más antigua a la
-más nueva; y el estado de cuenta del paciente coincide con el crédito.
-"""
-
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -96,7 +89,6 @@ async def test_interest_is_billed_and_payments_split(client, clinic_with_users):
 
     account = (await client.get(f"/api/v1/patients/{patient_id}/account", headers=h)).json()
     by_id = {c["id"]: c for c in account["charges"]}
-    # El interés de la primera cuota fue al cargo de intereses; el resto, al tratamiento.
     assert by_id[interest_charge_id]["paid"] == first["interest"]
     assert by_id[charge_id]["paid"] == first["principal"]
     # Estado de cuenta y crédito dicen lo mismo.

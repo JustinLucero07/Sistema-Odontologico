@@ -12,23 +12,13 @@ from app.modules.odontogram.constants import VALID_FDI_NUMBERS
 from app.modules.patients.service import get_patient_or_404
 from app.shared.storage import get_storage
 
-# A panoramic from a modern sensor runs 5–15 MB; CBCT exports and 24-megapixel
-# intraoral photos go further, so this ceiling is higher than for documents.
 MAX_IMAGE_BYTES = 60 * 1024 * 1024
 
-# Only formats a browser can actually display. A DICOM file would upload
-# happily and then show the viewer a blank frame, so it is refused here rather
-# than discovered by the dentist at the chair.
 ALLOWED_MIME_PREFIXES = ("image/",)
 ALLOWED_MIME_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif", "image/bmp", "image/tiff"}
 
 
 def _read_dimensions(content: bytes) -> tuple[int | None, int | None]:
-    """Pixel size straight from the file header — PNG and JPEG only.
-
-    Knowing the dimensions lets the viewer reserve the right space before the
-    bytes arrive, so the page does not jump. It is a nicety, not a
-    requirement: anything unrecognised simply returns no size."""
     try:
         if content[:8] == b"\x89PNG\r\n\x1a\n" and content[12:16] == b"IHDR":
             width, height = struct.unpack(">II", content[16:24])
@@ -64,8 +54,6 @@ async def list_images(
     )
     if not include_archived:
         query = query.where(ClinicalImage.archived_at.is_(None))
-    # Sorted by when the study was taken, falling back to upload time for the
-    # ones whose date nobody entered.
     result = await db.execute(
         query.order_by(ClinicalImage.taken_on.desc().nullslast(), ClinicalImage.created_at.desc())
     )
@@ -126,8 +114,6 @@ async def upload_image(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="La imagen supera el máximo de 60 MB",
         )
-    # Se reconoce por el contenido, no por el tipo que declara el navegador:
-    # un SVG o un HTML disfrazado de imagen no entra.
     from app.shared.archivos import tipo_de_imagen
 
     mime_real = tipo_de_imagen(content)
@@ -204,12 +190,6 @@ async def archive_image(
     image_id: uuid.UUID,
     reason: str,
 ) -> ClinicalImage:
-    """Withdraws an image from the active study list without destroying it.
-
-    The bytes stay in storage: a radiograph that was acted on clinically is
-    part of the record even once it turns out to be the wrong patient's, and
-    proving which image was seen at the time is exactly what an archive is
-    for."""
     image = await get_or_404(db, clinic_id, image_id)
     if image.archived_at is not None:
         raise HTTPException(
@@ -264,8 +244,6 @@ async def update_image(
 async def restore_image(
     db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, image_id: uuid.UUID
 ) -> ClinicalImage:
-    """Devuelve una imagen archivada a la lista activa. El archivado previo
-    queda en la auditoría con su motivo: restaurar no borra esa historia."""
     image = await get_or_404(db, clinic_id, image_id)
     if image.archived_at is None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="La imagen no está archivada")

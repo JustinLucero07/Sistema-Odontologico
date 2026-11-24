@@ -34,8 +34,6 @@ int? _diasHasta(dynamic iso) {
   return DateTime(d.year, d.month, d.day).difference(DateTime(hoy.year, hoy.month, hoy.day)).inDays;
 }
 
-/// Términos de uso o contrato de encargo: el mismo texto que la web, servido
-/// por el servidor.
 class DocumentoLegalPage extends ConsumerWidget {
   const DocumentoLegalPage({super.key, required this.codigo});
 

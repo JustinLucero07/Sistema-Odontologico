@@ -1,5 +1,3 @@
-"""Vocabulary of the dental laboratory module."""
-
 LAB_ORDER_STATUSES: list[tuple[str, str]] = [
     ("borrador", "Borrador"),
     ("enviado", "Enviado al laboratorio"),
@@ -12,9 +10,6 @@ LAB_ORDER_STATUSES: list[tuple[str, str]] = [
 ]
 LAB_ORDER_STATUS_CODES = {code for code, _ in LAB_ORDER_STATUSES}
 
-# An order moves forward through this chain. Going backwards is only allowed
-# via "rechazado", which is itself a recorded event rather than an undo — a
-# crown that came back from the lab wrong is a fact about the case.
 STATUS_ORDER = ["borrador", "enviado", "en_proceso", "recibido", "probado", "instalado"]
 TERMINAL_STATUSES = {"instalado", "cancelado"}
 

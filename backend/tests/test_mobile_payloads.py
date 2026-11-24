@@ -1,12 +1,3 @@
-"""Contrato con la app móvil.
-
-Cada petición de este archivo es exactamente la que arma un formulario de la
-app (mobile/lib/...): los mismos campos, con los mismos tipos (los importes
-como texto con punto decimal, los opcionales vacíos como null). Si el backend
-cambia un esquema y la app deja de poder guardar, esto falla aquí antes que en
-el teléfono de la clínica.
-"""
-
 from datetime import date, datetime, timedelta, timezone
 
 

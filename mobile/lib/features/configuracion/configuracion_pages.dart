@@ -9,8 +9,6 @@ import '../../shared/widgets/formulario.dart';
 import '../../shared/widgets/glass.dart';
 import '../../shared/widgets/ui.dart';
 
-// ---------------------------------------------------------------- Tratamientos
-
 class TratamientosPage extends ConsumerWidget {
   const TratamientosPage({super.key});
 
@@ -113,8 +111,6 @@ class TratamientosPage extends ConsumerWidget {
     );
   }
 }
-
-// --------------------------------------------------------------- Profesionales
 
 final _especialidadesProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>(
@@ -325,8 +321,6 @@ class ProfesionalesPage extends ConsumerWidget {
   }
 }
 
-// -------------------------------------------------------------------- Usuarios
-
 final _usuariosProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>(
       (ref) => ref.watch(apiProvider).lista('/users'),
@@ -456,8 +450,6 @@ class UsuariosPage extends ConsumerWidget {
     );
   }
 }
-
-// ------------------------------------------------------------- Datos clínica
 
 final _clinicaProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) => ref.watch(apiProvider).mapa('/clinics/me'),

@@ -120,8 +120,6 @@ export class InventoryPageComponent implements OnInit {
   readonly alertCount = computed(() => {
     const a = this.alerts();
     if (!a) return 0;
-    // An item can be both low and expiring; counting the union avoids a badge
-    // that claims more problems than there are.
     return new Set([
       ...a.below_minimum.map((i) => i.id),
       ...a.expiring_soon.map((i) => i.id),
@@ -129,8 +127,6 @@ export class InventoryPageComponent implements OnInit {
     ]).size;
   });
 
-  /** The chosen reason decides whether stock goes up or down; the form shows
-   *  it so nobody has to remember which way "merma" points. */
   readonly movementSign = computed(() => {
     const code = this.movementForm.controls.reason.value;
     return this.catalog().reasons.find((r) => r.code === code)?.sign ?? 1;
@@ -233,7 +229,6 @@ export class InventoryPageComponent implements OnInit {
     }
   }
 
-  /** Desactivar lo saca de la lista y de las alertas; su historial se queda. */
   async toggleItemActive(item: InventoryItem): Promise<void> {
     this.editingItem.set(item);
     this.itemForm.reset({
@@ -256,8 +251,6 @@ export class InventoryPageComponent implements OnInit {
       this.report(error, 'No se pudo cambiar el artículo');
     }
   }
-
-  // ---- Proveedores -------------------------------------------------------
 
   editSupplier(supplier: Supplier | 'new'): void {
     const s = supplier === 'new' ? null : supplier;
@@ -348,8 +341,6 @@ export class InventoryPageComponent implements OnInit {
     this.movements.set(await firstValueFrom(this.inventory.listMovements(item.id)));
   }
 
-  /** The API says exactly how much is left and how much was asked for; our own
-   *  wording would lose that. */
   private report(error: unknown, fallback: string): void {
     const detail = (error as { error?: { detail?: unknown } })?.error?.detail;
     this.snackBar.open(typeof detail === 'string' ? detail : fallback, 'Cerrar', {

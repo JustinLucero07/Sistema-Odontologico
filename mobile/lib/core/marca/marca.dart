@@ -8,10 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api.dart';
 import '../auth/auth_controller.dart';
 
-/// Identidad de la consulta: nombre, logo, color y módulos visibles.
-///
-/// Se guarda en el teléfono para que el login y el arranque ya salgan con la
-/// marca de la consulta, aunque todavía no haya conexión.
 class Marca {
   const Marca({
     required this.nombre,
@@ -21,6 +17,7 @@ class Marca {
     required this.color,
     this.ocultos = const {},
     this.ortodoncia = false,
+    this.especialidad = 'general',
     this.configurada = true,
     this.abre = '08:00',
     this.cierra = '18:00',
@@ -37,9 +34,8 @@ class Marca {
   final Color color;
   final Set<String> ocultos;
 
-  /// La consulta atiende ortodoncia (se activa en la web o aquí): muestra el
-  /// módulo de fichas ORT, plan de cuotas y documentación.
   final bool ortodoncia;
+  final String especialidad;
   final bool configurada;
   final String abre;
   final String cierra;
@@ -72,6 +68,7 @@ class Marca {
     color: colorDeHex(j['primary_color'] as String?) ?? porDefecto.color,
     ocultos: {...((j['hidden_modules'] as List?) ?? []).map((e) => '$e')},
     ortodoncia: j['orthodontics_enabled'] as bool? ?? false,
+    especialidad: '${j['specialty_focus'] ?? 'general'}',
     configurada: j['setup_completed'] as bool? ?? true,
     abre: '${j['opens_at'] ?? '08:00'}',
     cierra: '${j['closes_at'] ?? '18:00'}',
@@ -89,6 +86,7 @@ class Marca {
     'primary_color': hexDeColor(color),
     'hidden_modules': ocultos.toList(),
     'orthodontics_enabled': ortodoncia,
+    'specialty_focus': especialidad,
     'setup_completed': configurada,
     'opens_at': abre,
     'closes_at': cierra,
@@ -173,8 +171,6 @@ class MarcaController extends StateNotifier<Marca> {
   }
 }
 
-/// Al volver a la app se pide la marca otra vez: si en la web activaron un
-/// módulo (por ejemplo ortodoncia), aparece aquí sin cerrar sesión.
 class _AlVolver with WidgetsBindingObserver {
   _AlVolver(this.alVolver);
   final VoidCallback alVolver;

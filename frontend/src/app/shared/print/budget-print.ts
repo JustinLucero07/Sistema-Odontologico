@@ -1,9 +1,6 @@
 import { ClinicIdentity, lanzarImpresion } from './print-document';
 import { Budget } from '../../core/models/treatment.models';
 
-/** Escapes text before it goes into the printed HTML. Treatment descriptions
- *  and notes are typed by users, and this document is written with
- *  `document.write` — unescaped, a `<` in a note would become markup. */
 function esc(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -16,13 +13,6 @@ const money = (n: number) =>
   '$ ' +
   new Intl.NumberFormat('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-/**
- * Opens a clean, printable budget in its own window.
- *
- * Printing the patient page itself would put the sidebar, the tabs and every
- * other panel on paper. A budget handed to a patient is a document on its own:
- * clinic, patient, lines, totals, and a place to sign.
- */
 export function printBudget(
   budget: Budget,
   clinic: ClinicIdentity | null,

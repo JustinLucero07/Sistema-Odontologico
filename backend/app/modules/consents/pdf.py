@@ -1,6 +1,3 @@
-"""PDF del consentimiento: el texto que se firmó, las firmas dibujadas y la
-huella del contenido, para imprimir, archivar o entregar al paciente."""
-
 import base64
 import io
 

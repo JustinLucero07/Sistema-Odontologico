@@ -20,7 +20,6 @@ export interface TreatmentCertificate {
   notes: string | null;
 }
 
-/** Certificado de tratamiento realizado (para el paciente, su seguro o su trabajo). */
 export function printTreatmentCertificate(d: TreatmentCertificate, clinic: ClinicIdentity | null): boolean {
   return openPrintWindow(
     `Certificado de tratamiento · ${d.patient_name}`,
@@ -53,7 +52,6 @@ export interface AttendanceCertificate {
   city: string | null;
 }
 
-/** Certificado de asistencia: el justificativo para el trabajo o el colegio. */
 export function printAttendanceCertificate(d: AttendanceCertificate, clinic: ClinicIdentity | null): boolean {
   const ini = new Date(d.date);
   const fin = new Date(d.ends_at);

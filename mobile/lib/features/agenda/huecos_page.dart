@@ -37,8 +37,6 @@ final _huecosProvider = FutureProvider.autoDispose
           ),
     );
 
-/// Huecos libres: los próximos horarios en que el profesional tiene sitio.
-/// Un toque y queda agendado ahí.
 class HuecosPage extends ConsumerStatefulWidget {
   const HuecosPage({super.key});
 

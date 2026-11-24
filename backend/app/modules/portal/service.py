@@ -18,7 +18,19 @@ from app.modules.patients.service import get_patient_or_404
 from app.modules.payments.constants import money
 from app.modules.payments.models import Charge, Payment
 from app.modules.portal.models import PortalAccess
-from app.modules.portal.schemas import PortalAppointment, PortalCharge, PortalView
+from app.modules.payment_accounts.service import list_accounts as list_payment_accounts
+from app.modules.portal.schemas import (
+    PortalAppointment,
+    PortalCharge,
+    PortalComparacion,
+    PortalComprobante,
+    PortalCuota,
+    PortalHallazgo,
+    PortalOrtho,
+    PortalPaymentAccount,
+    PortalPlanItem,
+    PortalView,
+)
 
 ZERO = Decimal("0.00")
 
@@ -38,11 +50,8 @@ def _hash(raw: str) -> str:
 
 
 async def create_link(
-    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID
+    db: AsyncSession, clinic_id: uuid.UUID, actor_id: uuid.UUID, patient_id: uuid.UUID, include_clinical: bool = False
 ) -> tuple[PortalAccess, str]:
-    """Issues a link. Returns the access row and the RAW token, which the
-    caller must hand over immediately — only the hash is kept, so it can never
-    be shown again."""
     await get_patient_or_404(db, clinic_id, patient_id)
     settings = get_settings()
 
@@ -54,6 +63,7 @@ async def create_link(
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.PORTAL_LINK_DAYS),
         created_by_id=actor_id,
         created_at=datetime.now(timezone.utc),
+        include_clinical=include_clinical,
     )
     db.add(access)
     await db.flush()
@@ -101,11 +111,6 @@ async def revoke(
 
 
 async def resolve(db: AsyncSession, raw_token: str) -> PortalAccess:
-    """Looks a token up by its hash and refuses anything not currently valid.
-
-    Expired and revoked give the SAME answer as a token that never existed:
-    telling an anonymous caller which of the three it is would let them map
-    valid links by trying."""
     result = await db.execute(
         select(PortalAccess).where(PortalAccess.token_hash == _hash(raw_token))
     )
@@ -119,9 +124,6 @@ async def resolve(db: AsyncSession, raw_token: str) -> PortalAccess:
 
 
 async def build_view(db: AsyncSession, access: PortalAccess) -> PortalView:
-    """What the patient sees. Narrow on purpose: appointments and money, never
-    clinical notes, diagnoses or documents — a link can end up in the wrong
-    inbox, and the blast radius has to stay small."""
     patient = (
         await db.execute(select(Patient).where(Patient.id == access.patient_id))
     ).scalar_one()
@@ -186,8 +188,6 @@ async def build_view(db: AsyncSession, access: PortalAccess) -> PortalView:
 
     total_charged = sum((c.amount for c in charges), ZERO)
 
-    # Stamped here rather than in the router: the view is the moment the link
-    # was actually used for something.
     access.last_used_at = now
     access.use_count += 1
 
@@ -199,6 +199,7 @@ async def build_view(db: AsyncSession, access: PortalAccess) -> PortalView:
         balance=money(total_charged - total_paid),
         charges=[
             PortalCharge(
+                id=c.id,
                 description=c.description,
                 issued_on=c.issued_on,
                 amount=money(c.amount),
@@ -207,4 +208,131 @@ async def build_view(db: AsyncSession, access: PortalAccess) -> PortalView:
             for c in sorted(charges, key=lambda c: c.issued_on, reverse=True)
         ],
         expires_at=access.expires_at,
+        payment_accounts=[
+            PortalPaymentAccount.model_validate(a)
+            for a in await list_payment_accounts(db, clinic.id, only_active=True)
+        ],
+        **await extras(db, clinic, patient.id, access.include_clinical),
     )
+
+
+async def extras(db: AsyncSession, clinic: Clinic, patient_id: uuid.UUID, clinica: bool) -> dict:
+    from app.modules.imaging.comparisons import ImageComparison
+    from app.modules.imaging.models import ClinicalImage
+    from app.modules.odontogram.models import Odontogram, ToothCondition
+    from app.modules.portal.comprobantes import a_salida, del_paciente
+    from app.modules.treatment_plans.constants import TREATMENT_PLAN_ITEM_STATUSES
+    from app.modules.treatment_plans.models import TreatmentPlan, TreatmentPlanItem
+    from app.modules.treatments.models import Treatment
+
+    out: dict = {"incluye_clinica": clinica}
+    out["comprobantes"] = [
+        PortalComprobante(**c.model_dump(include={"id", "amount", "paid_on", "destino", "status", "status_label", "reject_reason", "created_at"}))
+        for c in await a_salida(db, await del_paciente(db, clinic.id, patient_id))
+    ]
+    if clinic.orthodontics_enabled:
+        from datetime import date as _date
+
+        from app.modules.orthodontics.service import _case_out, _get_case, _payments_by_charge, list_cases
+
+        casos = (await list_cases(db, clinic.id, patient_id=patient_id, include_closed=True)).items
+        vigente = next((c for c in casos if c.status in ("activo", "retencion", "pausa")), casos[0] if casos else None)
+        if vigente:
+            caso = await _get_case(db, clinic.id, vigente.id)
+            pagos = (await _payments_by_charge(db, [caso.charge_id] if caso.charge_id else [])).get(caso.charge_id, [])
+            paciente = await db.get(Patient, patient_id)
+            d = _case_out(caso, paciente, None, pagos, _date.today(), detail=True)
+            atendidos = sum(1 for c in d.controls if c.attended_on)
+            total = max(len(d.controls), d.estimated_months or 0)
+            out["ortodoncia"] = PortalOrtho(
+                code=d.code, appliance=d.appliance, started_on=d.started_on, estimated_months=d.estimated_months,
+                status=d.status, controls_attended=atendidos, controls_total=total,
+                progress=(min(1.0, atendidos / total) if total else None),
+                next_control_on=d.next_control_on, next_control_overdue=d.next_control_overdue,
+                agreed_total=d.agreed_total, paid=d.paid, balance=d.balance,
+                cuotas=[
+                    PortalCuota(
+                        id=c.id, number=c.number, planned_on=c.planned_on, attended_on=c.attended_on,
+                        amount=c.amount, paid=c.paid, balance=c.balance, status=c.status,
+                    )
+                    for c in d.controls
+                ],
+            )
+
+    if not clinica:
+        return out
+
+    etiquetas = dict(TREATMENT_PLAN_ITEM_STATUSES)
+    out["plan"] = [
+        PortalPlanItem(treatment=nombre, fdi_number=fdi, status=estado, status_label=etiquetas.get(estado, estado))
+        for nombre, fdi, estado in (
+            await db.execute(
+                select(Treatment.name, TreatmentPlanItem.fdi_number, TreatmentPlanItem.status)
+                .join(TreatmentPlanItem, TreatmentPlanItem.treatment_id == Treatment.id)
+                .join(TreatmentPlan, TreatmentPlan.id == TreatmentPlanItem.plan_id)
+                .where(
+                    TreatmentPlan.clinic_id == clinic.id,
+                    TreatmentPlan.patient_id == patient_id,
+                    TreatmentPlan.cancelled_at.is_(None),
+                    TreatmentPlanItem.status.in_(("propuesto", "aprobado", "en_progreso", "completado")),
+                )
+                .order_by(TreatmentPlan.created_at.desc())
+            )
+        ).all()
+    ][:40]
+
+    ultimo = await db.scalar(
+        select(Odontogram.id)
+        .where(Odontogram.clinic_id == clinic.id, Odontogram.patient_id == patient_id)
+        .order_by(Odontogram.created_at.desc())
+        .limit(1)
+    )
+    if ultimo:
+        out["odontograma"] = [
+            PortalHallazgo(fdi_number=f, surface=s, condition=c)
+            for f, s, c in (
+                await db.execute(
+                    select(ToothCondition.fdi_number, ToothCondition.surface, ToothCondition.condition).where(
+                        ToothCondition.odontogram_id == ultimo
+                    )
+                )
+            ).all()
+        ]
+
+    vivas = select(ClinicalImage.id).where(ClinicalImage.patient_id == patient_id, ClinicalImage.archived_at.is_(None))
+    out["comparaciones"] = [
+        PortalComparacion(id=c.id, title=c.title, treatment=c.treatment, before_id=c.before_image_id, after_id=c.after_image_id)
+        for c in (
+            await db.execute(
+                select(ImageComparison)
+                .where(
+                    ImageComparison.clinic_id == clinic.id,
+                    ImageComparison.patient_id == patient_id,
+                    ImageComparison.before_image_id.in_(vivas),
+                    ImageComparison.after_image_id.in_(vivas),
+                )
+                .order_by(ImageComparison.created_at.desc())
+            )
+        ).scalars().all()
+    ]
+    return out
+
+
+async def imagen_del_portal(db: AsyncSession, access: PortalAccess, image_id: uuid.UUID):
+    from app.modules.imaging.comparisons import ImageComparison
+    from app.modules.imaging.models import ClinicalImage
+    from app.shared.storage import get_storage
+
+    if not access.include_clinical:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    usada = await db.scalar(
+        select(ImageComparison.id).where(
+            ImageComparison.patient_id == access.patient_id,
+            ImageComparison.clinic_id == access.clinic_id,
+            (ImageComparison.before_image_id == image_id) | (ImageComparison.after_image_id == image_id),
+        ).limit(1)
+    )
+    imagen = await db.get(ClinicalImage, image_id)
+    if not usada or imagen is None or imagen.archived_at is not None or imagen.patient_id != access.patient_id:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return imagen, await get_storage().read(imagen.storage_key)

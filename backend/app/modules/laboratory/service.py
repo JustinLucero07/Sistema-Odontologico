@@ -20,9 +20,6 @@ from app.modules.patients.models import Patient
 from app.modules.patients.service import get_patient_or_404
 
 
-# ---- Laboratories -------------------------------------------------------
-
-
 async def list_laboratories(db: AsyncSession, clinic_id: uuid.UUID) -> list[Laboratory]:
     result = await db.execute(
         select(Laboratory).where(Laboratory.clinic_id == clinic_id).order_by(Laboratory.name)
@@ -65,13 +62,8 @@ async def _get_laboratory_or_404(db: AsyncSession, clinic_id: uuid.UUID, laborat
     return lab
 
 
-# ---- Orders -------------------------------------------------------------
-
-
 def to_order_out(order: LabOrder, patient_name: str | None, today: date | None = None) -> LabOrderOut:
     today = today or date.today()
-    # Only a case still out at the lab can be late; one already installed or
-    # cancelled is finished, however long it took.
     overdue = None
     if order.due_on and order.status not in TERMINAL_STATUSES and order.received_on is None:
         delta = (today - order.due_on).days
@@ -152,8 +144,6 @@ async def create_order(
     if lab is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Laboratorio no encontrado")
 
-    # A due date nobody set is proposed from the lab's own turnaround rather
-    # than left blank, so the case can still show up as late.
     due_on = payload.due_on
     if due_on is None and lab.default_turnaround_days:
         due_on = date.today() + timedelta(days=lab.default_turnaround_days)
@@ -211,9 +201,6 @@ async def update_status(
             detail=f"El trabajo ya está «{order.status}» y no admite más cambios",
         )
 
-    # The chain only runs forward. A case that comes back wrong is recorded as
-    # "rechazado" — an event in its own right — rather than quietly rewound,
-    # because how many times a crown was remade is part of the case.
     if payload.status in STATUS_ORDER and order.status in STATUS_ORDER:
         if STATUS_ORDER.index(payload.status) < STATUS_ORDER.index(order.status):
             raise HTTPException(
@@ -272,7 +259,6 @@ async def update_order(
     for field, value in payload.model_dump().items():
         setattr(order, field, value)
     await db.flush()
-    # La relación cargada sigue apuntando al laboratorio anterior hasta recargarla.
     await db.refresh(order, attribute_names=["laboratory"])
     await record_audit(
         db, clinic_id=clinic_id, user_id=actor_id, action="update", entity_type="lab_order",

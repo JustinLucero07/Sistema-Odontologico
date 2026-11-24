@@ -2,11 +2,6 @@ import { Component, Input } from '@angular/core';
 
 export type SkeletonVariant = 'list' | 'cards' | 'table' | 'detail' | 'chart' | 'gallery';
 
-/**
- * Esqueleto de carga: la forma de lo que va a aparecer, con un brillo que la
- * recorre. Se lee como "ya casi" en vez de "no hay nada", y cuando llegan los
- * datos el contenido ocupa el mismo sitio sin que la página salte.
- */
 @Component({
   selector: 'app-skeleton',
   standalone: true,
